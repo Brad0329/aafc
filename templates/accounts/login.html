@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}로그인 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li class="present"><a href="{% url 'accounts:login' %}">로그인</a></li>
+                <li><a href="{% url 'accounts:register' %}">회원가입</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">로그인<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;회원&nbsp;&nbsp;>&nbsp;&nbsp;<b>로그인</b></span></h2>
+            <div class="login">
+                <form name="login_form" id="login_form" method="post">
+                    {% csrf_token %}
+                    <h3><img src="{% static 'images/sub/login_tit_190121.png' %}" alt="로그인"/></h3>
+                    {% if form.non_field_errors %}
+                    <p style="color:red; text-align:center; margin-bottom:10px;">
+                        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                    </p>
+                    {% endif %}
+                    <div class="login_id"><input type="text" name="username" id="login_id" maxlength="16" placeholder="아이디" value="{{ form.username.value|default:'' }}"/></div>
+                    <div class="login_pw"><input type="password" name="password" id="login_pwd" maxlength="16" placeholder="비밀번호"/></div>
+                    <div class="login_btn"><a href="javascript:document.getElementById('login_form').submit();"><img src="{% static 'images/sub/login_btn.png' %}" alt="로그인"/></a></div>
+                </form>
+            </div>
+            <div class="login_menu">
+                <div><a href="{% url 'accounts:register' %}"><img src="{% static 'images/sub/join_btn.png' %}" alt="회원가입"/></a></div>
+                <div><a href="#"><img src="{% static 'images/sub/id_search_bts.png' %}" alt="아이디 찾기"/></a></div>
+                <div><a href="#"><img src="{% static 'images/sub/pw_search_bts.png' %}" alt="비밀번호 찾기"/></a></div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $("#login_pwd").on("keydown", function(e){
+        if(e.keyCode == 13){
+            document.getElementById('login_form').submit();
+            return false;
+        }
+    });
+</script>
+{% endblock %}

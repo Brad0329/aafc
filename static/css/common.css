@@ -1,0 +1,121 @@
+@charset "UTF-8";
+
+/*헤더*/
+#header{width:100%;}
+#header #header_lnb{width:100%; background:#002b69; height:35px;}
+#header #header_lnb .header_lnb{width:1024px; padding-right:100px; box-sizing:border-box; margin:0 auto; overflow:hidden; position:relative;}
+#header #header_lnb .header_lnb ul{float:right; position:relative; z-index:999; border-right:1px solid #2d5875;}
+#header #header_lnb .header_lnb ul li{float:left; width:auto; padding:0 10px; line-height:35px; box-sizing:border-box; border-left:1px solid #2d5875; text-align:center;}
+#header #header_lnb .header_lnb ul li a{color:#92aec1; display:block;}
+#header #header_lnb .header_lnb ul li a img{margin-top:8.5px; margin-right:4px;}
+
+#header #header_gnb{width:100%; background:#84b2e0; height:60px; border-bottom:1px solid #cee0f3; box-sizing:border-box;}
+#header #header_gnb .header_gnb{width:1024px; margin:0 auto; padding-left:114px; box-sizing:border-box;}
+#header #header_gnb .header_gnb .gnb{float:left;}
+#header #header_gnb .header_gnb .gnb .gnb_li{width:113px; height:60px; float:left; line-height:60px; position:relative; z-index:999; text-align:center; font-size:15px; font-weight:600;}
+#header #header_gnb .header_gnb .gnb .gnb_li a{display:block; color:white;}
+
+#header #header_gnb .header_gnb .gnb .gnb_li .gnb_menu{width:153px; background:#eee; margin-left:-20px; display:none; position:relative; z-index:997;}
+#header #header_gnb .header_gnb .gnb .gnb_li .gnb_menu li{width:100%; text-align:center; line-height:40px;}
+#header #header_gnb .header_gnb .gnb .gnb_li .gnb_menu li a{color:black; font-size:14px; font-weight:600;}
+#header #header_gnb .header_gnb .gnb .gnb_li .gnb_menu li a:hover{color:#cea13b;}
+
+#header .header_logo{width:1024px; position:absolute; top:5px; left:0; right:0; margin:0 auto; text-align:left; z-index:998;}
+#header .header_logo *{position:relative; z-index:998;}
+
+#header .header_logo_2{width:1024px; position:absolute; top:15px; left:0; right:0; margin:0 auto; text-align:right; z-index:998;}
+#header .header_logo_2 *{position:relative; z-index:998;}
+
+#header .header_qr_pc{position:absolute; top:4px; left:50%; margin-left:-392px; z-index:9999;}
+
+/*모바일 헤더*/
+#M_header_wrap{display:none; width:100%; min-width:320px; height:92px; margin:0 auto; background:#002b69; position:relative; box-sizing:border-box;}
+/*모바일 헤더 로고*/
+#M_header_wrap h1{position:absolute; top:8px; left:8px;}
+#M_header_wrap h1 a img{width:auto; height:75px;}
+#M_header_wrap h2{position:absolute; top:55px; left:90px;}
+#M_header_wrap h2 a img{width:auto; height:25px;}
+#M_header_wrap h3{position:absolute; top:15px; right:59px;}
+#M_header_wrap h3 img{width:auto; height:60px;}
+/*모바일 헤더 버튼*/
+#M_header_wrap .m_menu{display:block; text-indent:0px; position:absolute; top:36px; right:15px; z-index:9; }
+#m_gnb .m_close{display:none; position:absolute; top:10px; right:14px; z-index:9; }
+/*모바일 헤더 메뉴*/
+#m_gnb{width:80%; position:absolute; top:0; right:0; display:none; z-index:999; background:white;}
+#m_gnb li{line-height:48px; font-size:13px; border-bottom:1px solid #e5e5e5; font-weight:600;}
+#m_gnb li img{width:180px; height:auto;}
+#m_gnb li a{color:#0a2a3b; padding-left:15px; }
+#m_gnb li ul{width:100%; display:none; background:#f2f2f2;}
+#m_gnb li ul li{border-bottom:0 none; font-weight:normal; border-top:1px solid #e5e5e5;}
+#m_gnb li ul li a{display:block; color:black;}
+#m_gnb li.m_gnb_top{padding-left:0; background:#002b69; height:42px; line-height:100%; color:#0a2a3b;}
+#m_gnb li.m_gnb_top ol li{width:auto; height:42px; line-height:42px; text-align:center; border-bottom:0; border-right:1px solid #656565; float:left; padding:0 4px; font-size:11px;}
+#m_gnb li.m_gnb_top ol li a{padding:0; display:block; color:white; font-weight:normal;}
+#m_gnb li.m_gnb_bottom{line-height:1; padding:15px 0; overflow:hidden; padding-left:0;}
+#m_gnb li.m_gnb_bottom a{float:left; margin-left:15px; padding:0;}
+#m_gnb li.m_gnb_bottom img{width:auto; height:auto;}
+
+#M_header_wrap .header_qr_mobile{position:absolute; top:8px; right:83px;}
+
+/*푸터*/
+#footer{width:100%; padding:35px 0; background:#002b69;}
+#footer .footer{width:1024px; margin:0 auto; overflow:hidden;}
+#footer .footer h1{width:182px; padding: 134px 80px 0 0; float:left; box-sizing:border-box;}
+#footer .footer .footer_txt{width:calc(100% - 182px);float:left;}
+#footer .footer .footer_txt p a{font-size:14px; font-weight:600; color:#a8b0b7; margin-right:25px;}
+#footer .footer .footer_txt ul{padding-top:25px;}
+#footer .footer .footer_txt ul li{color:#a8b0b7; line-height:21px;}
+#footer .footer .footer_txt ul li .bar{vertical-align:middle; margin:0 10px;}
+#footer .footer .footer_txt ul li:last-child{margin-top:30px;}
+#footer .footer .footer_txt ul li.copy{color:#7d8994;}
+
+.member_count{position:absolute; top:10px; left:130px; color:white;}
+
+@media screen and (min-width:720px) and (max-width:1023px){
+	/*헤더*/
+	#header{display:none;}
+
+	/*모바일 헤더*/
+	#M_header_wrap{display:block;}
+	#m_gnb{width:50%;}
+
+	/*푸터*/
+	#footer{padding:30px 0;}
+	#footer .footer{width:720px;}
+	#footer .footer h1{padding:171.5px 35px 0 0;}
+	#footer .footer .footer_txt ul{padding-top:20px; font-size:12px; letter-spacing:-0.5px;}
+	#footer .footer .footer_txt ul li .mobile{display:block;}
+	#footer .footer .footer_txt ul li .none{display:none;}
+
+	.member_count{position:absolute; top:40px; left:95px; color:white;}
+}
+
+@media screen and (max-width:719px){
+	/*헤더*/
+	#header{display:none;}
+
+	/*모바일 헤더*/
+	#M_header_wrap{display:block;}
+
+	#M_header_wrap .header_qr_mobile{display:none;}
+
+	/*푸터*/
+	#footer{padding:30px 0 20px 0;}
+
+	#footer .footer{width:100%;}
+	#footer .footer h1{width:100%; float:none; text-align:center; padding:0 0 30px 0;}
+	#footer .footer h1 img{width:80px; height:auto;}
+
+	#footer .footer .footer_txt{width:100%; padding:0 5px; float:none; box-sizing:border-box;}
+	#footer .footer .footer_txt p{text-align:center; margin-bottom:15px;}
+	#footer .footer .footer_txt p a{font-size:13px; margin:0 3px; letter-spacing:-0.5px;}
+	#footer .footer .footer_txt ul{padding-top:0;}
+	#footer .footer .footer_txt ul li{text-align:center; letter-spacing:-0.5px;}
+	#footer .footer .footer_txt ul li .mobile{display:block;}
+	#footer .footer .footer_txt ul li .other{display:block;}
+	#footer .footer .footer_txt ul li .other .bar{display:none;}
+	#footer .footer .footer_txt ul li .none{display:none;}
+	#footer .footer .footer_txt ul li:last-child{margin-top:10px;}
+
+	.member_count{position:absolute; top:40px; left:95px; color:white;}
+}

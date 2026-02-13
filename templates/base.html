@@ -1,0 +1,221 @@
+{% load static %}
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"/>
+<link rel="shortcut icon" href="{% static 'images/aafc.ico' %}"/>
+<title>{% block title %}주니어유나이티드아카데미{% endblock %}</title>
+
+<link rel="stylesheet" href="{% static 'css/reset.css' %}"/>
+<link rel="stylesheet" href="{% static 'css/common.css' %}"/>
+<link rel="stylesheet" href="{% static 'css/index.css' %}"/>
+<link rel="stylesheet" href="{% static 'css/sub.css' %}"/>
+
+<script type="text/javascript" src="{% static 'js/jquery-1.11.3.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/jquery.flexslider.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/m_main.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/common.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/verification.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/jquery.blockUI.js' %}"></script>
+
+{% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <div id="header">
+        <div id="header_lnb">
+            <div class="header_lnb">
+                <div class="member_count"></div>
+                <ul>
+                    <li><a href="https://blog.naver.com/aafc2019" target="_blank"><img src="{% static 'images/blog_icon.png' %}" alt=""/>BLOG</a></li>
+                    <li><a href="https://cafe.naver.com/aafc2018" target="_blank"><img src="{% static 'images/cafe_icon.png' %}" alt=""/>CAFE</a></li>
+                    <li><a href="https://www.youtube.com/@aafcallaboutfootballclub5658" target="_blank"><img src="{% static 'images/youtube_icon.png' %}" alt=""/>YOUTUBE</a></li>
+                    <li><a href="https://www.instagram.com/aafc.co.kr/" target="_blank"><img src="{% static 'images/insta_icon.png' %}" alt=""/>INSTAGRAM</a></li>
+                    {% if user.is_authenticated %}
+                    <li><a href="{% url 'accounts:logout' %}">로그아웃</a></li>
+                    <li><a href="{% url 'accounts:mypage' %}">마이아카데미</a></li>
+                    {% else %}
+                    <li><a href="{% url 'accounts:login' %}">로그인</a></li>
+                    <li><a href="{% url 'accounts:register' %}">회원가입</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        <div id="header_gnb">
+            <div class="header_gnb">
+                <ul class="gnb">
+                    <li class="gnb_li"><a href="#">AAFC</a>
+                        <ul class="gnb_menu">
+                            <li><a href="#">운영진 인사말</a></li>
+                            <li><a href="#">엠블럼 & BI소개</a></li>
+                            <li><a href="#">찾아오시는 길</a></li>
+                        </ul>
+                    </li>
+                    <li class="gnb_li"><a href="#">아카데미</a>
+                        <ul class="gnb_menu">
+                            <li><a href="#">구장안내</a></li>
+                            <li><a href="#">코칭스태프</a></li>
+                            <li><a href="#">교육 프로그램</a></li>
+                        </ul>
+                    </li>
+                    <li class="gnb_li"><a href="#">입단신청</a></li>
+                    <li class="gnb_li"><a href="{% url 'accounts:mypage' %}">마이아카데미</a></li>
+                    <li class="gnb_li"><a href="#">커뮤니티</a>
+                        <ul class="gnb_menu">
+                            <li><a href="#">공지사항</a></li>
+                            <li><a href="#">학부모다이어리</a></li>
+                            <li><a href="#">포토갤러리</a></li>
+                            <li><a href="#">공부하는 AAFC</a></li>
+                        </ul>
+                    </li>
+                    <li class="gnb_li"><a href="#">상담신청</a>
+                        <ul class="gnb_menu">
+                            <li><a href="#">상담신청</a></li>
+                            <li><a href="#">무료수업체험 신청</a></li>
+                        </ul>
+                    </li>
+                    <li class="gnb_li"><a href="#">쇼핑몰</a>
+                        <ul class="gnb_menu">
+                            <li><a href="#">상품리스트</a></li>
+                            <li><a href="#">장바구니</a></li>
+                            <li><a href="#">주문/배송조회</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="header_logo_2"><img src="{% static 'images/aaladys_220830.png' %}" alt=""/></div>
+        <div class="header_logo">
+            <a href="/"><img src="{% static 'images/emblem.png' %}" alt=""/></a>
+        </div>
+    </div>
+
+    <!-- M_HEADER -->
+    <div id="M_header_wrap">
+        <h1><a href="/"><img src="{% static 'images/emblem.png' %}" alt=""/></a></h1>
+        <h3><img src="{% static 'images/aaladys_220830.png' %}" alt=""/></h3>
+        <div class="member_count"></div>
+        <a href="#" class="m_menu"><img src="{% static 'images/m_menu_off.png' %}" alt="메뉴보기"/></a>
+        <div id="m_gnb">
+            <a href="#" class="m_close"><img src="{% static 'images/m_menu_off.png' %}" alt="메뉴닫기"/></a>
+            <ul>
+                <li class="m_gnb_top">
+                    <ol>
+                    {% if user.is_authenticated %}
+                        <li><a href="{% url 'accounts:logout' %}">로그아웃</a></li>
+                        <li><a href="{% url 'accounts:mypage' %}">마이아카데미</a></li>
+                    {% else %}
+                        <li><a href="{% url 'accounts:login' %}">로그인</a></li>
+                        <li><a href="{% url 'accounts:register' %}">회원가입</a></li>
+                    {% endif %}
+                    </ol>
+                </li>
+                {% if user.is_authenticated %}
+                <li><a href="#">마이아카데미</a>
+                    <ul>
+                        <li><a href="{% url 'accounts:mypage' %}">마이페이지</a></li>
+                        <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
+                    </ul>
+                </li>
+                {% endif %}
+                <li><a href="#">AAFC</a>
+                    <ul>
+                        <li><a href="#">운영진 인사말</a></li>
+                        <li><a href="#">엠블럼 & BI소개</a></li>
+                        <li><a href="#">찾아오시는 길</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">아카데미</a>
+                    <ul>
+                        <li><a href="#">구장안내</a></li>
+                        <li><a href="#">코칭스태프</a></li>
+                        <li><a href="#">교육 프로그램</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">입단신청</a></li>
+                <li><a href="#">커뮤니티</a>
+                    <ul>
+                        <li><a href="#">공지사항</a></li>
+                        <li><a href="#">학부모다이어리</a></li>
+                        <li><a href="#">포토갤러리</a></li>
+                        <li><a href="#">공부하는 AAFC</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">상담신청</a>
+                    <ul>
+                        <li><a href="#">상담신청</a></li>
+                        <li><a href="#">무료수업체험 신청</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">쇼핑몰</a>
+                    <ul>
+                        <li><a href="#">상품리스트</a></li>
+                        <li><a href="#">장바구니</a></li>
+                        <li><a href="#">주문/배송조회</a></li>
+                    </ul>
+                </li>
+                <li class="m_gnb_bottom">
+                    <a href="https://blog.naver.com/aafc2019" target="_blank"><img src="{% static 'images/blog_icon.png' %}" alt=""/></a>
+                    <a href="https://cafe.naver.com/aafc2018" target="_blank"><img src="{% static 'images/cafe_icon.png' %}" alt=""/></a>
+                    <a href="https://www.youtube.com/@aafcallaboutfootballclub5658" target="_blank"><img src="{% static 'images/youtube_icon.png' %}" alt=""/></a>
+                    <a href="https://www.instagram.com/aafc.co.kr/" target="_blank"><img src="{% static 'images/insta_icon.png' %}" alt=""/></a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <!-- //M_HEADER -->
+
+    <script>
+        function goTop(){ $("html").animate({scrollTop : 0}, 400); }
+    </script>
+    <div class="sub_quick_menu">
+        <div>QUICK<br/>MENU</div>
+        <ul>
+            <li><a href="#"><img src="{% static 'images/sub/sub_quick_img_01.png' %}" alt=""/></a><p>상담신청</p></li>
+            <li><a href="#"><img src="{% static 'images/sub/sub_quick_img_02.png' %}" alt=""/></a><p>입단신청</p></li>
+            <li><a href="#"><img src="{% static 'images/sub/sub_quick_img_03.png' %}" alt=""/></a><p>구장안내</p></li>
+            <li><a href="#"><img src="{% static 'images/sub/sub_quick_img_04.png' %}" alt=""/></a><p>쇼핑몰</p></li>
+            <li><a href="javascript:goTop();"><img src="{% static 'images/sub/sub_quick_img_05.png' %}" alt=""/></a></li>
+        </ul>
+    </div>
+
+    {% block content %}{% endblock %}
+
+    <div id="main_sponsor">
+        <div class="main_sponsor">
+            <ul>
+                <li><a href="https://arocell.co.kr/shopinfo/brand.html" target="_blank"><img src="{% static 'images/footer_sponsor_10.png' %}" alt="아로셀"/></a></li>
+                <li><a href="http://www.newyjh.com/main/intro.htm" target="_blank"><img src="{% static 'images/footer_sponsor_01.png' %}" alt="양지병원"/></a></li>
+                <li><a href="http://zeahdental.com/event/pages/Z_ECT2_jr" target="_blank"><img src="{% static 'images/footer_sponsor_05.png' %}" alt="제아치과"/></a></li>
+                <li><a href="http://imsports.co.kr" target="_blank"><img src="{% static 'images/footer_sponsor_06.png' %}" alt="아이엠스포츠"/></a></li>
+                <li><a href="https://www.childfund.or.kr/main.do" target="_blank"><img src="{% static 'images/footer_sponsor_08.png' %}" alt="초록우산"/></a></li>
+            </ul>
+        </div>
+    </div>
+    <div id="footer">
+        <div class="footer">
+            <h1><a href="/"><img src="{% static 'images/f_logo_200325.png' %}" alt=""/></a></h1>
+            <div class="footer_txt">
+                <p><a href="#">개인정보처리방침</a><a href="#">이용약관</a></p>
+                <ul>
+                    <li>(주)주니어유나이티드아카데미</li>
+                    <li>주소: (우)06771 서울특별시 서초구 매헌로 16 양재 하이브랜드 1312호<span class="bar none">|</span><span class="mobile">TEL: 1811-7909<span class="bar">|</span>FAX: 02-3412-4943</span></li>
+                    <li>사업자번호: 735-88-01141<span class="other"><span class="bar">|</span>통신판매신고번호: 2019-서울강남-00263</span></li>
+                    <li>호스팅서비스제공자: ㈜주니어유나이티드아카데미<span class="bar none">|</span><span class="mobile">대표자명: 박종경<span class="bar">|</span>개인정보책임관리자: 박종경</span></li>
+                    <li>&nbsp;</li>
+                    <li>(주)아이엠스포츠</li>
+                    <li>주소: (우)15121 경기도 시흥시 장현능곡로 155 시흥플랑드르 311, 411<span class="bar none">|</span><span class="mobile">TEL: 031-315-2288</span></li>
+                    <li>사업자 번호: 560-86-01484<span class="other"><span class="bar">|</span>통신판매신고번호: 2021-경기시흥-2027</span></li>
+                    <li>수탁사업자: (주)아이엠스포츠<span class="bar">|</span>대표자명: 류정아</li>
+                    <li>&nbsp;</li>
+                    <li>(주)주니어유나이티드아카데미는 축구교육 및 스포츠용품, 서비스 판매 등에 대하여 통신판매중개자의 지위를 가지며, 해당 서비스와 상품정보 및 거래에 관한 의무와 책임은 판매자에게 있습니다.</li>
+                    <li class="copy">COPYRIGHT &copy; JUNIOR UNITED ACADEMY CORP. ALL RIGHTS RESERVED.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

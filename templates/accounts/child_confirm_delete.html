@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}자녀 삭제 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li class="present"><a href="{% url 'accounts:mypage' %}">마이페이지</a></li>
+                <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">자녀 삭제<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;MyPage&nbsp;&nbsp;>&nbsp;&nbsp;<b>자녀 삭제</b></span></h2>
+
+            <div class="join_info">
+                <p style="padding:30px; text-align:center; font-size:14px;">
+                    <strong>{{ child.name }}</strong>을(를) 정말 삭제하시겠습니까?
+                </p>
+            </div>
+            <div class="join_btn" style="text-align:center;">
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" style="background:#1e406e; color:#fff; border:none; padding:10px 30px; cursor:pointer;">삭제</button>
+                    <a href="{% url 'accounts:mypage' %}" style="background:#868686; color:#fff; padding:10px 30px; text-decoration:none; margin-left:5px;">취소</a>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

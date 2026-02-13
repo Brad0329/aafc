@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}마이페이지 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li class="present"><a href="{% url 'accounts:mypage' %}">마이페이지</a></li>
+                <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">MyPage<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;MyPage&nbsp;&nbsp;>&nbsp;&nbsp;<b>정보확인</b></span></h2>
+
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_06.png' %}" alt=""/>회원정보</h3>
+            <div class="join_info">
+                <table summary="">
+                    <tbody>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>회원명</th>
+                            <td>{{ user.name }}</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>아이디</th>
+                            <td>{{ user.username }}</td>
+                        </tr>
+                        <tr class="contact">
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>휴대폰</th>
+                            <td>{{ user.phone }}</td>
+                        </tr>
+                        <tr class="email">
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>이메일</th>
+                            <td>{{ user.email }}</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주소</th>
+                            <td>{{ user.zipcode }}</td>
+                        </tr>
+                        <tr>
+                            <th>&nbsp;</th>
+                            <td>{{ user.address1 }}&nbsp; {{ user.address2 }}</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>SMS수신 동의</th>
+                            <td>{% if user.sms_consent == 'Y' %}동의함{% else %}동의안함{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>메일수신 동의</th>
+                            <td>{% if user.mail_consent == 'Y' %}동의함{% else %}동의안함{% endif %}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="join_btn">
+                <a href="{% url 'accounts:child_add' %}"><img src="{% static 'images/sub/add_child.jpg' %}" alt="자녀등록"/></a>
+                <a href="{% url 'accounts:profile_edit' %}"><img src="{% static 'images/sub/info_bts.png' %}" alt="정보수정"/></a>
+            </div>
+
+            {% for child in children %}
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_07.png' %}" alt=""/>자녀정보</h3>
+            <div class="join_info">
+                <div>
+                    <table summary="">
+                        <tbody>
+                            <tr>
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>자녀명</th>
+                                <td>{{ child.name }}</td>
+                            </tr>
+                            <tr>
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>생년월일</th>
+                                <td>{{ child.birth }}</td>
+                            </tr>
+                            <tr>
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>학교명/학년</th>
+                                <td>{{ child.school }} / {{ child.grade }}</td>
+                            </tr>
+                            <tr>
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>성별</th>
+                                <td>{% if child.gender == 'M' %}남자{% elif child.gender == 'F' %}여자{% endif %}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="join_btn">
+                <a href="{% url 'accounts:child_edit' child.pk %}"><img src="{% static 'images/sub/info_bts.png' %}" alt="정보수정"/></a>
+            </div>
+            {% empty %}
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_07.png' %}" alt=""/>자녀정보</h3>
+            <div class="join_info">
+                <p style="padding:20px; text-align:center;">등록된 자녀가 없습니다.</p>
+            </div>
+            {% endfor %}
+
+        </div>
+    </div>
+{% endblock %}
