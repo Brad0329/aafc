@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}엠블럼 & BI소개 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top aafc"><img src="{% static 'images/sub/sub_top_m_aafc.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li><a href="{% url 'courses:greeting' %}">운영진 인사말</a></li>
+                <li class="present"><a href="{% url 'courses:emblem' %}">엠블럼 & BI소개</a></li>
+                <li><a href="{% url 'courses:waytocome' %}">찾아오시는 길</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">엠블럼 & BI소개<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;AAFC&nbsp;&nbsp;>&nbsp;&nbsp;<b>엠블럼 & BI소개</b></span></h2>
+
+            <div class="aafc_emb_box">
+                <img src="{% static 'images/sub/aafc_emblem_20200319.jpg' %}" alt="" class="img"/>
+                <a href="{% static 'images/sub/emblem.zip' %}"><img src="{% static 'images/sub/btn.jpg' %}" alt="다운로드" class="btn_02"/></a>
+            </div>
+        </div>
+    </div>
+{% endblock %}

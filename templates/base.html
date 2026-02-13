@@ -45,18 +45,18 @@
         <div id="header_gnb">
             <div class="header_gnb">
                 <ul class="gnb">
-                    <li class="gnb_li"><a href="#">AAFC</a>
+                    <li class="gnb_li"><a href="{% url 'courses:greeting' %}">AAFC</a>
                         <ul class="gnb_menu">
-                            <li><a href="#">운영진 인사말</a></li>
-                            <li><a href="#">엠블럼 & BI소개</a></li>
-                            <li><a href="#">찾아오시는 길</a></li>
+                            <li><a href="{% url 'courses:greeting' %}">운영진 인사말</a></li>
+                            <li><a href="{% url 'courses:emblem' %}">엠블럼 & BI소개</a></li>
+                            <li><a href="{% url 'courses:waytocome' %}">찾아오시는 길</a></li>
                         </ul>
                     </li>
-                    <li class="gnb_li"><a href="#">아카데미</a>
+                    <li class="gnb_li"><a href="{% url 'courses:stadium_list' %}">아카데미</a>
                         <ul class="gnb_menu">
-                            <li><a href="#">구장안내</a></li>
-                            <li><a href="#">코칭스태프</a></li>
-                            <li><a href="#">교육 프로그램</a></li>
+                            <li><a href="{% url 'courses:stadium_list' %}">구장안내</a></li>
+                            <li><a href="{% url 'courses:coach_list' %}">코칭스태프</a></li>
+                            <li><a href="{% url 'courses:program' %}">교육 프로그램</a></li>
                         </ul>
                     </li>
                     <li class="gnb_li"><a href="#">입단신청</a></li>
@@ -119,18 +119,18 @@
                     </ul>
                 </li>
                 {% endif %}
-                <li><a href="#">AAFC</a>
+                <li><a href="{% url 'courses:greeting' %}">AAFC</a>
                     <ul>
-                        <li><a href="#">운영진 인사말</a></li>
-                        <li><a href="#">엠블럼 & BI소개</a></li>
-                        <li><a href="#">찾아오시는 길</a></li>
+                        <li><a href="{% url 'courses:greeting' %}">운영진 인사말</a></li>
+                        <li><a href="{% url 'courses:emblem' %}">엠블럼 & BI소개</a></li>
+                        <li><a href="{% url 'courses:waytocome' %}">찾아오시는 길</a></li>
                     </ul>
                 </li>
-                <li><a href="#">아카데미</a>
+                <li><a href="{% url 'courses:stadium_list' %}">아카데미</a>
                     <ul>
-                        <li><a href="#">구장안내</a></li>
-                        <li><a href="#">코칭스태프</a></li>
-                        <li><a href="#">교육 프로그램</a></li>
+                        <li><a href="{% url 'courses:stadium_list' %}">구장안내</a></li>
+                        <li><a href="{% url 'courses:coach_list' %}">코칭스태프</a></li>
+                        <li><a href="{% url 'courses:program' %}">교육 프로그램</a></li>
                     </ul>
                 </li>
                 <li><a href="#">입단신청</a></li>
@@ -174,7 +174,7 @@
         <ul>
             <li><a href="#"><img src="{% static 'images/sub/sub_quick_img_01.png' %}" alt=""/></a><p>상담신청</p></li>
             <li><a href="#"><img src="{% static 'images/sub/sub_quick_img_02.png' %}" alt=""/></a><p>입단신청</p></li>
-            <li><a href="#"><img src="{% static 'images/sub/sub_quick_img_03.png' %}" alt=""/></a><p>구장안내</p></li>
+            <li><a href="{% url 'courses:stadium_list' %}"><img src="{% static 'images/sub/sub_quick_img_03.png' %}" alt=""/></a><p>구장안내</p></li>
             <li><a href="#"><img src="{% static 'images/sub/sub_quick_img_04.png' %}" alt=""/></a><p>쇼핑몰</p></li>
             <li><a href="javascript:goTop();"><img src="{% static 'images/sub/sub_quick_img_05.png' %}" alt=""/></a></li>
         </ul>

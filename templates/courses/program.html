@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}교육 프로그램 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top academy"><img src="{% static 'images/sub/sub_top_m_academy.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li><a href="{% url 'courses:stadium_list' %}">구장안내</a></li>
+                <li><a href="{% url 'courses:coach_list' %}">코칭스태프</a></li>
+                <li class="present"><a href="{% url 'courses:program' %}">교육 프로그램</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">교육 프로그램<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;아카데미&nbsp;&nbsp;>&nbsp;&nbsp;<b>교육 프로그램</b></span></h2>
+
+            <div class="sub_img_wrap">
+                <div class="box"><img src="{% static 'images/sub/program_img_01.jpg' %}" alt=""/></div>
+                <div class="box"><img src="{% static 'images/sub/program_img_02.jpg' %}" alt=""/></div>
+                <div class="box iframe_wrap"><iframe src="https://www.youtube.com/embed/5a6PEpEUbZc" frameborder="0"></iframe></div>
+                <div class="box"><img src="{% static 'images/sub/program_img_03.jpg' %}" alt=""/></div>
+                <div class="box"><img src="{% static 'images/sub/program_img_04.jpg' %}" alt=""/></div>
+                <div class="box"><img src="{% static 'images/sub/program_img_05.jpg' %}" alt=""/></div>
+                <div class="box"><img src="{% static 'images/sub/program_img_06.jpg' %}" alt=""/></div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

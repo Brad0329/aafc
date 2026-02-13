@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}코칭스태프 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top academy"><img src="{% static 'images/sub/sub_top_m_academy.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li><a href="{% url 'courses:stadium_list' %}">구장안내</a></li>
+                <li class="present"><a href="{% url 'courses:coach_list' %}">코칭스태프</a></li>
+                <li><a href="{% url 'courses:program' %}">교육 프로그램</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">코칭스태프<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;아카데미&nbsp;&nbsp;>&nbsp;&nbsp;<b>코칭스태프</b></span></h2>
+
+            {% if coaches %}
+            <div class="stadium_info" id="stadium_info">
+                <div class="stadium_box" id="stadium_01">
+                    <ul class="stadium_coach">
+                        {% for coach in coaches %}
+                        {% if coach.coach_s_img %}
+                        <li><img src="/media/fcdata/coach/{{ coach.coach_s_img }}" alt="{{ coach.coach_name }}"/></li>
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% else %}
+            <div class="ready_img">
+                <img src="{% static 'images/junior_ready.jpg' %}" alt=""/>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

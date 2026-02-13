@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}구장안내 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top academy"><img src="{% static 'images/sub/sub_top_m_academy.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li class="present"><a href="{% url 'courses:stadium_list' %}">구장안내</a></li>
+                <li><a href="{% url 'courses:coach_list' %}">코칭스태프</a></li>
+                <li><a href="{% url 'courses:program' %}">교육 프로그램</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">구장안내<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;아카데미&nbsp;&nbsp;>&nbsp;&nbsp;<b>구장안내</b></span></h2>
+
+            <div class="stadium_select pc">
+                <img src="{% static 'images/sub/junior_stadium_250729.jpg' %}" alt="" usemap="#stadium_map"/>
+                <map name="stadium_map" id="stadium_map">
+                    <area shape="rect" coords="373,342,444,361" href="javascript:goStadium(10);">
+                    <area shape="rect" coords="295,342,371,361" href="javascript:goStadium(12);">
+                    <area shape="rect" coords="107,235,193,254" href="javascript:goStadium(13);">
+                    <area shape="rect" coords="264,404,335,423" href="javascript:goStadium(14);">
+                    <area shape="rect" coords="188,404,260,423" href="javascript:goStadium(15);">
+                    <area shape="rect" coords="532,307,608,327" href="javascript:goStadium(21);">
+                    <area shape="rect" coords="610,266,659,286" href="javascript:goStadium(27);">
+                    <area shape="rect" coords="562,243,633,262" href="javascript:goStadium(22);">
+                    <area shape="rect" coords="662,266,730,286" href="javascript:goStadium(23);">
+                    <area shape="rect" coords="733,277,817,296" href="javascript:goStadium(30);">
+                    <area shape="rect" coords="200,769,276,788" href="javascript:goStadium(32);">
+                    <area shape="rect" coords="237,625,335,644" href="javascript:goStadium(33);">
+                    <area shape="rect" coords="216,880,322,899" href="javascript:goStadium(37);">
+                    <area shape="rect" coords="681,553,751,572" href="javascript:goStadium(41);">
+                </map>
+            </div>
+
+            <div class="stadium_select mobile">
+                <table summary="">
+                    <thead>
+                        <tr>
+                            <th>지역</th>
+                            <th>구장명</th>
+                            <th>연락처</th>
+                            <th>상세보기</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in stadiums %}
+                        <tr>
+                            <td>{{ s.local_name }}</td>
+                            <td>{{ s.sta_name }}</td>
+                            <td>{{ s.sta_phone }}</td>
+                            <td><a href="javascript:goStadium({{ s.sta_code }});"><img src="{% static 'images/sub/stadium_view.png' %}" alt="상세보기"/></a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="area_stadium" style="display:block;"></div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript">
+    function goStadium(sta_code) {
+        if (sta_code == "") return;
+        $.ajax({
+            url: "/academy/stadium/" + sta_code + "/",
+            success: function(data) {
+                $("#area_stadium").html(data);
+            }
+        });
+    }
+</script>
+{% endblock %}

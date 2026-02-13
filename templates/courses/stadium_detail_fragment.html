@@ -1,0 +1,96 @@
+{% load static %}
+<div class="stadium_info" id="stadium_info">
+    <div class="stadium_box" id="stadium_01">
+
+        <h3 class="stadium_tit"><img src="{% static 'images/sub/stadium_ico_01.png' %}" alt=""/>구장소개</h3>
+        <table summary="">
+            <colgroup>
+                <col width="30%"/>
+                <col width="*"/>
+            </colgroup>
+            <tbody>
+                <tr>
+                    <th>구장명</th>
+                    <td>{{ stadium.sta_name }}</td>
+                </tr>
+                <tr>
+                    <th>연락처</th>
+                    <td>{{ stadium.sta_phone }}</td>
+                </tr>
+                <tr>
+                    <th>주소</th>
+                    <td>{{ stadium.sta_address }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        {% if lecture_groups %}
+        <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_12.png' %}" alt=""/>강좌 정보</h3>
+        {% for class_name, lectures in lecture_groups.items %}
+        <h4 class="edu_class">{{ class_name }} 클래스</h4>
+        <table summary="" class="edu_apply_01">
+            <colgroup>
+                <col width="15%"/>
+                <col width="18%"/>
+                <col width="*"/>
+                <col width="26%"/>
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>요일</th>
+                    <th>시간</th>
+                    <th>대상</th>
+                    <th class="last">정원</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lec in lectures %}
+                <tr>
+                    <td>{{ lec.day }}</td>
+                    <td>{{ lec.time }}</td>
+                    <td>&nbsp;&nbsp;&nbsp;{{ lec.age }}</td>
+                    <td class="last">{{ lec.capacity }}명</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endfor %}
+        {% endif %}
+
+        {% if coach_images %}
+        <h3 class="stadium_tit"><img src="{% static 'images/sub/stadium_ico_02.png' %}" alt=""/>담당코치</h3>
+        <ul class="stadium_coach">
+            {% for img in coach_images %}
+            <li><img src="/media/fcdata/coach/{{ img }}" alt="코치"/></li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        <h3 class="stadium_tit"><img src="{% static 'images/sub/stadium_ico_03.png' %}" alt=""/>구장사진</h3>
+        {% if stadium.sta_s_img %}
+        <div class="stadium_img">
+            <img src="/media/fcdata/stadium/{{ stadium.sta_s_img }}" alt="{{ stadium.sta_name }}"/>
+        </div>
+        {% endif %}
+        {% if stadium.sta_l_img %}
+        <div class="stadium_img">
+            <img src="/media/fcdata/stadium/{{ stadium.sta_l_img }}" alt="{{ stadium.sta_name }}"/>
+        </div>
+        {% endif %}
+
+        {% if stadium.sta_desc %}
+        <h3 class="stadium_tit"><img src="{% static 'images/sub/stadium_ico_04.png' %}" alt=""/>소개</h3>
+        <div class="stadium_img">
+            {{ stadium.sta_desc|safe }}
+        </div>
+        {% endif %}
+
+        {% if stadium.location_url %}
+        <h3 class="stadium_tit"><img src="{% static 'images/sub/stadium_ico_04.png' %}" alt=""/>구장위치</h3>
+        <div class="stadium_add">
+            <iframe src="{{ stadium.location_url }}" allowfullscreen=""></iframe>
+        </div>
+        {% endif %}
+
+    </div>
+</div>

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}찾아오시는 길 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top aafc"><img src="{% static 'images/sub/sub_top_m_aafc.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li><a href="{% url 'courses:greeting' %}">운영진 인사말</a></li>
+                <li><a href="{% url 'courses:emblem' %}">엠블럼 & BI소개</a></li>
+                <li class="present"><a href="{% url 'courses:waytocome' %}">찾아오시는 길</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">찾아오시는 길<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;AAFC&nbsp;&nbsp;>&nbsp;&nbsp;<b>찾아오시는 길</b></span></h2>
+
+            <div class="stadium_info" id="stadium_info">
+                <div class="stadium_box" id="stadium_01">
+                    <h3 class="stadium_tit"><img src="{% static 'images/sub/stadium_ico_01.png' %}" alt=""/>본사</h3>
+                    <table summary="">
+                        <colgroup>
+                            <col width="30%"/>
+                            <col width="*"/>
+                        </colgroup>
+                        <tbody>
+                            <tr>
+                                <th>주소</th>
+                                <td>서울 서초구 매헌로16길 하이브랜드 1312호 (양재동 215, 06771)</td>
+                            </tr>
+                            <tr>
+                                <th>TEL</th>
+                                <td>02)3412-4940~2</td>
+                            </tr>
+                            <tr>
+                                <th>FAX</th>
+                                <td>02)3412-4943</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="waytocome_map">
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3166.9160251118315!2d127.03447121558638!3d37.46270458782479!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x357ca12a79eef12b%3A0xb78fd482c7c958c6!2z7ZWY7J2067iM656c65Oc!5e0!3m2!1sko!2skr!4v1676954772726!5m2!1sko!2skr" allowfullscreen=""></iframe>
+                </div>
+                <div class="stadium_box" id="stadium_01">
+                    <h3 class="stadium_tit"><img src="{% static 'images/sub/stadium_ico_01.png' %}" alt=""/>북부사무실</h3>
+                    <table summary="">
+                        <colgroup>
+                            <col width="30%"/>
+                            <col width="*"/>
+                        </colgroup>
+                        <tbody>
+                            <tr>
+                                <th>주소</th>
+                                <td>서울 노원구 월계로370 희성프라자 B동 512호 (월계동 321-2, 01905)</td>
+                            </tr>
+                            <tr>
+                                <th>TEL</th>
+                                <td>02)3412-4940~2</td>
+                            </tr>
+                            <tr>
+                                <th>FAX</th>
+                                <td>02)3412-4943</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="waytocome_map">
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3159.779239573623!2d127.05885341558965!3d37.63088032819774!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x357cbbe7791ab8ef%3A0xad92a08b2756b97b!2z7ISc7Jq47Yq567OE7IucIOuFuOybkOq1rCDsm5Tqs4TroZwgMzcw!5e0!3m2!1sko!2skr!4v1676954232818!5m2!1sko!2skr" allowfullscreen=""></iframe>
+                </div>
+                <div class="stadium_box" id="stadium_01">
+                    <h3 class="stadium_tit"><img src="{% static 'images/sub/stadium_ico_01.png' %}" alt=""/>고양사무실</h3>
+                    <table summary="">
+                        <colgroup>
+                            <col width="30%"/>
+                            <col width="*"/>
+                        </colgroup>
+                        <tbody>
+                            <tr>
+                                <th>주소</th>
+                                <td>경기 고양시 덕양구 향동동 391 디엠씨플렉스데시앙 제 11층 B동 1123호</td>
+                            </tr>
+                            <tr>
+                                <th>TEL</th>
+                                <td>1811-7909</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="waytocome_map">
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3160.7025900270983!2d126.88985357592213!3d37.609158021682944!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x357c99c10049771f%3A0x9d8d3a76ace5fbce!2z6rK96riw64-EIOqzoOyWkeyLnCDrjZXslpHqtawg7Zal64-Z64-ZIDM5MQ!5e0!3m2!1sko!2skr!4v1739865613547!5m2!1sko!2skr" allowfullscreen=""></iframe>
+                </div>
+                <div class="stadium_box" id="stadium_01">
+                    <h3 class="stadium_tit"><img src="{% static 'images/sub/stadium_ico_01.png' %}" alt=""/>남양주사무실</h3>
+                    <table summary="">
+                        <colgroup>
+                            <col width="30%"/>
+                            <col width="*"/>
+                        </colgroup>
+                        <tbody>
+                            <tr>
+                                <th>주소</th>
+                                <td>경기 남양주시 다산순환로 50 현대프리미엄아울렛 스페이스원 4층 (다산동 6141, 12248)</td>
+                            </tr>
+                            <tr>
+                                <th>TEL</th>
+                                <td>031)8078-2402</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="waytocome_map common">
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3160.411404054309!2d127.15052601558939!3d37.616009479050376!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x357cb7dcdce45edb%3A0x3fbe5f2a56f6bfe1!2z7ZiE64yA7ZSE66as66-47JeE7JWE7Jq466CbIOyKpO2OmOydtOyKpOybkA!5e0!3m2!1sko!2skr!4v1676954450700!5m2!1sko!2skr" allowfullscreen=""></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
