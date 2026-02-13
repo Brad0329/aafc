@@ -54,7 +54,7 @@ class MemberChild(models.Model):
         to_field='username', db_column='member_id',
     )
     name = models.CharField('이름', max_length=20, blank=True)
-    child_id = models.CharField('자녀 아이디', max_length=25, blank=True)
+    child_id = models.CharField('자녀 아이디', max_length=25, unique=True)
     child_pwd = models.CharField('자녀 비밀번호', max_length=200, blank=True)
     birth = models.CharField('생년월일', max_length=12, blank=True)
     gender = models.CharField('성별', max_length=1, blank=True)

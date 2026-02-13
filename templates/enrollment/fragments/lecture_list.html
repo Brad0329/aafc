@@ -1,0 +1,45 @@
+{% if result_groups %}
+{% for group in result_groups %}
+<h4 class="member_tit" style="font-size:13px;margin:10px 0 5px;">{{ group.class_gbn }}반</h4>
+<table class="join_info" summary="" style="margin-bottom:10px;">
+    <colgroup><col width="8%"/><col width="25%"/><col width="12%"/><col width="12%"/><col width="15%"/><col width="13%"/><col width="15%"/></colgroup>
+    <thead>
+        <tr>
+            <th>선택</th>
+            <th>강좌명</th>
+            <th>요일</th>
+            <th>시간</th>
+            <th>대상</th>
+            <th>정원/현재</th>
+            <th>상태</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for item in group.lectures %}
+        <tr>
+            <td>
+                <input type="checkbox" name="cbList" value="{{ item.lecture.lecture_code }}"
+                       onclick="toggleLecture('{{ item.lecture.lecture_code }}', {{ item.jud }})"/>
+            </td>
+            <td>{{ item.lecture.lecture_title }}</td>
+            <td>{{ item.lecture.get_day_display }}</td>
+            <td>{{ item.lecture.lecture_time }}</td>
+            <td>{{ item.lecture.lec_age }}</td>
+            <td>{{ item.lecture.stu_cnt }}/{{ item.cur_cnt }}</td>
+            <td>
+                {% if item.jud == 1 %}
+                    <span style="color:#2b68af;">신청가능</span>
+                {% elif item.jud == 2 %}
+                    <span style="color:#ff9800;">대기가능</span>
+                {% else %}
+                    <span style="color:#e57373;">신청불가</span>
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endfor %}
+{% else %}
+<p>등록된 강좌가 없습니다.</p>
+{% endif %}

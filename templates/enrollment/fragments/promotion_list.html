@@ -1,0 +1,49 @@
+<table class="join_info" summary="">
+    <colgroup><col width="25%"/><col width="50%"/><col width="15%"/><col width="10%"/></colgroup>
+    <thead>
+        <tr>
+            <th>할인구분</th>
+            <th>내용</th>
+            <th>할인액</th>
+            <th>적용</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>교육용품비 할인</td>
+            <td>{{ discounts.eq.title }}</td>
+            <td>{% if discounts.eq.amount %}{{ discounts.eq.amount|floatformat:0 }}원{% else %}-{% endif %}</td>
+            <td>{% if discounts.eq.amount %}<button type="button" onclick="applyDiscount('eq', {{ discounts.eq.amount }}, '{{ discounts.eq.id }}')" style="padding:2px 8px;cursor:pointer;">적용</button>{% else %}-{% endif %}</td>
+        </tr>
+        <tr>
+            <td>수강료 할인</td>
+            <td>{{ discounts.tu.title }}</td>
+            <td>{% if discounts.tu.amount %}{{ discounts.tu.amount|floatformat:0 }}원{% else %}-{% endif %}</td>
+            <td>{% if discounts.tu.amount %}<button type="button" onclick="applyDiscount('tu', {{ discounts.tu.amount }}, '{{ discounts.tu.id }}')" style="padding:2px 8px;cursor:pointer;">적용</button>{% else %}-{% endif %}</td>
+        </tr>
+        <tr>
+            <td>결제금액 할인</td>
+            <td>{{ discounts.py.title }}</td>
+            <td>{% if discounts.py.amount %}{{ discounts.py.amount|floatformat:0 }}원{% else %}-{% endif %}</td>
+            <td>{% if discounts.py.amount %}<button type="button" onclick="applyDiscount('py', {{ discounts.py.amount }}, '{{ discounts.py.id }}')" style="padding:2px 8px;cursor:pointer;">적용</button>{% else %}-{% endif %}</td>
+        </tr>
+        <tr>
+            <td>3개월 선납 할인</td>
+            <td>{{ discounts.py3.title }}</td>
+            <td>-</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td>피추천 할인</td>
+            <td>{{ discounts.rd.title }}</td>
+            <td>-</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td>주2회이상 할인</td>
+            <td>{{ discounts.o2.title }}</td>
+            <td>{% if discounts.o2.amount %}{{ discounts.o2.amount|floatformat:0 }}원{% else %}-{% endif %}</td>
+            <td>{% if discounts.o2.amount %}<button type="button" onclick="applyDiscount('o2', {{ discounts.o2.amount }}, '{{ discounts.o2.id }}')" style="padding:2px 8px;cursor:pointer;">적용</button>{% else %}-{% endif %}</td>
+        </tr>
+    </tbody>
+</table>

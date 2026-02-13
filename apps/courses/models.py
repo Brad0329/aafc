@@ -179,3 +179,38 @@ class Promotion(models.Model):
 
     def __str__(self):
         return self.title or f'프로모션 {self.uid}'
+
+
+class LectureSelDay(models.Model):
+    """강좌별 수업일 스케줄 (lf_lecture_selday)"""
+    lecture_code = models.IntegerField('강좌코드')
+    syear = models.IntegerField('연도')
+    smonth = models.IntegerField('월')
+    sday = models.IntegerField('일')
+    admin_id = models.CharField('등록자', max_length=30, blank=True)
+
+    class Meta:
+        db_table = 'courses_lectureselday'
+        verbose_name = '수업일정'
+        verbose_name_plural = '수업일정'
+        unique_together = ['lecture_code', 'syear', 'smonth', 'sday']
+
+    def __str__(self):
+        return f'강좌{self.lecture_code} {self.syear}-{self.smonth:02d}-{self.sday:02d}'
+
+
+class PromotionMember(models.Model):
+    """프로모션-회원 매핑 (lf_promotion_member)"""
+    coupon_uid = models.IntegerField('프로모션ID')
+    member_id = models.CharField('회원아이디', max_length=30)
+    child_id = models.CharField('자녀아이디', max_length=25)
+    used = models.CharField('사용여부', max_length=1, default='T')
+    is_trash = models.CharField('삭제여부', max_length=1, default='T')
+
+    class Meta:
+        db_table = 'courses_promotionmember'
+        verbose_name = '프로모션회원'
+        verbose_name_plural = '프로모션회원'
+
+    def __str__(self):
+        return f'프로모션{self.coupon_uid} - {self.member_id}/{self.child_id}'

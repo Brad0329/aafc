@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}결제내역 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li><a href="{% url 'accounts:mypage' %}">마이페이지</a></li>
+                <li class="present"><a href="{% url 'enrollment:payment_history' %}">결제내역</a></li>
+                <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">결제내역<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;마이아카데미&nbsp;&nbsp;>&nbsp;&nbsp;<b>결제내역</b></span></h2>
+
+            <table class="join_info" summary="">
+                <colgroup><col width="8%"/><col width="12%"/><col width="12%"/><col width="15%"/><col width="13%"/><col width="13%"/><col width="12%"/><col width="15%"/></colgroup>
+                <thead>
+                    <tr>
+                        <th>번호</th>
+                        <th>자녀</th>
+                        <th>결제방법</th>
+                        <th>결제금액</th>
+                        <th>시작월</th>
+                        <th>종료월</th>
+                        <th>결제상태</th>
+                        <th>수강상태</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for enrollment in page_obj %}
+                    <tr>
+                        <td>{{ enrollment.id }}</td>
+                        <td>{{ enrollment.child.name }}</td>
+                        <td>{{ enrollment.get_pay_method_display }}</td>
+                        <td>{{ enrollment.pay_price|floatformat:0 }}원</td>
+                        <td>{{ enrollment.start_dt|slice:":4" }}.{{ enrollment.start_dt|slice:"4:6" }}</td>
+                        <td>{{ enrollment.end_dt|slice:":4" }}.{{ enrollment.end_dt|slice:"4:6" }}</td>
+                        <td>
+                            {% if enrollment.pay_stats == 'PY' %}
+                                <span style="color:#2b68af;">결제완료</span>
+                            {% else %}
+                                <span style="color:#e57373;">미결제</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ enrollment.get_lecture_stats_display }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="8">결제내역이 없습니다.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- 페이지네이션 -->
+            {% if page_obj.has_other_pages %}
+            <div style="text-align:center;margin:20px 0;">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}" style="margin:0 4px;">&laquo; 이전</a>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <b style="margin:0 4px;color:#2b68af;">{{ num }}</b>
+                    {% else %}
+                        <a href="?page={{ num }}" style="margin:0 4px;">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" style="margin:0 4px;">다음 &raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

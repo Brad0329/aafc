@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}결제 완료 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li class="present"><a href="{% url 'enrollment:apply_step1' %}">입단신청</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">결제 완료<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;<b>입단신청</b>&nbsp;&nbsp;>&nbsp;&nbsp;결제완료</span></h2>
+
+            <div style="text-align:center;padding:60px 0;">
+                <p style="font-size:20px;font-weight:bold;color:#2b68af;margin-bottom:20px;">입단신청이 완료되었습니다!</p>
+                {% if enrollment %}
+                <table class="join_info" summary="" style="width:60%;margin:0 auto;">
+                    <colgroup><col width="30%"/><col width="70%"/></colgroup>
+                    <tbody>
+                        <tr>
+                            <th>신청번호</th>
+                            <td>#{{ enrollment.id }}</td>
+                        </tr>
+                        <tr>
+                            <th>결제금액</th>
+                            <td><b>{{ enrollment.pay_price|floatformat:0 }}원</b></td>
+                        </tr>
+                        <tr>
+                            <th>수강기간</th>
+                            <td>{{ enrollment.start_dt|slice:":4" }}년 {{ enrollment.start_dt|slice:"4:6" }}월 ~ {{ enrollment.end_dt|slice:":4" }}년 {{ enrollment.end_dt|slice:"4:6" }}월</td>
+                        </tr>
+                        <tr>
+                            <th>수강상태</th>
+                            <td>{{ enrollment.get_lecture_stats_display }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                {% endif %}
+                <div class="join_btn" style="margin-top:30px;">
+                    <a href="{% url 'enrollment:payment_history' %}" class="btn_join" style="text-decoration:none;">결제내역 확인</a>
+                    <a href="/" class="btn_cancel" style="text-decoration:none;">홈으로</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

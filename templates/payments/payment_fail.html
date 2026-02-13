@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}결제 실패 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li class="present"><a href="{% url 'enrollment:apply_step1' %}">입단신청</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">결제 실패<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;<b>입단신청</b>&nbsp;&nbsp;>&nbsp;&nbsp;결제실패</span></h2>
+
+            <div style="text-align:center;padding:60px 0;">
+                <p style="font-size:20px;font-weight:bold;color:#e57373;margin-bottom:20px;">결제에 실패하였습니다.</p>
+                <p style="margin-bottom:30px;">{{ res_msg }}</p>
+                <div class="join_btn">
+                    <a href="{% url 'enrollment:apply_step1' %}" class="btn_join" style="text-decoration:none;">다시 시도</a>
+                    <a href="/" class="btn_cancel" style="text-decoration:none;">홈으로</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

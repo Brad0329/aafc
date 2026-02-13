@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}입단신청 - 결제 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li class="present"><a href="{% url 'enrollment:apply_step1' %}">입단신청</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">입단신청 - 결제<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;<b>입단신청</b>&nbsp;&nbsp;>&nbsp;&nbsp;결제</span></h2>
+
+            <!-- 청구 요약 -->
+            <h3 class="member_tit">결제 정보</h3>
+            <table class="join_info" summary="">
+                <colgroup><col width="25%"/><col width="75%"/></colgroup>
+                <tbody>
+                    <tr>
+                        <th>구장</th>
+                        <td>{{ sta_name }}</td>
+                    </tr>
+                    <tr>
+                        <th>자녀</th>
+                        <td>{{ child.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>신청자</th>
+                        <td>{{ user.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>교육용품비</th>
+                        <td>{{ join_price|floatformat:0 }}원</td>
+                    </tr>
+                    <tr>
+                        <th>수강료</th>
+                        <td>{{ total_lecture_price|floatformat:0 }}원</td>
+                    </tr>
+                    {% if total_discount > 0 %}
+                    <tr>
+                        <th>할인</th>
+                        <td style="color:#e57373;">-{{ total_discount|floatformat:0 }}원
+                            {% if eq_discount > 0 %}<br/><small>교육용품할인: -{{ eq_discount|floatformat:0 }}원</small>{% endif %}
+                            {% if tu_discount > 0 %}<br/><small>수강료할인: -{{ tu_discount|floatformat:0 }}원</small>{% endif %}
+                            {% if py_discount > 0 %}<br/><small>결제금액할인: -{{ py_discount|floatformat:0 }}원</small>{% endif %}
+                            {% if o2_discount > 0 %}<br/><small>다회할인: -{{ o2_discount|floatformat:0 }}원</small>{% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th style="font-size:15px;font-weight:bold;">총 결제금액</th>
+                        <td style="font-size:18px;font-weight:bold;color:#2b68af;">{{ payment_price|floatformat:0 }}원</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- 결제수단 선택 -->
+            <h3 class="member_tit">결제수단 선택</h3>
+            <div class="edu_select">
+                <ul class="depth_1">
+                    <li><input type="radio" name="pay_method" value="100000000000" checked/> 신용카드</li>
+                    <li><input type="radio" name="pay_method" value="010000000000"/> 계좌이체</li>
+                </ul>
+            </div>
+
+            <!-- KCP 결제 폼 -->
+            <form id="order_info" name="order_info" method="post" action="{% url 'payments:kcp_return' %}">
+                {% csrf_token %}
+                <input type="hidden" name="req_tx" value="pay"/>
+                <input type="hidden" name="site_cd" value="{{ kcp_site_cd }}"/>
+                <input type="hidden" name="ordr_idxx" value="{{ order_idxx }}"/>
+                <input type="hidden" name="good_name" value="{{ good_name }}"/>
+                <input type="hidden" name="good_mny" value="{{ payment_price }}"/>
+                <input type="hidden" name="buyr_name" value="{{ user.name }}"/>
+                <input type="hidden" name="buyr_tel1" value="{{ user.phone }}"/>
+                <input type="hidden" name="buyr_mail" value="{{ user.email }}"/>
+                <input type="hidden" name="use_pay_method" id="use_pay_method" value="100000000000"/>
+                <input type="hidden" name="quotaopt" value="{% if allow_installment %}12{% else %}0{% endif %}"/>
+                <input type="hidden" name="amount" value="{{ payment_price }}"/>
+                <input type="hidden" name="res_cd" value=""/>
+                <input type="hidden" name="res_msg" value=""/>
+                <input type="hidden" name="tno" value=""/>
+                <input type="hidden" name="card_cd" value=""/>
+                <input type="hidden" name="card_name" value=""/>
+                <input type="hidden" name="app_no" value=""/>
+                <input type="hidden" name="app_time" value=""/>
+                <input type="hidden" name="noinf" value=""/>
+                <input type="hidden" name="quota" value=""/>
+                <input type="hidden" name="bank_name" value=""/>
+                <input type="hidden" name="bank_code" value=""/>
+                <input type="hidden" name="depositor" value=""/>
+                <input type="hidden" name="account" value=""/>
+                <input type="hidden" name="va_date" value=""/>
+            </form>
+
+            <!-- 버튼 -->
+            <div class="join_btn">
+                <button type="button" onclick="doPayment()" class="btn_join">결제하기</button>
+                <button type="button" onclick="history.back()" class="btn_cancel">이전단계</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript">
+$("input[name='pay_method']").on("change", function() {
+    $("#use_pay_method").val($(this).val());
+});
+
+function doPayment() {
+    if (!confirm("결제를 진행하시겠습니까?\n결제금액: {{ payment_price|floatformat:0 }}원")) {
+        return;
+    }
+
+    {% comment %}
+    실제 운영 시 KCP JS SDK를 통한 결제 팝업 호출.
+    테스트 환경에서는 바로 결과 처리 페이지로 전송합니다.
+    KCP 연동 완료 후 이 부분을 KCP m_Completepayment() 호출로 교체합니다.
+    {% endcomment %}
+
+    // 테스트용: 직접 폼 제출 (실제 KCP 결제 없이 성공 처리)
+    var form = document.order_info;
+    form.res_cd.value = "0000";
+    form.res_msg.value = "정상처리";
+    form.tno.value = "TEST" + new Date().getTime();
+    form.amount.value = "{{ payment_price }}";
+    form.app_time.value = new Date().toISOString().replace(/[-:T]/g, '').substring(0, 14);
+    form.submit();
+}
+</script>
+{% endblock %}

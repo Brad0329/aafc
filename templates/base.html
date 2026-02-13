@@ -59,8 +59,14 @@
                             <li><a href="{% url 'courses:program' %}">교육 프로그램</a></li>
                         </ul>
                     </li>
-                    <li class="gnb_li"><a href="#">입단신청</a></li>
-                    <li class="gnb_li"><a href="{% url 'accounts:mypage' %}">마이아카데미</a></li>
+                    <li class="gnb_li"><a href="{% url 'enrollment:apply_step1' %}">입단신청</a></li>
+                    <li class="gnb_li"><a href="{% url 'accounts:mypage' %}">마이아카데미</a>
+                        <ul class="gnb_menu">
+                            <li><a href="{% url 'accounts:mypage' %}">마이페이지</a></li>
+                            <li><a href="{% url 'enrollment:payment_history' %}">결제내역</a></li>
+                            <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
+                        </ul>
+                    </li>
                     <li class="gnb_li"><a href="#">커뮤니티</a>
                         <ul class="gnb_menu">
                             <li><a href="#">공지사항</a></li>
@@ -115,6 +121,7 @@
                 <li><a href="#">마이아카데미</a>
                     <ul>
                         <li><a href="{% url 'accounts:mypage' %}">마이페이지</a></li>
+                        <li><a href="{% url 'enrollment:payment_history' %}">결제내역</a></li>
                         <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
                     </ul>
                 </li>
@@ -133,7 +140,7 @@
                         <li><a href="{% url 'courses:program' %}">교육 프로그램</a></li>
                     </ul>
                 </li>
-                <li><a href="#">입단신청</a></li>
+                <li><a href="{% url 'enrollment:apply_step1' %}">입단신청</a></li>
                 <li><a href="#">커뮤니티</a>
                     <ul>
                         <li><a href="#">공지사항</a></li>
@@ -173,7 +180,7 @@
         <div>QUICK<br/>MENU</div>
         <ul>
             <li><a href="#"><img src="{% static 'images/sub/sub_quick_img_01.png' %}" alt=""/></a><p>상담신청</p></li>
-            <li><a href="#"><img src="{% static 'images/sub/sub_quick_img_02.png' %}" alt=""/></a><p>입단신청</p></li>
+            <li><a href="{% url 'enrollment:apply_step1' %}"><img src="{% static 'images/sub/sub_quick_img_02.png' %}" alt=""/></a><p>입단신청</p></li>
             <li><a href="{% url 'courses:stadium_list' %}"><img src="{% static 'images/sub/sub_quick_img_03.png' %}" alt=""/></a><p>구장안내</p></li>
             <li><a href="#"><img src="{% static 'images/sub/sub_quick_img_04.png' %}" alt=""/></a><p>쇼핑몰</p></li>
             <li><a href="javascript:goTop();"><img src="{% static 'images/sub/sub_quick_img_05.png' %}" alt=""/></a></li>

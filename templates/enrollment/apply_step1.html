@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}입단신청 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li class="present"><a href="{% url 'enrollment:apply_step1' %}">입단신청</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">입단신청<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;<b>입단신청</b></span></h2>
+
+            <form id="frmApply" name="frmApply" method="post" action="{% url 'enrollment:apply_step2' %}">
+                {% csrf_token %}
+                <input type="hidden" name="sel_child" id="sel_child" value=""/>
+                <input type="hidden" name="sel_child_name" id="sel_child_name" value=""/>
+                <input type="hidden" name="end_chk" id="end_chk" value="0"/>
+                <input type="hidden" name="rad_local_code" id="rad_local_code" value=""/>
+                <input type="hidden" name="rad_sta_code" id="rad_sta_code" value=""/>
+                <input type="hidden" name="lec_cycle" id="lec_cycle" value="1"/>
+                <input type="hidden" name="lec_period" id="lec_period" value="3"/>
+                <input type="hidden" name="sym" id="sym" value="{{ sym }}"/>
+
+                <!-- 1. 자녀선택 -->
+                <h3 class="member_tit">자녀선택</h3>
+                <table class="join_info" summary="">
+                    <colgroup><col width="15%"/><col width="15%"/><col width="15%"/><col width="15%"/><col width="15%"/><col width="25%"/></colgroup>
+                    <thead>
+                        <tr>
+                            <th>선택</th>
+                            <th>자녀 이름</th>
+                            <th>생년월일</th>
+                            <th>학교</th>
+                            <th>학년</th>
+                            <th>상태</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in children_data %}
+                        <tr>
+                            <td>
+                                {% if item.join_cnt > 0 %}
+                                    <span style="color:#999;">수강중</span>
+                                {% else %}
+                                    <input type="radio" name="child_radio" value="{{ item.child.child_id }}"
+                                           onclick="setChild('{{ item.child.child_id }}', '{{ item.child.name }}', '{{ item.end_chk }}')"/>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.child.name }}</td>
+                            <td>{{ item.child.birth }}</td>
+                            <td>{{ item.child.school }}</td>
+                            <td>{{ item.child.grade }}</td>
+                            <td>
+                                {% if item.join_cnt > 0 %}
+                                    <span style="color:#2b68af;">수강중</span>
+                                {% elif item.end_chk > 0 %}
+                                    <span style="color:#e57373;">재입단 가능</span>
+                                {% else %}
+                                    <span>신규 입단 가능</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6">등록된 자녀가 없습니다. <a href="{% url 'accounts:child_add' %}" style="color:#2b68af;">자녀 등록하기</a></td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- 2. 수강횟수 -->
+                <h3 class="member_tit">수강 등록 횟수 (주간)</h3>
+                <div class="edu_select">
+                    <ul class="depth_1">
+                        <li><input type="radio" name="cycle_radio" value="1" checked onclick="setCycle(1)"/> 주 1회</li>
+                        <li><input type="radio" name="cycle_radio" value="2" onclick="setCycle(2)"/> 주 2회</li>
+                        <li><input type="radio" name="cycle_radio" value="3" onclick="setCycle(3)"/> 주 3회</li>
+                    </ul>
+                </div>
+
+                <!-- 3. 수강기간 -->
+                <h3 class="member_tit">수강 기간</h3>
+                <div class="edu_select">
+                    <ul class="depth_1">
+                        <li><input type="radio" name="period_radio" value="3" checked onclick="setPeriod(3)"/> 3개월</li>
+                    </ul>
+                </div>
+
+                <!-- 4. 시작월 -->
+                <h3 class="member_tit">수강 시작월</h3>
+                <div class="edu_select">
+                    <ul class="depth_1">
+                        <li><b>{{ syear }}년 {{ smonth }}월</b> 시작</li>
+                    </ul>
+                </div>
+
+                <!-- 5. 권역선택 -->
+                <h3 class="member_tit">권역선택</h3>
+                <div class="edu_select">
+                    <ul class="depth_2" id="area_local">
+                        {% for lc in locals_list %}
+                        <li>
+                            <input type="radio" name="local_radio" value="{{ lc.subcode }}"
+                                   onclick="selLocal('{{ lc.subcode }}')"/> {{ lc.code_name }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- 6. 구장선택 -->
+                <h3 class="member_tit">구장선택</h3>
+                <div class="edu_select" id="area_stadium">
+                    <p>권역을 먼저 선택하세요.</p>
+                </div>
+
+                <!-- 7. 강좌선택 -->
+                <h3 class="member_tit">강좌선택</h3>
+                <div class="edu_select" id="area_lecture">
+                    <p>구장을 먼저 선택하세요.</p>
+                </div>
+
+                <!-- 8. 시작일선택 -->
+                <h3 class="member_tit">시작일 선택</h3>
+                <div class="edu_select" id="area_days">
+                    <p>강좌를 먼저 선택하세요.</p>
+                </div>
+
+                <!-- 9. 추천인 -->
+                <h3 class="member_tit">추천인 아이디 (선택)</h3>
+                <div class="edu_select">
+                    <input type="text" name="recommend_id" id="recommend_id" value="" style="width:200px;height:30px;border:1px solid #ccc;padding:0 8px;"/>
+                    <button type="button" onclick="checkRecommend()" style="height:32px;padding:0 12px;background:#2b68af;color:#fff;border:none;cursor:pointer;">확인</button>
+                    <span id="recommend_msg" style="margin-left:8px;"></span>
+                </div>
+
+                <!-- 버튼 -->
+                <div class="join_btn">
+                    <button type="button" onclick="goNext()" class="btn_join">다음단계</button>
+                    <button type="button" onclick="history.back()" class="btn_cancel">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript">
+var selectedLectures = [];
+
+function setChild(childId, childName, endChk) {
+    $("#sel_child").val(childId);
+    $("#sel_child_name").val(childName);
+    $("#end_chk").val(endChk);
+}
+
+function setCycle(val) {
+    $("#lec_cycle").val(val);
+    selectedLectures = [];
+    loadDays();
+}
+
+function setPeriod(val) {
+    $("#lec_period").val(val);
+}
+
+function selLocal(localCode) {
+    $("#rad_local_code").val(localCode);
+    $("#rad_sta_code").val("");
+    $("#area_lecture").html("<p>구장을 먼저 선택하세요.</p>");
+    $("#area_days").html("<p>강좌를 먼저 선택하세요.</p>");
+    selectedLectures = [];
+
+    $.ajax({
+        url: "{% url 'enrollment:ajax_stadiums' %}",
+        data: {local_code: localCode},
+        success: function(data) {
+            $("#area_stadium").html(data);
+        }
+    });
+}
+
+function selSta(staCode) {
+    $("#rad_sta_code").val(staCode);
+    selectedLectures = [];
+    $("#area_days").html("<p>강좌를 먼저 선택하세요.</p>");
+
+    var localCode = $("#rad_local_code").val();
+    var sym = $("#sym").val();
+
+    $.ajax({
+        url: "{% url 'enrollment:ajax_lectures' %}",
+        data: {local_code: localCode, sta_code: staCode, lecture_dt: sym},
+        success: function(data) {
+            $("#area_lecture").html(data);
+        }
+    });
+}
+
+function toggleLecture(code, jud) {
+    var maxCnt = parseInt($("#lec_cycle").val());
+    var cb = $("input[name='cbList'][value='" + code + "']");
+
+    if (jud == 2) {
+        // 대기 등록
+        if (confirm("정원이 초과되었습니다. 대기 등록하시겠습니까?")) {
+            var childId = $("#sel_child").val();
+            var childName = $("#sel_child_name").val();
+            $.ajax({
+                url: "{% url 'enrollment:ajax_waitlist_add' %}",
+                type: "POST",
+                data: {
+                    local_code: $("#rad_local_code").val(),
+                    sta_code: $("#rad_sta_code").val(),
+                    lecture_code: code,
+                    child_id: childId,
+                    child_name: childName,
+                    csrfmiddlewaretoken: "{{ csrf_token }}"
+                },
+                dataType: "json",
+                success: function(res) { alert(res.msg); }
+            });
+        }
+        cb.prop("checked", false);
+        return;
+    }
+
+    if (jud == 3) {
+        alert("현재 신청이 불가한 강좌입니다.");
+        cb.prop("checked", false);
+        return;
+    }
+
+    // 선택 개수 제한
+    selectedLectures = [];
+    $("input[name='cbList']:checked").each(function() {
+        selectedLectures.push($(this).val());
+    });
+    if (selectedLectures.length > maxCnt) {
+        alert("주 " + maxCnt + "회 기준 " + maxCnt + "개까지 선택 가능합니다.");
+        cb.prop("checked", false);
+        selectedLectures = [];
+        $("input[name='cbList']:checked").each(function() {
+            selectedLectures.push($(this).val());
+        });
+        return;
+    }
+
+    loadDays();
+}
+
+function loadDays() {
+    selectedLectures = [];
+    $("input[name='cbList']:checked").each(function() {
+        selectedLectures.push($(this).val());
+    });
+    if (selectedLectures.length == 0) {
+        $("#area_days").html("<p>강좌를 먼저 선택하세요.</p>");
+        return;
+    }
+    var sym = $("#sym").val();
+    $.ajax({
+        url: "{% url 'enrollment:ajax_course_days' %}",
+        data: {lecture_codes: selectedLectures.join(","), lecture_dt: sym},
+        success: function(data) {
+            $("#area_days").html(data);
+        }
+    });
+}
+
+function checkRecommend() {
+    var rid = $("#recommend_id").val().trim();
+    if (!rid) { $("#recommend_msg").html("아이디를 입력하세요."); return; }
+    $.ajax({
+        url: "{% url 'enrollment:ajax_recommend_check' %}",
+        data: {check_id: rid},
+        dataType: "json",
+        success: function(res) {
+            var color = res.valid ? "#2b68af" : "#e57373";
+            $("#recommend_msg").html("<span style='color:" + color + "'>" + res.msg + "</span>");
+        }
+    });
+}
+
+function goNext() {
+    if (!$("#sel_child").val()) { alert("자녀를 선택하세요."); return; }
+    if (!$("#rad_local_code").val()) { alert("권역을 선택하세요."); return; }
+    if (!$("#rad_sta_code").val()) { alert("구장을 선택하세요."); return; }
+
+    var maxCnt = parseInt($("#lec_cycle").val());
+    selectedLectures = [];
+    $("input[name='cbList']:checked").each(function() {
+        selectedLectures.push($(this).val());
+    });
+    if (selectedLectures.length != maxCnt) {
+        alert("주 " + maxCnt + "회에 맞게 강좌 " + maxCnt + "개를 선택하세요.");
+        return;
+    }
+
+    // 시작일 체크
+    for (var i = 0; i < selectedLectures.length; i++) {
+        var code = selectedLectures[i];
+        var dayVal = $("input[name='cbDaylist_" + code + "']:checked").val();
+        if (!dayVal) {
+            alert("각 강좌의 시작일을 선택하세요.");
+            return;
+        }
+    }
+
+    {% if sta_code == 11 %}
+    alert("은평롯데몰 구장은 온라인 결제가 불가합니다. 현장에서 결제해주세요.");
+    return;
+    {% endif %}
+
+    $("#frmApply").submit();
+}
+</script>
+{% endblock %}

@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import Stadium, Coach, StadiumCoach, Lecture, StadiumGoal, Promotion
+from .models import (
+    Stadium, Coach, StadiumCoach, Lecture, StadiumGoal, Promotion,
+    LectureSelDay, PromotionMember,
+)
 
 
 class StadiumCoachInline(admin.TabularInline):
@@ -65,3 +68,18 @@ class PromotionAdmin(admin.ModelAdmin):
     list_filter = ['is_use', 'use_mode', 'issue_mode', 'discount_unit']
     search_fields = ['title', 'summary']
     ordering = ['-uid']
+
+
+@admin.register(LectureSelDay)
+class LectureSelDayAdmin(admin.ModelAdmin):
+    list_display = ['lecture_code', 'syear', 'smonth', 'sday', 'admin_id']
+    list_filter = ['syear', 'smonth']
+    search_fields = ['lecture_code']
+    ordering = ['lecture_code', 'syear', 'smonth', 'sday']
+
+
+@admin.register(PromotionMember)
+class PromotionMemberAdmin(admin.ModelAdmin):
+    list_display = ['coupon_uid', 'member_id', 'child_id', 'used', 'is_trash']
+    list_filter = ['used', 'is_trash']
+    search_fields = ['member_id', 'child_id']

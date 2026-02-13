@@ -1,0 +1,13 @@
+{% for item in day_data %}
+<div style="margin-bottom:10px;">
+    <b>{{ item.lecture_title }}</b> 시작일:
+    {% for day in item.days %}
+        <label style="margin-right:8px;">
+            <input type="radio" name="cbDaylist_{{ item.lecture_code }}" value="{{ day }}"/>
+            {{ day }}일
+        </label>
+    {% empty %}
+        <span style="color:#999;">수업일정이 등록되지 않았습니다.</span>
+    {% endfor %}
+</div>
+{% endfor %}
