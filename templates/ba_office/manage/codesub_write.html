@@ -1,0 +1,49 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/manage_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fn_submit() {
+    var f = document.regform;
+    if (!f.code_name.value.trim()) { alert('코드명을 입력해주세요.'); f.code_name.focus(); return; }
+    if (f.code_order.value && !/^\d+$/.test(f.code_order.value)) { alert('정렬순서는 숫자만 입력해주세요.'); f.code_order.focus(); return; }
+    f.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  시스템관리  &gt;  코드관리</div>
+<div class="h_55"></div>
+
+<p class="title">서브코드 등록</p>
+
+{% if error %}
+<div style="color:red; margin-bottom:10px; font-weight:bold; padding-left:10px;">{{ error }}</div>
+{% endif %}
+
+<div class="tb_basic">
+<form name="regform" method="post" action="{% url 'office_codesub_write' %}">
+{% csrf_token %}
+<input type="hidden" name="grpcode" value="{{ grpcode }}" />
+<input type="hidden" name="grpcode_name" value="{{ grpcode_name }}" />
+<table summary="ems" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="15%" /><col width="85%" /></colgroup>
+    <tbody>
+        <tr><th scope="col">그룹코드</th><td class="left"><strong>{{ grpcode }}</strong> - {{ grpcode_name }}</td></tr>
+        <tr><th scope="col">코드명</th><td class="left"><input type="text" name="code_name" value="{{ form_data.code_name|default:'' }}" size="30" maxlength="40" /></td></tr>
+        <tr><th scope="col">코드설명</th><td class="left"><input type="text" name="code_desc" value="{{ form_data.code_desc|default:'' }}" size="60" maxlength="200" /></td></tr>
+        <tr><th scope="col">정렬순서</th><td class="left"><input type="text" name="code_order" value="{{ form_data.code_order|default:'0' }}" size="10" maxlength="5" /></td></tr>
+    </tbody>
+</table>
+</form>
+</div>
+<div class="btn_right">
+    <a href="javascript:fn_submit();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+    <a href="{% url 'office_code_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+{% endblock %}

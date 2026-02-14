@@ -1,0 +1,40 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block extra_js %}
+<script type="text/javascript">
+$(document).ready(function() {
+    $(".tr_visible a").click(function() {
+        $(this).parent().parent().nextUntil(".tr_visible").toggle();
+        return false;
+    });
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="basic">
+    <div class="o_m_box">
+        <h4>관리자 공지</h4>
+        <div class="o_m_notice">
+            <table summary="">
+                <tbody>
+                    {% if notices %}
+                        {% for notice in notices %}
+                        <tr class="tr_visible">
+                            <td><a href="#">{{ notice.atitle }}</a></td>
+                            <td>{{ notice.reg_dt|date:"Y-m-d" }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">{{ notice.acontent|linebreaksbr }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td align="center" colspan="2">등록 공지가 없습니다.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

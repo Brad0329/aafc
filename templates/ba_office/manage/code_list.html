@@ -1,0 +1,91 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/manage_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var sel_idx = -1;
+function selRow(el, idx) {
+    var rows = document.querySelectorAll('.tb_scroll table tbody tr');
+    for (var i = 0; i < rows.length; i++) { rows[i].style.backgroundColor = ''; }
+    el.style.backgroundColor = '#e8f0fe';
+    sel_idx = idx;
+    var grpcode = document.getElementsByName('list_grpcode')[idx].value;
+    var grpcode_name = document.getElementsByName('list_grpcode_name')[idx].value;
+    document.grpcode_list.grpcode.value = grpcode;
+    document.grpcode_list.grpcode_name.value = grpcode_name;
+    document.getElementById('subcode_list').src = '{% url "office_code_sub_list" %}?grpcode=' + grpcode + '&grpcode_name=' + encodeURIComponent(grpcode_name);
+}
+function codegroup_del(grpcode) {
+    if (confirm('그룹코드 [' + grpcode + ']를 삭제하시겠습니까?\n하위 코드도 모두 삭제됩니다.')) {
+        var form = document.createElement('form');
+        form.method = 'post';
+        form.action = '/ba_office/manage/code/group/del/' + grpcode + '/';
+        var csrf = document.createElement('input');
+        csrf.type = 'hidden'; csrf.name = 'csrfmiddlewaretoken'; csrf.value = '{{ csrf_token }}';
+        form.appendChild(csrf); document.body.appendChild(form); form.submit();
+    }
+}
+function codesub_write() {
+    var grpcode = document.grpcode_list.grpcode.value;
+    var grpcode_name = document.grpcode_list.grpcode_name.value;
+    if (!grpcode) { alert('왼쪽에서 그룹코드를 선택해주세요.'); return; }
+    location.href = '{% url "office_codesub_write" %}?grpcode=' + grpcode + '&grpcode_name=' + encodeURIComponent(grpcode_name);
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  시스템관리  &gt;  코드관리</div>
+<div class="h_55"></div>
+
+<form name="grpcode_list" method="post" action=""><input type="hidden" name="grpcode" value="" /><input type="hidden" name="grpcode_name" value="" /></form>
+
+<div class="box">
+    <div class="box_300">
+        <p class="title">그룹코드</p>
+        <div class="tb_basic">
+            <table border="0" cellpadding="0" cellspacing="0"><colgroup><col width="30%" /><col width="30%" /><col /></colgroup>
+                <tbody><tr><th scope="col">그룹코드</th><th scope="col">그룹명</th><th scope="col">관리</th></tr></tbody>
+            </table>
+        </div>
+        <div class="scroll">
+            <div class="tb_scroll">
+                <table border="0" cellpadding="0" cellspacing="0"><colgroup><col width="30%" /><col width="30%" /><col /></colgroup>
+                    <tbody>
+                        {% for group in groups %}
+                        <tr onclick="selRow(this, {{ forloop.counter0 }});" class="cursor">
+                            <td>{{ group.grpcode }}</td><td>{{ group.grpcode_name }}</td>
+                            <td>
+                                <a href="{% url 'office_codegroup_modify' group.grpcode %}" onclick="event.stopPropagation();"><img src="{% static 'ba_office/images/btn_edit.gif' %}" alt="수정" /></a>
+                                <a href="javascript:void(0);" onclick="event.stopPropagation(); codegroup_del('{{ group.grpcode }}');"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a>
+                            </td>
+                            <input type="hidden" name="list_grpcode" value="{{ group.grpcode }}" />
+                            <input type="hidden" name="list_grpcode_name" value="{{ group.grpcode_name }}" />
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" style="padding:20px;">등록된 코드그룹이 없습니다.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="btn_right"><a href="{% url 'office_codegroup_write' %}"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a></div>
+    </div>
+    <div class="box_520">
+        <p class="title">코드상세</p>
+        <div class="tb_basic">
+            <table border="0" cellpadding="0" cellspacing="0"><colgroup><col width="110px" /><col width="110px" /><col width="100px" /><col width="170px" /><col width="10px" /></colgroup>
+                <tbody>
+                    <tr><th scope="col">인덱스</th><th scope="col">코드명</th><th scope="col">정렬</th><th scope="col">관리</th><th>&nbsp;</th></tr>
+                    <tr><td colspan="5" style="padding:0;"><iframe id="subcode_list" name="subcode_list" src="about:blank" width="100%" height="500" frameborder="0" marginheight="0" marginwidth="0" scrolling="no"></iframe></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="btn_right"><a href="javascript:codesub_write();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a></div>
+    </div>
+</div>
+{% endblock %}

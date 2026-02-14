@@ -1,0 +1,75 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfmember_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fn_search() {
+    document.schform.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  회원관리  &gt;  회원통계</div>
+<div class="h_55"></div>
+
+<p class="title">회원 가입 통계 (일별)</p>
+
+<form name="schform" method="get" action="{% url 'office_member_stat' %}">
+<table border="0" cellpadding="3" cellspacing="0" style="margin-bottom:5px;">
+    <tr>
+        <td>연도:
+            <select name="syear" class="select" onchange="fn_search();">
+                {% for y in years %}
+                <option value="{{ y }}" {% if y == syear %}selected{% endif %}>{{ y }}년</option>
+                {% endfor %}
+            </select>
+        </td>
+    </tr>
+</table>
+</form>
+
+<div class="tb_basic">
+<table summary="회원통계" border="0" cellpadding="0" cellspacing="0" style="font-size:11px;">
+    <colgroup>
+        <col width="4%" />
+        <col width="7%" /><col width="7%" /><col width="7%" />
+        <col width="7%" /><col width="7%" /><col width="7%" />
+        <col width="7%" /><col width="7%" /><col width="7%" />
+        <col width="7%" /><col width="7%" /><col width="7%" />
+        <col width="8%" />
+    </colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">일</th>
+            <th scope="col">1월</th><th scope="col">2월</th><th scope="col">3월</th>
+            <th scope="col">4월</th><th scope="col">5월</th><th scope="col">6월</th>
+            <th scope="col">7월</th><th scope="col">8월</th><th scope="col">9월</th>
+            <th scope="col">10월</th><th scope="col">11월</th><th scope="col">12월</th>
+            <th scope="col">합계</th>
+        </tr>
+        {% for row in rows %}
+        <tr>
+            <td><b>{{ row.day }}</b></td>
+            {% for m in row.months %}
+            <td>{% if m.p or m.c %}{{ m.p }}명({{ m.c }}){% endif %}</td>
+            {% endfor %}
+            <td>{% if row.total.p or row.total.c %}<b>{{ row.total.p }}명({{ row.total.c }})</b>{% endif %}</td>
+        </tr>
+        {% endfor %}
+        <tr style="background:#f0f0f0; font-weight:bold;">
+            <td><b>합계</b></td>
+            {% for mt in month_totals %}
+            <td>{% if mt.p or mt.c %}{{ mt.p }}명({{ mt.c }}){% endif %}</td>
+            {% endfor %}
+            <td>{% if grand_total.p or grand_total.c %}{{ grand_total.p }}명({{ grand_total.c }}){% endif %}</td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<p style="padding:5px; color:#666;">※ 표기: 부모수(자녀수)</p>
+{% endblock %}

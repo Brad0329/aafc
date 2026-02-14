@@ -1,0 +1,118 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfmember_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fn_search() {
+    document.schform.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  회원관리  &gt;  자녀정보</div>
+<div class="h_55"></div>
+
+<p class="title">자녀정보 - 리스트 (총 {{ total_count }}건)</p>
+
+<form name="schform" method="get" action="{% url 'office_child_list' %}">
+<table border="0" cellpadding="3" cellspacing="0" style="margin-bottom:5px;">
+    <tr>
+        <td>상태
+            <select name="status" class="select">
+                <option value="">전체</option>
+                <option value="N" {% if status == 'N' %}selected{% endif %}>정상</option>
+                <option value="S" {% if status == 'S' %}selected{% endif %}>중지</option>
+                <option value="O" {% if status == 'O' %}selected{% endif %}>탈퇴</option>
+            </select>
+        </td>
+        <td>&nbsp;
+            <select name="skey" class="select">
+                <option value="child_name" {% if skey == 'child_name' %}selected{% endif %}>자녀이름</option>
+                <option value="child_id" {% if skey == 'child_id' %}selected{% endif %}>자녀ID</option>
+                <option value="m.member_id" {% if skey == 'm.member_id' %}selected{% endif %}>부모ID</option>
+                <option value="member_name" {% if skey == 'member_name' %}selected{% endif %}>부모이름</option>
+                <option value="card_num" {% if skey == 'card_num' %}selected{% endif %}>카드번호</option>
+            </select>
+            <input type="text" name="sword" value="{{ sword }}" size="15" class="input" />
+        </td>
+        <td>&nbsp;<a href="javascript:fn_search();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></td>
+    </tr>
+</table>
+</form>
+
+<div class="tb_basic">
+    <table summary="자녀정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="4%" />
+            <col width="18%" />
+            <col width="16%" />
+            <col width="8%" />
+            <col width="10%" />
+            <col width="5%" />
+            <col width="5%" />
+            <col width="8%" />
+            <col width="10%" />
+            <col width="8%" />
+            <col width="8%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">순번</th>
+                <th scope="col">부모</th>
+                <th scope="col">자녀</th>
+                <th scope="col">생년월일</th>
+                <th scope="col">학교명</th>
+                <th scope="col">학년</th>
+                <th scope="col">성별</th>
+                <th scope="col">상태</th>
+                <th scope="col">가입일</th>
+                <th scope="col">관리</th>
+                <th scope="col">상세보기</th>
+            </tr>
+            {% for c in children %}
+            <tr>
+                <td>{{ forloop.counter|page_index:children.start_index }}</td>
+                <td class="left">{{ c.parent.name }}<br /><font color="blue">{{ c.parent.username }}</font><br />{{ c.parent.phone }}</td>
+                <td class="left">{{ c.name }}<br /><font color="blue">{{ c.child_id }}</font>{% if c.card_num %}<br />카드:{{ c.card_num }}{% endif %}</td>
+                <td>{{ c.birth }}</td>
+                <td>{{ c.school }}</td>
+                <td>{{ c.grade }}</td>
+                <td>{% if c.gender == 'M' %}남자{% elif c.gender == 'F' %}여자{% endif %}</td>
+                <td>{% if c.course_state == 'CAN' %}미수강{% elif c.course_state == 'ING' %}<font color="blue">수강중</font>{% elif c.course_state == 'END' %}퇴단{% elif c.course_state == 'PAU' %}<font color="red">일시중지</font>{% else %}{{ c.course_state }}{% endif %}</td>
+                <td>{{ c.insert_dt|date:"Y-m-d" }}</td>
+                <td>{% if c.child_id %}<a href="{% url 'office_child_modify' c.child_id %}"><img src="{% static 'ba_office/images/btn_edit.gif' %}" alt="수정" /></a>{% endif %}</td>
+                <td>{% if c.child_id %}<a href="{% url 'office_child_detail' c.child_id %}" target="_blank"><img src="{% static 'ba_office/images/btn_detail.gif' %}" alt="상세" /></a>{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="11" style="padding:20px;">등록된 자녀가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if children.has_other_pages %}
+<div class="paging">
+    {% if children.has_previous %}
+    <a href="?page=1&status={{ status }}&skey={{ skey }}&sword={{ sword }}&sch_member_id={{ sch_member_id }}">&laquo;</a>
+    <a href="?page={{ children.previous_page_number }}&status={{ status }}&skey={{ skey }}&sword={{ sword }}&sch_member_id={{ sch_member_id }}">&lt;</a>
+    {% endif %}
+    {% for num in children.paginator.page_range %}
+        {% if children.number == num %}
+        <strong>{{ num }}</strong>
+        {% elif num > children.number|add:"-5" and num < children.number|add:"5" %}
+        <a href="?page={{ num }}&status={{ status }}&skey={{ skey }}&sword={{ sword }}&sch_member_id={{ sch_member_id }}">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if children.has_next %}
+    <a href="?page={{ children.next_page_number }}&status={{ status }}&skey={{ skey }}&sword={{ sword }}&sch_member_id={{ sch_member_id }}">&gt;</a>
+    <a href="?page={{ children.paginator.num_pages }}&status={{ status }}&skey={{ skey }}&sword={{ sword }}&sch_member_id={{ sch_member_id }}">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

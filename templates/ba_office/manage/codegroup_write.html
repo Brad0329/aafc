@@ -1,0 +1,48 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/manage_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fn_submit() {
+    var f = document.regform;
+    var grpcode = f.grpcode.value.trim().toUpperCase();
+    if (grpcode.length != 4) { alert('그룹코드는 영문 대문자 4자리로 입력해주세요.'); f.grpcode.focus(); return; }
+    if (!/^[A-Z]{4}$/.test(grpcode)) { alert('그룹코드는 영문 대문자만 가능합니다.'); f.grpcode.focus(); return; }
+    if (!f.grpcode_name.value.trim()) { alert('그룹명을 입력해주세요.'); f.grpcode_name.focus(); return; }
+    f.grpcode.value = grpcode;
+    f.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  시스템관리  &gt;  코드관리</div>
+<div class="h_55"></div>
+
+<p class="title">그룹코드 등록</p>
+
+{% if error %}
+<div style="color:red; margin-bottom:10px; font-weight:bold; padding-left:10px;">{{ error }}</div>
+{% endif %}
+
+<div class="tb_basic">
+<form name="regform" method="post" action="{% url 'office_codegroup_write' %}">
+{% csrf_token %}
+<table summary="ems" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="15%" /><col width="85%" /></colgroup>
+    <tbody>
+        <tr><th scope="col">그룹코드</th><td class="left"><input type="text" name="grpcode" value="{{ form_data.grpcode|default:'' }}" size="10" maxlength="4" style="text-transform:uppercase;" /> <span style="color:#888; font-size:11px;">영문 대문자 4자리</span></td></tr>
+        <tr><th scope="col">그룹명</th><td class="left"><input type="text" name="grpcode_name" value="{{ form_data.grpcode_name|default:'' }}" size="30" maxlength="20" /></td></tr>
+    </tbody>
+</table>
+</form>
+</div>
+<div class="btn_right">
+    <a href="javascript:fn_submit();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+    <a href="{% url 'office_code_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+{% endblock %}

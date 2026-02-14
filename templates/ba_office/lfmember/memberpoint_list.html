@@ -1,0 +1,140 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load humanize %}
+{% load office_tags %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfmember_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(function(){
+    $('input[name=sch_startdt], input[name=sch_enddt]').datepicker({dateFormat:'yy-mm-dd'});
+});
+function fn_search() {
+    document.schform.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  회원관리  &gt;  회원포인트내역</div>
+<div class="h_55"></div>
+
+<p class="title">회원포인트내역 (총 {{ total_count }}건)</p>
+
+<form name="schform" method="get" action="{% url 'office_memberpoint_list' %}">
+<table border="0" cellpadding="3" cellspacing="0" style="margin-bottom:5px;">
+    <tr>
+        <td>기간:
+            <input type="text" name="sch_startdt" value="{{ sch_startdt }}" size="10" class="input" readonly /> ~
+            <input type="text" name="sch_enddt" value="{{ sch_enddt }}" size="10" class="input" readonly />
+        </td>
+        <td>&nbsp;구분:
+            <select name="sch_app_gbn" class="select">
+                <option value="">전체</option>
+                <option value="S" {% if sch_app_gbn == 'S' %}selected{% endif %}>적립</option>
+                <option value="U" {% if sch_app_gbn == 'U' %}selected{% endif %}>사용</option>
+            </select>
+        </td>
+        <td>&nbsp;
+            <select name="sch_txt" class="select">
+                <option value="member_id" {% if sch_txt == 'member_id' %}selected{% endif %}>아이디</option>
+                <option value="member_name" {% if sch_txt == 'member_name' %}selected{% endif %}>회원명</option>
+            </select>
+            <input type="text" name="sch_val" value="{{ sch_val }}" size="12" class="input" />
+        </td>
+        <td>&nbsp;적립구분:
+            <select name="sch_desc_gbn" class="select">
+                <option value="">전체</option>
+                <option value="관리자 직권" {% if sch_desc_gbn == '관리자 직권' %}selected{% endif %}>관리자 직권</option>
+                <option value="쇼핑몰구매" {% if sch_desc_gbn == '쇼핑몰구매' %}selected{% endif %}>쇼핑몰구매</option>
+                <option value="쇼핑몰사용" {% if sch_desc_gbn == '쇼핑몰사용' %}selected{% endif %}>쇼핑몰사용</option>
+                <option value="수업료납부" {% if sch_desc_gbn == '수업료납부' %}selected{% endif %}>수업료납부</option>
+                <option value="친구추천" {% if sch_desc_gbn == '친구추천' %}selected{% endif %}>친구추천</option>
+                <option value="이벤트" {% if sch_desc_gbn == '이벤트' %}selected{% endif %}>이벤트참여</option>
+            </select>
+        </td>
+        <td>&nbsp;<a href="javascript:fn_search();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></td>
+    </tr>
+</table>
+</form>
+
+<div class="tb_basic">
+    <table summary="포인트내역" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="5%" />
+            <col width="9%" />
+            <col width="5%" />
+            <col width="8%" />
+            <col width="10%" />
+            <col />
+            <col width="7%" />
+            <col width="8%" />
+            <col width="10%" />
+            <col width="9%" />
+            <col width="6%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">순번</th>
+                <th scope="col">적립일자</th>
+                <th scope="col">구분</th>
+                <th scope="col">회원명</th>
+                <th scope="col">아이디</th>
+                <th scope="col">내용</th>
+                <th scope="col">포인트</th>
+                <th scope="col">추천ID</th>
+                <th scope="col">주문번호</th>
+                <th scope="col">등록일자</th>
+                <th scope="col">관리</th>
+            </tr>
+            {% for h in histories %}
+            <tr>
+                <td>{{ forloop.counter|page_index:histories.start_index }}</td>
+                <td>{{ h.point_dt }}</td>
+                <td>{% if h.app_gbn == 'S' %}<font color="blue">적립</font>{% else %}<font color="red">사용</font>{% endif %}</td>
+                <td>{{ h.member_name }}</td>
+                <td><font color="blue">{{ h.member_id }}</font></td>
+                <td class="left">{{ h.point_desc }}</td>
+                <td style="text-align:right;">{{ h.app_point|intcomma }}</td>
+                <td>{{ h.confirm_id }}</td>
+                <td>{{ h.order_no }}</td>
+                <td>{{ h.insert_dt|date:"Y-m-d" }}</td>
+                <td>
+                    <a href="javascript:void(0);" onclick="if(confirm('삭제하시겠습니까?')){document.getElementById('del_form_{{ h.id }}').submit();}"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a>
+                    <form id="del_form_{{ h.id }}" method="post" action="{% url 'office_memberpoint_del' h.id %}" style="display:none;">{% csrf_token %}</form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="11" style="padding:20px;">포인트 내역이 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if histories.has_other_pages %}
+<div class="paging">
+    {% if histories.has_previous %}
+    <a href="?page=1&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_txt={{ sch_txt }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&laquo;</a>
+    <a href="?page={{ histories.previous_page_number }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_txt={{ sch_txt }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&lt;</a>
+    {% endif %}
+    {% for num in histories.paginator.page_range %}
+        {% if histories.number == num %}
+        <strong>{{ num }}</strong>
+        {% elif num > histories.number|add:"-5" and num < histories.number|add:"5" %}
+        <a href="?page={{ num }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_txt={{ sch_txt }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if histories.has_next %}
+    <a href="?page={{ histories.next_page_number }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_txt={{ sch_txt }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&gt;</a>
+    <a href="?page={{ histories.paginator.num_pages }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_txt={{ sch_txt }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="btn_right">
+    <a href="{% url 'office_memberpoint_write' %}"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+</div>
+{% endblock %}

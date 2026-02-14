@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'apps.notifications',
     'apps.reports',
     'apps.common',
+    'apps.office',
     # 3rd party
     'django_ckeditor_5',
 ]
@@ -50,6 +51,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'apps.office.context_processors.office_user',
             ],
         },
     },

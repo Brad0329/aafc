@@ -1,0 +1,125 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfmember_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fn_search() {
+    document.schform.submit();
+}
+function fn_excel() {
+    var f = document.schform;
+    var action = f.action;
+    f.action = '{% url "office_member_list_excel" %}';
+    f.submit();
+    f.action = action;
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  회원관리  &gt;  회원정보</div>
+<div class="h_55"></div>
+
+<p class="title">회원정보 - 리스트 (총 {{ total_count }}건)</p>
+
+<form name="schform" method="get" action="{% url 'office_member_list' %}">
+<table border="0" cellpadding="3" cellspacing="0" style="margin-bottom:5px;">
+    <tr>
+        <td>이름 <input type="text" name="sch_member_name" value="{{ sch_member_name }}" size="10" class="input" /></td>
+        <td>&nbsp;아이디 <input type="text" name="sch_member_id" value="{{ sch_member_id }}" size="10" class="input" /></td>
+        <td>&nbsp;상태
+            <select name="sch_member_status" class="select">
+                <option value="">전체</option>
+                <option value="N" {% if sch_member_status == 'N' %}selected{% endif %}>정상</option>
+                <option value="S" {% if sch_member_status == 'S' %}selected{% endif %}>중지</option>
+                <option value="O" {% if sch_member_status == 'O' %}selected{% endif %}>탈퇴</option>
+            </select>
+        </td>
+        <td>&nbsp;<a href="javascript:fn_search();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></td>
+        <td>&nbsp;<a href="javascript:fn_excel();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a></td>
+    </tr>
+</table>
+</form>
+
+<div class="tb_basic">
+    <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="5%" />
+            <col width="8%" />
+            <col width="10%" />
+            <col width="8%" />
+            <col width="13%" />
+            <col width="8%" />
+            <col width="6%" />
+            <col width="6%" />
+            <col width="10%" />
+            <col width="6%" />
+            <col width="20%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">순번</th>
+                <th scope="col">이름</th>
+                <th scope="col">아이디</th>
+                <th scope="col">Point</th>
+                <th scope="col">연락처</th>
+                <th scope="col">등록자녀</th>
+                <th scope="col">메일수신</th>
+                <th scope="col">SMS수신</th>
+                <th scope="col">가입일</th>
+                <th scope="col">상태</th>
+                <th scope="col">관리</th>
+            </tr>
+            {% for m in members %}
+            <tr>
+                <td>{{ forloop.counter|page_index:members.start_index }}</td>
+                <td>{{ m.name }}</td>
+                <td><font color="blue">{{ m.username }}</font></td>
+                <td><a href="{% url 'office_memberpoint_list' %}?sch_txt=member_id&sch_val={{ m.username }}">{{ m.add_point|subtract:m.min_point }}</a></td>
+                <td>{{ m.phone }}</td>
+                <td><a href="{% url 'office_child_list' %}?sch_member_id={{ m.username }}">{{ m.child_count }}명</a></td>
+                <td>{{ m.mail_consent }}</td>
+                <td>{{ m.sms_consent }}</td>
+                <td>{{ m.insert_dt|date:"Y-m-d" }}</td>
+                <td>{% if m.status == 'N' %}정상{% elif m.status == 'S' %}<font color="red">중지</font>{% elif m.status == 'O' %}<font color="gray">탈퇴</font>{% else %}{{ m.status }}{% endif %}</td>
+                <td>
+                    <a href="{% url 'office_member_modify' m.username %}"><img src="{% static 'ba_office/images/btn_edit.gif' %}" alt="수정" /></a>
+                    <a href="{% url 'office_member_childadd' m.username %}"><img src="{% static 'ba_office/images/btn_childadd.gif' %}" alt="자녀추가" /></a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="11" style="padding:20px;">등록된 회원이 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if members.has_other_pages %}
+<div class="paging">
+    {% if members.has_previous %}
+    <a href="?page=1&sch_member_name={{ sch_member_name }}&sch_member_id={{ sch_member_id }}&sch_member_status={{ sch_member_status }}">&laquo;</a>
+    <a href="?page={{ members.previous_page_number }}&sch_member_name={{ sch_member_name }}&sch_member_id={{ sch_member_id }}&sch_member_status={{ sch_member_status }}">&lt;</a>
+    {% endif %}
+    {% for num in members.paginator.page_range %}
+        {% if members.number == num %}
+        <strong>{{ num }}</strong>
+        {% elif num > members.number|add:"-5" and num < members.number|add:"5" %}
+        <a href="?page={{ num }}&sch_member_name={{ sch_member_name }}&sch_member_id={{ sch_member_id }}&sch_member_status={{ sch_member_status }}">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if members.has_next %}
+    <a href="?page={{ members.next_page_number }}&sch_member_name={{ sch_member_name }}&sch_member_id={{ sch_member_id }}&sch_member_status={{ sch_member_status }}">&gt;</a>
+    <a href="?page={{ members.paginator.num_pages }}&sch_member_name={{ sch_member_name }}&sch_member_id={{ sch_member_id }}&sch_member_status={{ sch_member_status }}">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="btn_right">
+    <a href="{% url 'office_member_write' %}"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+</div>
+{% endblock %}

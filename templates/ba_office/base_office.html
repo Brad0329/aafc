@@ -1,0 +1,109 @@
+{% load static %}
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>주니어아카데미 관리자모드</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link href="{% static 'ba_office/css/style.css' %}" rel="stylesheet" type="text/css">
+<link rel="stylesheet" type="text/css" href="{% static 'ba_office/css/jquery/ui.all.css' %}"/>
+<link rel="stylesheet" type="text/css" href="{% static 'ba_office/css/jquery.cluetip.css' %}"/>
+
+<script language="JavaScript" src="{% static 'ba_office/js/jquery-1.11.3.min.js' %}"></script>
+<script language="JavaScript" src="{% static 'ba_office/js/common.js' %}"></script>
+<script type="text/javascript" src="{% static 'ba_office/js/jquery.ui.datepicker.js' %}"></script>
+<script type="text/javascript" src="{% static 'ba_office/js/jquery.defaultvalue.js' %}"></script>
+<script src="{% static 'ba_office/js/jquery-ui.js' %}"></script>
+<script type="text/javascript" src="{% static 'ba_office/js/date.js' %}"></script>
+<script type="text/javascript" src="{% static 'ba_office/js/ajax.js' %}"></script>
+<script type="text/javascript" src="{% static 'ba_office/js/jquery.table2excel.js' %}"></script>
+
+<style>
+.button {
+    padding: 5px 10px;
+    background-color: #41404f;
+    font-family: Arial, sans-serif;
+    color: #ffffff;
+    text-align: center;
+    cursor: pointer;
+    height:22px;
+    border: 1px solid #494857;
+    border-radius: 5px;
+}
+.button:hover {
+    background: #9f9ea6;
+}
+.button:active {
+    color: #fcd3a5;
+}
+</style>
+{% block extra_css %}{% endblock %}
+{% block extra_js %}{% endblock %}
+</head>
+<body>
+
+<div id="wrap">
+    <!-- top -->
+    <div id="top_bg">
+        <div class="top_bg_wrap">
+            <div id="top">
+                <div class="logo"><a href="{% url 'office_main' %}"><img src="{% static 'ba_office/images/aafc_emblem.png' %}" alt="emblem" /></a></div>
+                <div class="top_con">
+                    <p class="log_info">{{ office_user.office_name }}님 안녕하세요.</p>
+                    <p class="log_btn"><a href="{% url 'office_logout' %}"><img src="{% static 'ba_office/images/btn_logout.gif' %}" alt="logout" /></a></p>
+                    <div class="gnb">
+                        <ul>
+                            {% if 'A' in office_user.power_level %}
+                            <li><a href="{% url 'office_ofuser_list' %}">시스템관리</a></li>
+                            {% endif %}
+                            {% if 'M' in office_user.power_level %}
+                            <li><a href="{% url 'office_member_list' %}">회원관리</a></li>
+                            {% endif %}
+                            {% if 'C' in office_user.power_level %}
+                            <li><a href="{% url 'office_main' %}">상담관리</a></li>
+                            {% endif %}
+                            {% if 'H' in office_user.power_level %}
+                            <li><a href="{% url 'office_main' %}">수강생관리</a></li>
+                            {% endif %}
+                            {% if 'L' in office_user.power_level %}
+                            <li><a href="{% url 'office_main' %}">과정관리</a></li>
+                            {% endif %}
+                            {% if 'N' in office_user.power_level %}
+                            <li><a href="{% url 'office_main' %}">출고관리</a></li>
+                            {% endif %}
+                            {% if 'R' in office_user.power_level %}
+                            <li><a href="{% url 'office_main' %}">REPORT</a></li>
+                            {% endif %}
+                            {% if 'P' in office_user.power_level %}
+                            <li><a href="{% url 'office_main' %}">포탈관리</a></li>
+                            {% endif %}
+                            {% if 'S' in office_user.power_level %}
+                            <li><a href="{% url 'office_main' %}">쇼핑몰관리</a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- //top -->
+
+    <div id="contents">
+        {% block left_menu %}{% endblock %}
+
+        <div id="right_con">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+</div>
+
+<script language="javascript">
+window.onload = function() {
+    var rightCon = document.getElementById("right_con");
+    var la20 = document.getElementById("la20");
+    if (rightCon && la20) {
+        la20.style.height = rightCon.clientHeight + "px";
+    }
+}
+</script>
+</body>
+</html>

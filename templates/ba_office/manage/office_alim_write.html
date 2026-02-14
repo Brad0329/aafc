@@ -1,0 +1,45 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/manage_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fn_submit() {
+    var f = document.regform;
+    if (!f.atitle.value.trim()) { alert('제목을 입력해주세요.'); f.atitle.focus(); return; }
+    if (!f.acontent.value.trim()) { alert('내용을 입력해주세요.'); f.acontent.focus(); return; }
+    f.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  시스템관리  &gt;  관리자알림</div>
+<div class="h_55"></div>
+
+<p class="title">관리자알림-등록</p>
+
+{% if error %}
+<div style="color:red; margin-bottom:10px; font-weight:bold; padding-left:10px;">{{ error }}</div>
+{% endif %}
+
+<div class="tb_basic">
+<form name="regform" method="post" action="{% url 'office_alim_write' %}">
+{% csrf_token %}
+<table summary="ems" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="15%" /><col width="85%" /></colgroup>
+    <tbody>
+        <tr><th scope="col">제목</th><td class="left"><input type="text" name="atitle" value="{{ form_data.atitle|default:'' }}" size="60" maxlength="100" /></td></tr>
+        <tr><th scope="col">내용</th><td class="left"><textarea name="acontent" rows="8" cols="80" style="width:90%;">{{ form_data.acontent|default:'' }}</textarea></td></tr>
+    </tbody>
+</table>
+</form>
+</div>
+<div class="btn_right">
+    <a href="javascript:fn_submit();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+    <a href="{% url 'office_alim_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+{% endblock %}

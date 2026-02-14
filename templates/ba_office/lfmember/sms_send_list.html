@@ -1,0 +1,95 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfmember_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(function(){
+    $('input[name=sch_sdate], input[name=sch_edate]').datepicker({dateFormat:'yy-mm-dd'});
+});
+function fn_search() {
+    document.schform.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  회원관리  &gt;  SMS/LMS 내역</div>
+<div class="h_55"></div>
+
+<p class="title">SMS/LMS 발송 내역 (총 {{ total_count }}건)</p>
+
+<form name="schform" method="get" action="{% url 'office_sms_send_list' %}">
+<table border="0" cellpadding="3" cellspacing="0" style="margin-bottom:5px;">
+    <tr>
+        <td>기간:
+            <input type="text" name="sch_sdate" value="{{ sch_sdate }}" size="10" class="input" readonly /> ~
+            <input type="text" name="sch_edate" value="{{ sch_edate }}" size="10" class="input" readonly />
+        </td>
+        <td>&nbsp;<a href="javascript:fn_search();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></td>
+    </tr>
+</table>
+</form>
+
+<div class="tb_basic">
+    <table summary="SMS내역" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="5%" />
+            <col width="10%" />
+            <col width="12%" />
+            <col />
+            <col width="12%" />
+            <col width="12%" />
+            <col width="10%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">순번</th>
+                <th scope="col">메시지키</th>
+                <th scope="col">발송요청일시</th>
+                <th scope="col">내용</th>
+                <th scope="col">발신번호</th>
+                <th scope="col">수신번호</th>
+                <th scope="col">결과</th>
+            </tr>
+            {% for log in logs %}
+            <tr>
+                <td>{{ forloop.counter|page_index:logs.start_index }}</td>
+                <td>{{ log.msg_key }}</td>
+                <td>{{ log.date_client_req|date:"Y-m-d H:i" }}</td>
+                <td class="left">{{ log.content|truncatewords:15 }}</td>
+                <td>{{ log.callback }}</td>
+                <td>{{ log.recipient_num }}</td>
+                <td>{% if log.rslt == '1000' %}<font color="blue">성공</font>{% else %}<font color="red">실패</font>{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" style="padding:20px;">발송 내역이 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if logs.has_other_pages %}
+<div class="paging">
+    {% if logs.has_previous %}
+    <a href="?page=1&sch_sdate={{ sch_sdate }}&sch_edate={{ sch_edate }}">&laquo;</a>
+    <a href="?page={{ logs.previous_page_number }}&sch_sdate={{ sch_sdate }}&sch_edate={{ sch_edate }}">&lt;</a>
+    {% endif %}
+    {% for num in logs.paginator.page_range %}
+        {% if logs.number == num %}
+        <strong>{{ num }}</strong>
+        {% elif num > logs.number|add:"-5" and num < logs.number|add:"5" %}
+        <a href="?page={{ num }}&sch_sdate={{ sch_sdate }}&sch_edate={{ sch_edate }}">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if logs.has_next %}
+    <a href="?page={{ logs.next_page_number }}&sch_sdate={{ sch_sdate }}&sch_edate={{ sch_edate }}">&gt;</a>
+    <a href="?page={{ logs.paginator.num_pages }}&sch_sdate={{ sch_sdate }}&sch_edate={{ sch_edate }}">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfmember_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fn_submit() {
+    var f = document.regform;
+    if (!f.child_name.value.trim()) { alert('이름을 입력해주세요.'); f.child_name.focus(); return; }
+    if (f.pwd_chk && f.pwd_chk.checked) {
+        if (!f.child_pwd.value || f.child_pwd.value.length < 8) { alert('비밀번호는 8자 이상 입력해주세요.'); f.child_pwd.focus(); return; }
+        if (f.child_pwd.value != f.child_pwd_con.value) { alert('비밀번호가 일치하지 않습니다.'); f.child_pwd_con.focus(); return; }
+    }
+    f.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  회원관리  &gt;  자녀정보</div>
+<div class="h_55"></div>
+
+<p class="title">자녀정보-수정</p>
+
+{% if error %}
+<div style="color:red; margin-bottom:10px; font-weight:bold; padding-left:10px;">{{ error }}</div>
+{% endif %}
+
+<div class="tb_basic">
+<form name="regform" method="post" action="{% url 'office_child_modify' child.child_id %}">
+{% csrf_token %}
+<table summary="ems" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="15%" /><col width="85%" /></colgroup>
+    <tbody>
+        <tr><th scope="col">부모</th><td class="left"><strong>{{ child.parent.name }}</strong> ({{ child.parent.username }})</td></tr>
+        <tr><th scope="col">아이디</th><td class="left"><strong>{{ child.child_id }}</strong></td></tr>
+        <tr><th scope="col">이름 *</th><td class="left"><input type="text" name="child_name" value="{{ child.name }}" size="10" maxlength="10" /></td></tr>
+        <tr><th scope="col">생년월일</th><td class="left"><input type="text" name="child_birth" value="{{ child.birth }}" size="8" maxlength="8" /> (YYYYMMDD)</td></tr>
+        <tr><th scope="col">학교명</th><td class="left"><input type="text" name="sch_name" value="{{ child.school }}" size="20" maxlength="20" /></td></tr>
+        <tr><th scope="col">학년</th><td class="left"><input type="text" name="sch_grade" value="{{ child.grade }}" size="10" maxlength="10" /></td></tr>
+        <tr><th scope="col">비밀번호</th><td class="left">
+            <input type="checkbox" name="pwd_chk" id="pwd_chk" /> <label for="pwd_chk">비밀번호 변경</label>&nbsp;
+            <input type="password" name="child_pwd" size="16" maxlength="16" /> (8자 이상)
+        </td></tr>
+        <tr><th scope="col">비밀번호 확인</th><td class="left"><input type="password" name="child_pwd_con" size="16" maxlength="16" /></td></tr>
+        <tr><th scope="col">신장(cm)</th><td class="left"><input type="text" name="child_height" value="{{ child.height }}" size="3" maxlength="3" /></td></tr>
+        <tr><th scope="col">체중(kg)</th><td class="left"><input type="text" name="child_weight" value="{{ child.weight }}" size="3" maxlength="3" /></td></tr>
+        <tr><th scope="col">사이즈</th><td class="left">
+            <select name="child_size" class="select">
+                <option value="">선택</option>
+                <option value="65" {% if child.size == '65' %}selected{% endif %}>65</option>
+                <option value="70" {% if child.size == '70' %}selected{% endif %}>70</option>
+                <option value="75" {% if child.size == '75' %}selected{% endif %}>75</option>
+                <option value="80" {% if child.size == '80' %}selected{% endif %}>80</option>
+                <option value="85" {% if child.size == '85' %}selected{% endif %}>85</option>
+                <option value="90" {% if child.size == '90' %}selected{% endif %}>90</option>
+                <option value="95" {% if child.size == '95' %}selected{% endif %}>95</option>
+                <option value="100" {% if child.size == '100' %}selected{% endif %}>100</option>
+                <option value="105" {% if child.size == '105' %}selected{% endif %}>105</option>
+                <option value="110" {% if child.size == '110' %}selected{% endif %}>110</option>
+            </select>
+        </td></tr>
+        <tr><th scope="col">연락처</th><td class="left">
+            <input type="text" name="chtel1" value="{{ chtel1 }}" size="3" maxlength="4" /> -
+            <input type="text" name="chtel2" value="{{ chtel2 }}" size="4" maxlength="4" /> -
+            <input type="text" name="chtel3" value="{{ chtel3 }}" size="4" maxlength="4" />
+        </td></tr>
+        <tr><th scope="col">성별</th><td class="left">
+            <input type="radio" name="child_sexgbn" value="M" {% if child.gender == 'M' %}checked{% endif %} /> 남자
+            <input type="radio" name="child_sexgbn" value="F" {% if child.gender == 'F' %}checked{% endif %} /> 여자
+        </td></tr>
+        <tr><th scope="col">상태</th><td class="left">
+            <select name="child_status" class="select">
+                <option value="N" {% if child.status == 'N' %}selected{% endif %}>정상</option>
+                <option value="S" {% if child.status == 'S' %}selected{% endif %}>중지</option>
+                <option value="O" {% if child.status == 'O' %}selected{% endif %}>탈퇴</option>
+            </select>
+        </td></tr>
+        <tr><th scope="col">수강상태</th><td class="left">
+            <select name="course_state" class="select">
+                <option value="CAN" {% if child.course_state == 'CAN' %}selected{% endif %}>미수강</option>
+                <option value="ING" {% if child.course_state == 'ING' %}selected{% endif %}>수강중</option>
+                <option value="END" {% if child.course_state == 'END' %}selected{% endif %}>퇴단</option>
+                <option value="PAU" {% if child.course_state == 'PAU' %}selected{% endif %}>일시중지</option>
+            </select>
+        </td></tr>
+        <tr><th scope="col">카드번호</th><td class="left"><input type="text" name="card_num" value="{{ child.card_num }}" size="8" maxlength="8" /></td></tr>
+    </tbody>
+</table>
+</form>
+</div>
+<div class="btn_right">
+    <a href="javascript:fn_submit();"><img src="{% static 'ba_office/images/btn_modify.gif' %}" alt="수정" /></a>
+    <a href="{% url 'office_child_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+{% endblock %}

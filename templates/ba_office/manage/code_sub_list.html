@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link href="{% static 'ba_office/css/style.css' %}" rel="stylesheet" type="text/css">
+<script>
+function codesub_del(grpcode, subcode, grpcode_name) {
+    if (confirm('이 코드를 삭제하시겠습니까?')) {
+        var form = document.createElement('form');
+        form.method = 'post';
+        form.action = '{% url "office_codesub_del" %}';
+        var fields = {csrfmiddlewaretoken: '{{ csrf_token }}', grpcode: grpcode, subcode: subcode, grpcode_name: grpcode_name};
+        for (var key in fields) {
+            var input = document.createElement('input');
+            input.type = 'hidden'; input.name = key; input.value = fields[key];
+            form.appendChild(input);
+        }
+        document.body.appendChild(form); form.submit();
+    }
+}
+</script>
+</head>
+<body style="margin:0; padding:0;">
+{% if grpcode %}
+<div class="tb_scroll">
+    <table border="0" cellpadding="0" cellspacing="0">
+        <colgroup><col width="110px" /><col width="110px" /><col width="100px" /><col width="170px" /><col width="10px" /></colgroup>
+        <tbody>
+            {% for code in codes %}
+            <tr>
+                <td>{{ code.subcode }}</td>
+                <td>{{ code.code_name }}</td>
+                <td>{{ code.code_order }}</td>
+                <td>
+                    <a href="{% url 'office_codesub_modify' grpcode code.subcode %}?grpcode_name={{ grpcode_name }}"><img src="{% static 'ba_office/images/btn_edit.gif' %}" alt="수정" /></a>
+                    <a href="javascript:void(0);" onclick="codesub_del('{{ grpcode }}', '{{ code.subcode }}', '{{ grpcode_name }}');"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a>
+                </td>
+                <td>&nbsp;</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" style="padding:20px;">등록된 코드가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+</body>
+</html>

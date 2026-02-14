@@ -1,0 +1,84 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfmember_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fn_search() {
+    document.schform.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  회원관리  &gt;  탈퇴회원리스트</div>
+<div class="h_55"></div>
+
+<p class="title">탈퇴회원리스트 (총 {{ total_count }}건)</p>
+
+<form name="schform" method="get" action="{% url 'office_secession_list' %}">
+<table border="0" cellpadding="3" cellspacing="0" style="margin-bottom:5px;">
+    <tr>
+        <td>이름 <input type="text" name="sch_member_name" value="{{ sch_member_name }}" size="10" class="input" /></td>
+        <td>&nbsp;아이디 <input type="text" name="sch_member_id" value="{{ sch_member_id }}" size="10" class="input" /></td>
+        <td>&nbsp;<a href="javascript:fn_search();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></td>
+    </tr>
+</table>
+</form>
+
+<div class="tb_basic">
+    <table summary="탈퇴회원" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="8%" />
+            <col width="12%" />
+            <col width="15%" />
+            <col />
+            <col width="15%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">순번</th>
+                <th scope="col">이름</th>
+                <th scope="col">아이디</th>
+                <th scope="col">사유</th>
+                <th scope="col">탈퇴일자</th>
+            </tr>
+            {% for m in members %}
+            <tr>
+                <td>{{ forloop.counter|page_index:members.start_index }}</td>
+                <td>{{ m.member_name }}</td>
+                <td><font color="blue">{{ m.member_id }}</font></td>
+                <td class="left">{{ m.out_desc|truncatewords:20 }}</td>
+                <td>{{ m.out_dt|date:"Y-m-d" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" style="padding:20px;">탈퇴 회원이 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if members.has_other_pages %}
+<div class="paging">
+    {% if members.has_previous %}
+    <a href="?page=1&sch_member_name={{ sch_member_name }}&sch_member_id={{ sch_member_id }}">&laquo;</a>
+    <a href="?page={{ members.previous_page_number }}&sch_member_name={{ sch_member_name }}&sch_member_id={{ sch_member_id }}">&lt;</a>
+    {% endif %}
+    {% for num in members.paginator.page_range %}
+        {% if members.number == num %}
+        <strong>{{ num }}</strong>
+        {% elif num > members.number|add:"-5" and num < members.number|add:"5" %}
+        <a href="?page={{ num }}&sch_member_name={{ sch_member_name }}&sch_member_id={{ sch_member_id }}">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if members.has_next %}
+    <a href="?page={{ members.next_page_number }}&sch_member_name={{ sch_member_name }}&sch_member_id={{ sch_member_id }}">&gt;</a>
+    <a href="?page={{ members.paginator.num_pages }}&sch_member_name={{ sch_member_name }}&sch_member_id={{ sch_member_id }}">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/manage_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fn_idcheck() {
+    var office_id = document.getElementById('office_id').value.trim();
+    if (office_id.length < 6) {
+        alert('아이디는 6자 이상 입력해주세요.');
+        return;
+    }
+    var pattern = /^[a-z0-9_-]+$/;
+    if (!pattern.test(office_id)) {
+        alert('아이디는 영문 소문자, 숫자, -, _만 사용 가능합니다.');
+        return;
+    }
+    $.ajax({
+        url: '{% url "office_ofuser_idcheck" %}',
+        data: {office_id: office_id},
+        success: function(data) {
+            if (data.exists) {
+                alert('이미 사용 중인 아이디입니다.');
+                document.regform.id_dup_chk.value = 'F';
+            } else {
+                alert('사용 가능한 아이디입니다.');
+                document.regform.id_dup_chk.value = 'T';
+            }
+        }
+    });
+}
+
+function ofuser_write() {
+    var f = document.regform;
+    if (!f.office_name.value.trim()) { alert('표시명을 입력해주세요.'); f.office_name.focus(); return; }
+    if (f.office_id.value.trim().length < 6) { alert('아이디는 6자 이상 입력해주세요.'); f.office_id.focus(); return; }
+    var pattern = /^[a-z0-9_-]+$/;
+    if (!pattern.test(f.office_id.value.trim())) { alert('아이디는 영문 소문자, 숫자, -, _만 사용 가능합니다.'); f.office_id.focus(); return; }
+    if (f.office_pwd.value.trim().length < 10) { alert('비밀번호는 10자 이상 입력해주세요.'); f.office_pwd.focus(); return; }
+    if (!pattern.test(f.office_pwd.value.trim())) { alert('비밀번호는 영문 소문자, 숫자, -, _만 사용 가능합니다.'); f.office_pwd.focus(); return; }
+    if (f.office_id.value.trim() == f.office_pwd.value.trim()) { alert('아이디와 비밀번호는 같을 수 없습니다.'); f.office_pwd.focus(); return; }
+    if (f.office_pwd.value != f.office_pwd_con.value) { alert('비밀번호가 일치하지 않습니다.'); f.office_pwd_con.focus(); return; }
+    if (!f.office_hp.value.trim()) { alert('연락처를 입력해주세요.'); f.office_hp.focus(); return; }
+    var chk = document.querySelectorAll('input[name=office_auth]:checked');
+    if (chk.length == 0) { alert('메뉴 권한을 1개 이상 선택해주세요.'); return; }
+    f.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  시스템관리  &gt;  관리자관리</div>
+<div class="h_55"></div>
+
+<p class="title">관리자관리-등록</p>
+
+{% if error %}
+<div style="color:red; margin-bottom:10px; font-weight:bold; padding-left:10px;">{{ error }}</div>
+{% endif %}
+
+<div class="tb_basic">
+<form name="regform" method="post" action="{% url 'office_ofuser_write' %}">
+{% csrf_token %}
+<input type="hidden" name="id_dup_chk" value="F" />
+<table summary="ems" border="0" cellpadding="0" cellspacing="0">
+    <colgroup>
+        <col width="15%" />
+        <col width="85%" />
+    </colgroup>
+    <tbody>
+        <tr><th scope="col">표시명</th><td class="left"><input type="text" name="office_name" value="{{ form_data.office_name|default:'' }}" size="20" maxlength="30" /></td></tr>
+        <tr><th scope="col">실명</th><td class="left"><input type="text" name="office_realname" value="{{ form_data.office_realname|default:'' }}" size="20" maxlength="30" /></td></tr>
+        <tr><th scope="col">아이디</th><td class="left"><input type="text" name="office_id" id="office_id" value="{{ form_data.office_id|default:'' }}" size="20" maxlength="12" /> <a href="javascript:fn_idcheck();"><img src="{% static 'ba_office/images/btn_check.gif' %}" alt="중복확인" /></a> <span style="color:#888; font-size:11px;">영문 소문자, 숫자, -, _ 6자 이상</span></td></tr>
+        <tr><th scope="col">비밀번호</th><td class="left"><input type="password" name="office_pwd" size="20" maxlength="50" /> <span style="color:#888; font-size:11px;">영문 소문자, 숫자, -, _ 10자 이상</span></td></tr>
+        <tr><th scope="col">비밀번호확인</th><td class="left"><input type="password" name="office_pwd_con" size="20" maxlength="50" /></td></tr>
+        <tr><th scope="col">부서명</th><td class="left"><input type="text" name="office_part" value="{{ form_data.office_part|default:'' }}" size="20" maxlength="20" /></td></tr>
+        <tr><th scope="col">이메일</th><td class="left"><input type="text" name="office_mail" value="{{ form_data.office_mail|default:'' }}" size="40" maxlength="128" /></td></tr>
+        <tr><th scope="col">연락처</th><td class="left"><input type="text" name="office_hp" value="{{ form_data.office_hp|default:'' }}" size="20" maxlength="20" /></td></tr>
+        <tr>
+            <th scope="col">메뉴권한</th>
+            <td class="left">
+                <label><input type="checkbox" name="office_auth" value="A" class="checkbox" {% if form_data and 'A' in form_data.office_auth %}checked{% endif %} /> 시스템관리</label>&nbsp;&nbsp;
+                <label><input type="checkbox" name="office_auth" value="M" class="checkbox" {% if form_data and 'M' in form_data.office_auth %}checked{% endif %} /> 회원관리</label>&nbsp;&nbsp;
+                <label><input type="checkbox" name="office_auth" value="H" class="checkbox" {% if form_data and 'H' in form_data.office_auth %}checked{% endif %} /> 수강생관리</label>&nbsp;&nbsp;
+                <label><input type="checkbox" name="office_auth" value="C" class="checkbox" {% if form_data and 'C' in form_data.office_auth %}checked{% endif %} /> 상담관리</label>&nbsp;&nbsp;
+                <label><input type="checkbox" name="office_auth" value="L" class="checkbox" {% if form_data and 'L' in form_data.office_auth %}checked{% endif %} /> 과정관리</label>&nbsp;&nbsp;
+                <label><input type="checkbox" name="office_auth" value="N" class="checkbox" {% if form_data and 'N' in form_data.office_auth %}checked{% endif %} /> 출고관리</label>&nbsp;&nbsp;
+                <label><input type="checkbox" name="office_auth" value="R" class="checkbox" {% if form_data and 'R' in form_data.office_auth %}checked{% endif %} /> REPORT</label>&nbsp;&nbsp;
+                <label><input type="checkbox" name="office_auth" value="G" class="checkbox" {% if form_data and 'G' in form_data.office_auth %}checked{% endif %} /> 매출정보</label>&nbsp;&nbsp;
+                <label><input type="checkbox" name="office_auth" value="P" class="checkbox" {% if form_data and 'P' in form_data.office_auth %}checked{% endif %} /> 포탈관리</label>&nbsp;&nbsp;
+                <label><input type="checkbox" name="office_auth" value="S" class="checkbox" {% if form_data and 'S' in form_data.office_auth %}checked{% endif %} /> 쇼핑몰관리</label>
+            </td>
+        </tr>
+        <tr><th scope="col">접속구분</th><td class="left"><label><input type="radio" name="use_auth" value="W" class="checkbox" checked /> 주니어</label></td></tr>
+        <tr>
+            <th scope="col">코치코드</th>
+            <td class="left">
+                <select name="coach_code" class="select"><option value="">-- 선택 --</option>{% for coach in coaches %}<option value="{{ coach.coach_code }}" {% if form_data.coach_code == coach.coach_code|stringformat:"s" %}selected{% endif %}>{{ coach.coach_name }} ({{ coach.coach_code }})</option>{% endfor %}</select>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</form>
+</div>
+<div class="btn_right">
+    <a href="javascript:ofuser_write();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+    <a href="{% url 'office_ofuser_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+{% endblock %}

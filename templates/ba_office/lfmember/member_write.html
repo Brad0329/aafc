@@ -1,0 +1,205 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfmember_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<script>
+function dis_child() {
+    var cnt = parseInt(document.regform.child_cnt.value);
+    for (var i = 1; i <= 5; i++) {
+        var el = document.getElementById('child_area_' + i);
+        if (el) el.style.display = (i <= cnt) ? '' : 'none';
+    }
+}
+
+function fn_zipcode() {
+    new daum.Postcode({
+        oncomplete: function(data) {
+            document.regform.zipcode.value = data.zonecode;
+            document.regform.address1.value = data.address;
+            document.regform.address2.focus();
+        }
+    }).open();
+}
+
+function fn_idcheck() {
+    var mid = document.regform.member_id.value.trim();
+    if (!mid || mid.length < 6) { alert('아이디는 6자 이상 입력해주세요.'); return; }
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '{% url "office_member_idcheck" %}?member_id=' + encodeURIComponent(mid));
+    xhr.onload = function() {
+        var res = JSON.parse(xhr.responseText);
+        if (res.exists) {
+            alert('이미 사용 중인 아이디입니다.');
+        } else {
+            alert('사용 가능한 아이디입니다.');
+            document.regform.id_dup_chk.value = 'T';
+        }
+    };
+    xhr.send();
+}
+
+function fn_child_idcheck(idx) {
+    var cid = document.regform['child_id_' + idx].value.trim();
+    if (!cid || cid.length < 6) { alert('자녀 아이디는 6자 이상 입력해주세요.'); return; }
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '{% url "office_member_idcheck" %}?member_id=' + encodeURIComponent(cid));
+    xhr.onload = function() {
+        var res = JSON.parse(xhr.responseText);
+        if (res.exists) {
+            alert('이미 사용 중인 아이디입니다.');
+        } else {
+            alert('사용 가능한 아이디입니다.');
+            document.regform['child_dup_chk_' + idx].value = 'T';
+        }
+    };
+    xhr.send();
+}
+
+function member_write() {
+    var f = document.regform;
+    if (!f.member_name.value.trim()) { alert('이름을 입력해주세요.'); f.member_name.focus(); return; }
+    if (!f.member_id.value.trim() || f.member_id.value.trim().length < 6) { alert('아이디는 6자 이상 입력해주세요.'); f.member_id.focus(); return; }
+    if (!f.member_pwd.value.trim() || f.member_pwd.value.trim().length < 8) { alert('비밀번호는 8자 이상 입력해주세요.'); f.member_pwd.focus(); return; }
+    if (f.member_pwd.value != f.member_pwd_con.value) { alert('비밀번호가 일치하지 않습니다.'); f.member_pwd_con.focus(); return; }
+    if (!f.mhtel1.value || !f.mhtel2.value || !f.mhtel3.value) { alert('휴대전화를 입력해주세요.'); return; }
+
+    var cnt = parseInt(f.child_cnt.value);
+    for (var i = 1; i <= cnt; i++) {
+        if (!f['child_name_' + i].value.trim()) { alert(i + '번째 자녀 이름을 입력해주세요.'); return; }
+        if (!f['child_id_' + i].value.trim() || f['child_id_' + i].value.trim().length < 6) { alert(i + '번째 자녀 아이디는 6자 이상 입력해주세요.'); return; }
+        if (!f['child_pwd_' + i].value.trim() || f['child_pwd_' + i].value.trim().length < 8) { alert(i + '번째 자녀 비밀번호는 8자 이상 입력해주세요.'); return; }
+        if (f['child_pwd_' + i].value != f['child_pwd_con_' + i].value) { alert(i + '번째 자녀 비밀번호가 일치하지 않습니다.'); return; }
+    }
+    f.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  회원관리  &gt;  회원정보</div>
+<div class="h_55"></div>
+
+<p class="title">회원정보-등록</p>
+
+{% if error %}
+<div style="color:red; margin-bottom:10px; font-weight:bold; padding-left:10px;">{{ error }}</div>
+{% endif %}
+
+<div class="tb_basic">
+<form name="regform" method="post" action="{% url 'office_member_write' %}">
+{% csrf_token %}
+<input type="hidden" name="id_dup_chk" value="F" />
+<table summary="ems" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="15%" /><col width="85%" /></colgroup>
+    <tbody>
+        <tr><th scope="col" colspan="2" style="text-align:left; padding-left:10px; background:#e8e8e8;"><b>학부모 정보</b></th></tr>
+        <tr><th scope="col">이름 *</th><td class="left"><input type="text" name="member_name" value="{{ form_data.member_name|default:'' }}" size="10" maxlength="10" /></td></tr>
+        <tr><th scope="col">아이디 *</th><td class="left"><input type="text" name="member_id" value="{{ form_data.member_id|default:'' }}" size="16" maxlength="16" /> <a href="javascript:fn_idcheck();"><img src="{% static 'ba_office/images/btn_check.gif' %}" alt="중복확인" /></a></td></tr>
+        <tr><th scope="col">비밀번호 *</th><td class="left"><input type="password" name="member_pwd" size="16" maxlength="16" /> (8자 이상)</td></tr>
+        <tr><th scope="col">비밀번호 확인 *</th><td class="left"><input type="password" name="member_pwd_con" size="16" maxlength="16" /></td></tr>
+        <tr><th scope="col">전화번호</th><td class="left">
+            <input type="text" name="mtel1" value="{{ form_data.mtel1|default:'' }}" size="3" maxlength="4" /> -
+            <input type="text" name="mtel2" value="{{ form_data.mtel2|default:'' }}" size="4" maxlength="4" /> -
+            <input type="text" name="mtel3" value="{{ form_data.mtel3|default:'' }}" size="4" maxlength="4" />
+        </td></tr>
+        <tr><th scope="col">휴대전화 *</th><td class="left">
+            <select name="mhtel1" class="select">
+                <option value="010" {% if form_data.mhtel1 == '010' %}selected{% endif %}>010</option>
+                <option value="011" {% if form_data.mhtel1 == '011' %}selected{% endif %}>011</option>
+                <option value="016" {% if form_data.mhtel1 == '016' %}selected{% endif %}>016</option>
+                <option value="017" {% if form_data.mhtel1 == '017' %}selected{% endif %}>017</option>
+                <option value="018" {% if form_data.mhtel1 == '018' %}selected{% endif %}>018</option>
+                <option value="019" {% if form_data.mhtel1 == '019' %}selected{% endif %}>019</option>
+            </select> -
+            <input type="text" name="mhtel2" value="{{ form_data.mhtel2|default:'' }}" size="4" maxlength="4" /> -
+            <input type="text" name="mhtel3" value="{{ form_data.mhtel3|default:'' }}" size="4" maxlength="4" />
+        </td></tr>
+        <tr><th scope="col">이메일</th><td class="left"><input type="text" name="member_mail" value="{{ form_data.member_mail|default:'' }}" size="40" maxlength="128" /></td></tr>
+        <tr><th scope="col">주소</th><td class="left">
+            <input type="text" name="zipcode" value="{{ form_data.zipcode|default:'' }}" size="7" maxlength="7" readonly /> <a href="javascript:fn_zipcode();"><img src="{% static 'ba_office/images/btn_zip.gif' %}" alt="주소검색" /></a><br />
+            <input type="text" name="address1" value="{{ form_data.address1|default:'' }}" size="50" readonly /><br />
+            <input type="text" name="address2" value="{{ form_data.address2|default:'' }}" size="50" maxlength="50" />
+        </td></tr>
+        <tr><th scope="col">SMS 수신</th><td class="left">
+            <input type="radio" name="smsyn" value="Y" {% if form_data.smsyn != 'N' %}checked{% endif %} /> 동의
+            <input type="radio" name="smsyn" value="N" {% if form_data.smsyn == 'N' %}checked{% endif %} /> 거부
+        </td></tr>
+        <tr><th scope="col">메일 수신</th><td class="left">
+            <input type="radio" name="mailyn" value="Y" {% if form_data.mailyn != 'N' %}checked{% endif %} /> 동의
+            <input type="radio" name="mailyn" value="N" {% if form_data.mailyn == 'N' %}checked{% endif %} /> 거부
+        </td></tr>
+        <tr><th scope="col">상태</th><td class="left">
+            <select name="member_status" class="select">
+                <option value="N">정상</option>
+                <option value="S" {% if form_data.member_status == 'S' %}selected{% endif %}>중지</option>
+                <option value="O" {% if form_data.member_status == 'O' %}selected{% endif %}>탈퇴</option>
+            </select>
+        </td></tr>
+    </tbody>
+</table>
+
+<div class="h_55"></div>
+
+<table summary="ems" border="0" cellpadding="0" cellspacing="0" style="margin-bottom:5px;">
+    <tr>
+        <td><b>자녀수:</b>
+            <select name="child_cnt" class="select" onchange="dis_child();">
+                <option value="1">1명</option>
+                <option value="2">2명</option>
+                <option value="3">3명</option>
+                <option value="4">4명</option>
+                <option value="5">5명</option>
+            </select>
+        </td>
+    </tr>
+</table>
+
+{% for i in "12345" %}
+<div id="child_area_{{ forloop.counter }}" {% if forloop.counter > 1 %}style="display:none;"{% endif %}>
+<table summary="ems" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="15%" /><col width="85%" /></colgroup>
+    <tbody>
+        <tr><th scope="col" colspan="2" style="text-align:left; padding-left:10px; background:#e8e8e8;"><b>자녀 {{ forloop.counter }} 정보</b></th></tr>
+        <tr><th scope="col">이름 *</th><td class="left"><input type="text" name="child_name_{{ forloop.counter }}" value="" size="10" maxlength="10" /></td></tr>
+        <tr><th scope="col">아이디 *</th><td class="left"><input type="text" name="child_id_{{ forloop.counter }}" value="" size="16" maxlength="16" /> <input type="hidden" name="child_dup_chk_{{ forloop.counter }}" value="F" /> <a href="javascript:fn_child_idcheck({{ forloop.counter }});"><img src="{% static 'ba_office/images/btn_check.gif' %}" alt="중복확인" /></a></td></tr>
+        <tr><th scope="col">비밀번호 *</th><td class="left"><input type="password" name="child_pwd_{{ forloop.counter }}" size="16" maxlength="16" /> (8자 이상)</td></tr>
+        <tr><th scope="col">비밀번호 확인 *</th><td class="left"><input type="password" name="child_pwd_con_{{ forloop.counter }}" size="16" maxlength="16" /></td></tr>
+        <tr><th scope="col">생년월일 *</th><td class="left"><input type="text" name="child_birth_{{ forloop.counter }}" value="" size="8" maxlength="8" /> (YYYYMMDD)</td></tr>
+        <tr><th scope="col">학교명</th><td class="left"><input type="text" name="sch_name_{{ forloop.counter }}" value="" size="20" maxlength="20" /></td></tr>
+        <tr><th scope="col">학년</th><td class="left"><input type="text" name="sch_grade_{{ forloop.counter }}" value="" size="10" maxlength="10" /></td></tr>
+        <tr><th scope="col">신장(cm)</th><td class="left"><input type="text" name="child_height_{{ forloop.counter }}" value="" size="3" maxlength="3" /></td></tr>
+        <tr><th scope="col">체중(kg)</th><td class="left"><input type="text" name="child_weight_{{ forloop.counter }}" value="" size="3" maxlength="3" /></td></tr>
+        <tr><th scope="col">사이즈</th><td class="left">
+            <select name="child_size_{{ forloop.counter }}" class="select">
+                <option value="">선택</option>
+                {% for s in "65,70,75,80,85,90,95,100,105,110"|make_list %}{% endfor %}
+                <option value="65">65</option><option value="70">70</option><option value="75">75</option><option value="80">80</option><option value="85">85</option><option value="90">90</option><option value="95">95</option><option value="100">100</option><option value="105">105</option><option value="110">110</option>
+            </select>
+        </td></tr>
+        <tr><th scope="col">연락처</th><td class="left">
+            <input type="text" name="chtel1_{{ forloop.counter }}" value="" size="3" maxlength="4" /> -
+            <input type="text" name="chtel2_{{ forloop.counter }}" value="" size="4" maxlength="4" /> -
+            <input type="text" name="chtel3_{{ forloop.counter }}" value="" size="4" maxlength="4" />
+        </td></tr>
+        <tr><th scope="col">성별 *</th><td class="left">
+            <input type="radio" name="child_sexgbn_{{ forloop.counter }}" value="M" checked /> 남자
+            <input type="radio" name="child_sexgbn_{{ forloop.counter }}" value="F" /> 여자
+        </td></tr>
+    </tbody>
+</table>
+</div>
+{% endfor %}
+
+</form>
+</div>
+
+<div class="btn_right">
+    <a href="javascript:member_write();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+    <a href="{% url 'office_member_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+{% endblock %}

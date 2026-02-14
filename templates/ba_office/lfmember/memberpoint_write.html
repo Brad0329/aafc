@@ -1,0 +1,53 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfmember_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fn_submit() {
+    var f = document.regform;
+    if (!f.member_id.value.trim()) { alert('회원 아이디를 입력해주세요.'); f.member_id.focus(); return; }
+    if (!f.app_point.value.trim() || parseInt(f.app_point.value) <= 0) { alert('포인트를 올바르게 입력해주세요.'); f.app_point.focus(); return; }
+    if (!f.point_desc.value.trim()) { alert('내용을 입력해주세요.'); f.point_desc.focus(); return; }
+    f.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  회원관리  &gt;  회원포인트내역</div>
+<div class="h_55"></div>
+
+<p class="title">포인트 등록 (관리자 직권)</p>
+
+{% if error %}
+<div style="color:red; margin-bottom:10px; font-weight:bold; padding-left:10px;">{{ error }}</div>
+{% endif %}
+
+<div class="tb_basic">
+<form name="regform" method="post" action="{% url 'office_memberpoint_write' %}">
+{% csrf_token %}
+<table summary="ems" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="15%" /><col width="85%" /></colgroup>
+    <tbody>
+        <tr><th scope="col">회원 아이디 *</th><td class="left"><input type="text" name="member_id" value="{{ form_data.member_id|default:'' }}" size="20" maxlength="30" /></td></tr>
+        <tr><th scope="col">구분 *</th><td class="left">
+            <select name="app_gbn" class="select">
+                <option value="S" {% if form_data.app_gbn == 'S' %}selected{% endif %}>적립</option>
+                <option value="U" {% if form_data.app_gbn == 'U' %}selected{% endif %}>사용(차감)</option>
+            </select>
+        </td></tr>
+        <tr><th scope="col">포인트 *</th><td class="left"><input type="text" name="app_point" value="{{ form_data.app_point|default:'' }}" size="10" maxlength="10" /> P</td></tr>
+        <tr><th scope="col">내용 *</th><td class="left"><input type="text" name="point_desc" value="{{ form_data.point_desc|default:'' }}" size="60" maxlength="200" /></td></tr>
+    </tbody>
+</table>
+</form>
+</div>
+<div class="btn_right">
+    <a href="javascript:fn_submit();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+    <a href="{% url 'office_memberpoint_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+{% endblock %}
