@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}코치별 통계 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li><a href="{% url 'reports:total_data' %}">전체 DATA</a></li>
+                <li class="present"><a href="{% url 'reports:coach_stats' %}">코치별 통계</a></li>
+                <li><a href="{% url 'reports:attendance_report' %}">출석 현황</a></li>
+                <li><a href="{% url 'reports:monthly_stats' %}">월별 통계</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">코치별 통계<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;REPORT&nbsp;&nbsp;>&nbsp;&nbsp;<b>코치별 통계</b></span></h2>
+
+            <!-- 필터 -->
+            <div class="join_info" style="margin-bottom:15px;">
+                <form method="get" action="">
+                    <table summary="">
+                        <tbody>
+                            <tr>
+                                <th style="width:80px;">수강년월</th>
+                                <td style="width:150px;"><input type="text" name="course_ym" value="{{ course_ym }}" placeholder="예: 202401" style="width:130px;"/></td>
+                                <th style="width:60px;">코치</th>
+                                <td style="width:150px;"><input type="text" name="coach_name" value="{{ coach_name }}" placeholder="코치명" style="width:130px;"/></td>
+                                <th style="width:80px;">구장코드</th>
+                                <td>
+                                    <input type="text" name="sta_code" value="{{ sta_code }}" placeholder="구장코드" style="width:80px;"/>
+                                    <input type="submit" value="검색" class="btn_type1"/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+
+            <div style="margin-bottom:10px;">
+                <a href="{% url 'reports:coach_stats_excel' %}?course_ym={{ course_ym }}&coach_name={{ coach_name }}" class="btn_type1" style="font-size:12px;">Excel 다운로드</a>
+            </div>
+
+            <!-- 데이터 테이블 -->
+            <table class="join_info" summary="">
+                <colgroup>
+                    <col width="12%"/><col width="12%"/><col width="10%"/><col width="10%"/>
+                    <col width="12%"/><col width="11%"/><col width="11%"/><col width="11%"/><col width="11%"/>
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>수강년월</th><th>코치</th><th>회원수</th><th>수업횟수</th>
+                        <th>수업료</th><th>프로모션</th><th>상품비</th><th>교육용품1</th><th>교육용품2</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for item in page_obj %}
+                    <tr>
+                        <td>{{ item.course_ym }}</td>
+                        <td>{{ item.coach_name }}</td>
+                        <td style="text-align:right;">{{ item.total_cnt|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.sum_cl|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.sum_m1001|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.sum_m1002|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.sum_m1003|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.sum_m2001|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.sum_m2002|intcomma }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="9" style="text-align:center;padding:20px;">데이터가 없습니다.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- 페이지네이션 -->
+            {% if page_obj.has_other_pages %}
+            <div style="text-align:center;margin:20px 0;">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&course_ym={{ course_ym }}&coach_name={{ coach_name }}&sta_code={{ sta_code }}" style="margin:0 4px;">&laquo; 이전</a>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <b style="margin:0 4px;color:#2b68af;">{{ num }}</b>
+                    {% elif num > page_obj.number|add:"-5" and num < page_obj.number|add:"5" %}
+                        <a href="?page={{ num }}&course_ym={{ course_ym }}&coach_name={{ coach_name }}&sta_code={{ sta_code }}" style="margin:0 4px;">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&course_ym={{ course_ym }}&coach_name={{ coach_name }}&sta_code={{ sta_code }}" style="margin:0 4px;">다음 &raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

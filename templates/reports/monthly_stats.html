@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}월별 통계 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li><a href="{% url 'reports:total_data' %}">전체 DATA</a></li>
+                <li><a href="{% url 'reports:coach_stats' %}">코치별 통계</a></li>
+                <li><a href="{% url 'reports:attendance_report' %}">출석 현황</a></li>
+                <li class="present"><a href="{% url 'reports:monthly_stats' %}">월별 통계</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">월별 통계<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;REPORT&nbsp;&nbsp;>&nbsp;&nbsp;<b>월별 통계</b></span></h2>
+
+            <!-- 필터 -->
+            <div class="join_info" style="margin-bottom:15px;">
+                <form method="get" action="">
+                    <table summary="">
+                        <tbody>
+                            <tr>
+                                <th style="width:80px;">처리일</th>
+                                <td style="width:180px;"><input type="text" name="proc_dt" value="{{ proc_dt }}" placeholder="예: 20240131" style="width:150px;"/></td>
+                                <th style="width:60px;">구장</th>
+                                <td>
+                                    <input type="text" name="sta_name" value="{{ sta_name }}" placeholder="구장명" style="width:130px;"/>
+                                    <input type="submit" value="검색" class="btn_type1"/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+
+            <div style="margin-bottom:10px;">
+                <a href="{% url 'reports:monthly_stats_excel' %}?proc_dt={{ proc_dt }}&sta_name={{ sta_name }}" class="btn_type1" style="font-size:12px;">Excel 다운로드</a>
+            </div>
+
+            <!-- 데이터 테이블 -->
+            <div style="overflow-x:auto;">
+            <table class="join_info" summary="">
+                <thead>
+                    <tr>
+                        <th>처리일</th><th>코드</th><th>구장</th><th>회원수</th><th>목표</th><th>총수업</th>
+                        <th>신규체험</th><th>신규유료</th><th>갱신체험</th><th>갱신유료</th><th>재입단</th>
+                        <th>전체</th><th>수강</th><th>수강체험</th><th>수강유료</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for item in page_obj %}
+                    <tr>
+                        <td>{{ item.proc_dt }}</td>
+                        <td>{{ item.code_desc }}</td>
+                        <td>{{ item.sta_name }}</td>
+                        <td style="text-align:right;">{{ item.m_cnt|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.goal_cnt|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.tocl|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.newT_appl_cnt|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.newF_appl_cnt|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.renewT_appl_cnt|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.renewF_appl_cnt|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.again_appl_cnt|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.stats_tot_cnt|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.stats_ln_cnt|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.stats_lnT_cnt|intcomma }}</td>
+                        <td style="text-align:right;">{{ item.stats_lnF_cnt|intcomma }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="15" style="text-align:center;padding:20px;">데이터가 없습니다.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+
+            <!-- 페이지네이션 -->
+            {% if page_obj.has_other_pages %}
+            <div style="text-align:center;margin:20px 0;">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&proc_dt={{ proc_dt }}&sta_name={{ sta_name }}" style="margin:0 4px;">&laquo; 이전</a>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <b style="margin:0 4px;color:#2b68af;">{{ num }}</b>
+                    {% elif num > page_obj.number|add:"-5" and num < page_obj.number|add:"5" %}
+                        <a href="?page={{ num }}&proc_dt={{ proc_dt }}&sta_name={{ sta_name }}" style="margin:0 4px;">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&proc_dt={{ proc_dt }}&sta_name={{ sta_name }}" style="margin:0 4px;">다음 &raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

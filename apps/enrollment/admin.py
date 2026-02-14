@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Enrollment, EnrollmentCourse, EnrollmentBill, WaitStudent
+from .models import Enrollment, EnrollmentCourse, EnrollmentBill, WaitStudent, Attendance, ChangeHistory
 
 
 class EnrollmentCourseInline(admin.TabularInline):
@@ -48,3 +48,21 @@ class WaitStudentAdmin(admin.ModelAdmin):
                     'wait_seq', 'trans_gbn', 'del_chk', 'insert_dt']
     list_filter = ['trans_gbn', 'del_chk']
     search_fields = ['member_id', 'child_name', 'child_id']
+
+
+@admin.register(Attendance)
+class AttendanceAdmin(admin.ModelAdmin):
+    list_display = ['id', 'attendance_dt', 'sta_code', 'lecture_code', 'child_id',
+                    'attendance_gbn', 'complete_yn', 'app_month']
+    list_filter = ['attendance_gbn', 'complete_yn']
+    search_fields = ['child_id', 'attendance_dt']
+    ordering = ['-id']
+
+
+@admin.register(ChangeHistory)
+class ChangeHistoryAdmin(admin.ModelAdmin):
+    list_display = ['id', 'chg_gbn', 'chg_desc', 'member_id', 'child_id',
+                    'no_seq', 'reg_dt', 'reg_id']
+    list_filter = ['chg_gbn']
+    search_fields = ['member_id', 'child_id', 'chg_desc']
+    ordering = ['-id']

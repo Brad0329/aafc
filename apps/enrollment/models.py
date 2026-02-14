@@ -106,6 +106,65 @@ class EnrollmentBill(models.Model):
         return f'입단#{self.enrollment_id} {self.bill_code} {self.bill_amt}'
 
 
+class Attendance(models.Model):
+    """출석 (lf_student_attendance)"""
+    ATTENDANCE_CHOICES = [
+        ('Y', '출석'), ('N', '결석'), ('A', '보강'),
+        ('R', '우천취소'), ('D', '수업연기'), ('E', '출결제외'),
+    ]
+    local_code = models.IntegerField('권역코드', default=0)
+    sta_code = models.IntegerField('구장코드', default=0)
+    lecture_code = models.IntegerField('강좌코드', default=0)
+    child_id = models.CharField('자녀ID', max_length=30, blank=True)
+    attendance_dt = models.CharField('출석일', max_length=10, blank=True)
+    attendance_gbn = models.CharField('출석구분', max_length=1, blank=True, choices=ATTENDANCE_CHOICES)
+    attendance_desc = models.CharField('비고', max_length=100, blank=True)
+    insert_dt = models.DateTimeField('등록일', null=True, blank=True)
+    insert_id = models.CharField('등록자', max_length=16, blank=True)
+    mata = models.CharField('사후처리', max_length=1, blank=True)
+    app_month = models.CharField('적용월', max_length=7, blank=True)
+    complete_yn = models.CharField('완료여부', max_length=1, default='N')
+    uid = models.IntegerField('UID', default=0)
+    match_ymd = models.CharField('매칭일', max_length=8, blank=True)
+    ticket_no = models.CharField('티켓번호1', max_length=20, blank=True)
+    ticket_no2 = models.CharField('티켓번호2', max_length=20, blank=True)
+
+    class Meta:
+        db_table = 'enrollment_attendance'
+        verbose_name = '출석'
+        verbose_name_plural = '출석'
+        indexes = [
+            models.Index(fields=['attendance_dt'], name='idx_attend_dt'),
+            models.Index(fields=['child_id'], name='idx_attend_child'),
+            models.Index(fields=['lecture_code', 'attendance_dt'], name='idx_attend_lec_dt'),
+            models.Index(fields=['sta_code'], name='idx_attend_sta'),
+        ]
+
+    def __str__(self):
+        return f'{self.child_id} {self.attendance_dt} {self.attendance_gbn}'
+
+
+class ChangeHistory(models.Model):
+    """변경이력 (lf_change_history)"""
+    member_id = models.CharField('학부모ID', max_length=30, blank=True)
+    child_id = models.CharField('자녀ID', max_length=30, blank=True)
+    chg_gbn = models.CharField('변경구분', max_length=10, blank=True)
+    chg_desc = models.CharField('변경설명', max_length=100, blank=True)
+    no_seq = models.IntegerField('입단번호', default=0)
+    src_seq = models.IntegerField('원본번호', default=0)
+    reg_dt = models.DateTimeField('등록일', null=True, blank=True)
+    reg_id = models.CharField('등록자', max_length=30, blank=True)
+
+    class Meta:
+        db_table = 'enrollment_changehistory'
+        verbose_name = '변경이력'
+        verbose_name_plural = '변경이력'
+        ordering = ['-id']
+
+    def __str__(self):
+        return f'{self.chg_gbn} - {self.chg_desc}'
+
+
 class WaitStudent(models.Model):
     """대기자 (lf_wait_student)"""
     local_code = models.IntegerField('권역코드', default=0)

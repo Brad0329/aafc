@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}출석 현황 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li><a href="{% url 'reports:total_data' %}">전체 DATA</a></li>
+                <li><a href="{% url 'reports:coach_stats' %}">코치별 통계</a></li>
+                <li class="present"><a href="{% url 'reports:attendance_report' %}">출석 현황</a></li>
+                <li><a href="{% url 'reports:monthly_stats' %}">월별 통계</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">출석 현황<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;REPORT&nbsp;&nbsp;>&nbsp;&nbsp;<b>출석 현황</b></span></h2>
+
+            <!-- 필터 -->
+            <div class="join_info" style="margin-bottom:15px;">
+                <form method="get" action="">
+                    <table summary="">
+                        <tbody>
+                            <tr>
+                                <th style="width:80px;">적용월</th>
+                                <td style="width:150px;"><input type="text" name="app_month" value="{{ app_month }}" placeholder="예: 202401" style="width:130px;"/></td>
+                                <th style="width:80px;">구장코드</th>
+                                <td style="width:120px;"><input type="text" name="sta_code" value="{{ sta_code }}" placeholder="구장코드" style="width:80px;"/></td>
+                                <th style="width:80px;">강좌코드</th>
+                                <td style="width:120px;"><input type="text" name="lecture_code" value="{{ lecture_code }}" placeholder="강좌코드" style="width:80px;"/></td>
+                                <th style="width:60px;">자녀</th>
+                                <td>
+                                    <input type="text" name="child_id" value="{{ child_id }}" placeholder="자녀ID" style="width:80px;"/>
+                                    <input type="submit" value="검색" class="btn_type1"/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+
+            <!-- 출석 구분별 통계 -->
+            {% if gbn_stats %}
+            <div style="margin-bottom:10px;font-size:13px;">
+                {% for gs in gbn_stats %}
+                    {% if gs.attendance_gbn == 'Y' %}출석{% elif gs.attendance_gbn == 'N' %}결석{% elif gs.attendance_gbn == 'A' %}보강{% elif gs.attendance_gbn == 'R' %}우천취소{% elif gs.attendance_gbn == 'D' %}수업연기{% elif gs.attendance_gbn == 'E' %}출결제외{% else %}{{ gs.attendance_gbn }}{% endif %}: <b>{{ gs.cnt|intcomma }}</b>건&nbsp;&nbsp;
+                {% endfor %}
+                &nbsp;&nbsp;
+                <a href="{% url 'reports:attendance_report_excel' %}?app_month={{ app_month }}&sta_code={{ sta_code }}&lecture_code={{ lecture_code }}" class="btn_type1" style="font-size:12px;">Excel 다운로드</a>
+            </div>
+            {% endif %}
+
+            <!-- 데이터 테이블 -->
+            <table class="join_info" summary="">
+                <colgroup>
+                    <col width="12%"/><col width="10%"/><col width="10%"/><col width="15%"/>
+                    <col width="10%"/><col width="23%"/><col width="10%"/><col width="10%"/>
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>출석일</th><th>구장코드</th><th>강좌코드</th><th>자녀ID</th>
+                        <th>출석구분</th><th>비고</th><th>적용월</th><th>완료</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for item in page_obj %}
+                    <tr>
+                        <td>{{ item.attendance_dt }}</td>
+                        <td>{{ item.sta_code }}</td>
+                        <td>{{ item.lecture_code }}</td>
+                        <td>{{ item.child_id }}</td>
+                        <td>
+                            {% if item.attendance_gbn == 'Y' %}<span style="color:#2b68af;">출석</span>
+                            {% elif item.attendance_gbn == 'N' %}<span style="color:#e57373;">결석</span>
+                            {% elif item.attendance_gbn == 'A' %}<span style="color:#ff9800;">보강</span>
+                            {% elif item.attendance_gbn == 'R' %}<span style="color:#9e9e9e;">우천취소</span>
+                            {% elif item.attendance_gbn == 'D' %}<span style="color:#9e9e9e;">수업연기</span>
+                            {% elif item.attendance_gbn == 'E' %}<span style="color:#9e9e9e;">출결제외</span>
+                            {% else %}{{ item.attendance_gbn }}{% endif %}
+                        </td>
+                        <td>{{ item.attendance_desc }}</td>
+                        <td>{{ item.app_month }}</td>
+                        <td>{{ item.complete_yn }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="8" style="text-align:center;padding:20px;">데이터가 없습니다.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- 페이지네이션 -->
+            {% if page_obj.has_other_pages %}
+            <div style="text-align:center;margin:20px 0;">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&app_month={{ app_month }}&sta_code={{ sta_code }}&lecture_code={{ lecture_code }}&child_id={{ child_id }}" style="margin:0 4px;">&laquo; 이전</a>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <b style="margin:0 4px;color:#2b68af;">{{ num }}</b>
+                    {% elif num > page_obj.number|add:"-5" and num < page_obj.number|add:"5" %}
+                        <a href="?page={{ num }}&app_month={{ app_month }}&sta_code={{ sta_code }}&lecture_code={{ lecture_code }}&child_id={{ child_id }}" style="margin:0 4px;">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&app_month={{ app_month }}&sta_code={{ sta_code }}&lecture_code={{ lecture_code }}&child_id={{ child_id }}" style="margin:0 4px;">다음 &raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

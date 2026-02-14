@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}전체 DATA - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li class="present"><a href="{% url 'reports:total_data' %}">전체 DATA</a></li>
+                <li><a href="{% url 'reports:coach_stats' %}">코치별 통계</a></li>
+                <li><a href="{% url 'reports:attendance_report' %}">출석 현황</a></li>
+                <li><a href="{% url 'reports:monthly_stats' %}">월별 통계</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">전체 DATA<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;REPORT&nbsp;&nbsp;>&nbsp;&nbsp;<b>전체 DATA</b></span></h2>
+
+            <!-- 필터 -->
+            <div class="join_info" style="margin-bottom:15px;">
+                <form method="get" action="">
+                    <table summary="">
+                        <tbody>
+                            <tr>
+                                <th style="width:80px;">처리일</th>
+                                <td style="width:150px;"><input type="text" name="proc_dt" value="{{ proc_dt }}" placeholder="예: 20240101" style="width:130px;"/></td>
+                                <th style="width:80px;">수강년월</th>
+                                <td style="width:120px;"><input type="text" name="course_ym" value="{{ course_ym }}" placeholder="예: 202401" style="width:100px;"/></td>
+                                <th style="width:60px;">구장</th>
+                                <td style="width:150px;"><input type="text" name="sta_name" value="{{ sta_name }}" placeholder="구장명" style="width:130px;"/></td>
+                            </tr>
+                            <tr>
+                                <th>결제상태</th>
+                                <td>
+                                    <select name="pay_stats" style="width:130px;">
+                                        <option value="">전체</option>
+                                        {% for ps in pay_stats_list %}
+                                            <option value="{{ ps }}" {% if pay_stats == ps %}selected{% endif %}>{{ ps }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <th>결제방법</th>
+                                <td>
+                                    <select name="pay_method" style="width:100px;">
+                                        <option value="">전체</option>
+                                        {% for pm in pay_method_list %}
+                                            <option value="{{ pm }}" {% if pay_method == pm %}selected{% endif %}>{{ pm }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <th>검색</th>
+                                <td>
+                                    <input type="text" name="keyword" value="{{ keyword }}" placeholder="학부모/자녀명" style="width:100px;"/>
+                                    <input type="submit" value="검색" class="btn_type1"/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+
+            <!-- 요약 -->
+            <div style="margin-bottom:10px;font-size:13px;">
+                조회 건수: <b>{{ stats.total_count|default:0|intcomma }}</b>건 &nbsp;|&nbsp;
+                결제 합계: <b style="color:#2b68af;">{{ stats.total_pay|default:0|intcomma }}</b>원
+                &nbsp;&nbsp;
+                <a href="{% url 'reports:total_data_excel' %}?proc_dt={{ proc_dt }}&sta_name={{ sta_name }}&pay_stats={{ pay_stats }}&pay_method={{ pay_method }}&course_ym={{ course_ym }}" class="btn_type1" style="font-size:12px;">Excel 다운로드</a>
+            </div>
+
+            <!-- 데이터 테이블 -->
+            <table class="join_info" summary="">
+                <colgroup>
+                    <col width="8%"/><col width="7%"/><col width="7%"/><col width="12%"/><col width="10%"/>
+                    <col width="7%"/><col width="8%"/><col width="7%"/><col width="9%"/><col width="7%"/>
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>처리일</th><th>학부모</th><th>자녀</th><th>구장</th><th>강좌</th>
+                        <th>코치</th><th>결제상태</th><th>결제방법</th><th>결제금액</th><th>수강년월</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for item in page_obj %}
+                    <tr>
+                        <td>{{ item.proc_dt }}</td>
+                        <td>{{ item.member_name }}</td>
+                        <td>{{ item.child_name }}</td>
+                        <td>{{ item.sta_name }}</td>
+                        <td>{{ item.lecture_title|truncatechars:20 }}</td>
+                        <td>{{ item.coach_name }}</td>
+                        <td>{{ item.pay_stats }}</td>
+                        <td>{{ item.pay_method }}</td>
+                        <td style="text-align:right;">{{ item.pay_price|intcomma }}</td>
+                        <td>{{ item.course_ym }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="10" style="text-align:center;padding:20px;">데이터가 없습니다.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- 페이지네이션 -->
+            {% if page_obj.has_other_pages %}
+            <div style="text-align:center;margin:20px 0;">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&proc_dt={{ proc_dt }}&sta_name={{ sta_name }}&pay_stats={{ pay_stats }}&pay_method={{ pay_method }}&course_ym={{ course_ym }}&keyword={{ keyword }}" style="margin:0 4px;">&laquo; 이전</a>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <b style="margin:0 4px;color:#2b68af;">{{ num }}</b>
+                    {% elif num > page_obj.number|add:"-5" and num < page_obj.number|add:"5" %}
+                        <a href="?page={{ num }}&proc_dt={{ proc_dt }}&sta_name={{ sta_name }}&pay_stats={{ pay_stats }}&pay_method={{ pay_method }}&course_ym={{ course_ym }}&keyword={{ keyword }}" style="margin:0 4px;">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&proc_dt={{ proc_dt }}&sta_name={{ sta_name }}&pay_stats={{ pay_stats }}&pay_method={{ pay_method }}&course_ym={{ course_ym }}&keyword={{ keyword }}" style="margin:0 4px;">다음 &raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
