@@ -1,18 +1,23 @@
 import hashlib
+from datetime import datetime, date
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q, Sum, Count, Value, IntegerField, F
 from django.db.models.functions import Coalesce
 from .models import OfficeUser, OfficeLoginHistory
 from .decorators import office_login_required, office_permission_required
-from apps.notifications.models import OfficeNotification, SMSLog
-from apps.common.models import CodeGroup, CodeValue
+from apps.notifications.models import OfficeNotification, Notification, SMSLog
+from apps.common.models import CodeGroup, CodeValue, Setting
 from apps.points.models import PointConfig, PointHistory
-from apps.courses.models import Coach, Stadium
+from apps.courses.models import Coach, Stadium, Lecture
 from apps.accounts.models import Member, MemberChild, OutMember
-from apps.enrollment.models import Enrollment, EnrollmentCourse
+from apps.enrollment.models import (
+    Enrollment, EnrollmentCourse, EnrollmentBill,
+    Attendance, ChangeHistory, WaitStudent,
+)
 from apps.consult.models import Consult, ConsultAnswer, ConsultFree, ConsultRegion
 
 
@@ -1832,3 +1837,1000 @@ def consult_free_confirm(request, pk):
         free.confirm_date = timezone.now()
         free.save()
     return redirect('office_consult_free')
+
+
+# ============================================================
+# 수강생관리 > AJAX 엔드포인트
+# ============================================================
+
+@office_login_required
+def ajax_student_local(request):
+    """AJAX: 필드명(code_desc)별 지역(LOCD) 목록"""
+    code_desc = request.GET.get('code_desc', '')
+    qs = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N')
+    if code_desc:
+        qs = qs.filter(code_desc=code_desc)
+    qs = qs.order_by('code_desc', 'code_order')
+    data = [{'subcode': c.subcode, 'code_name': c.code_name, 'code_desc': c.code_desc} for c in qs]
+    return JsonResponse(data, safe=False)
+
+
+@office_login_required
+def ajax_student_stadium(request):
+    """AJAX: 권역(local_code)별 구장 목록"""
+    local_code = request.GET.get('local_code', '')
+    qs = Stadium.objects.filter(use_gbn='Y')
+    if local_code:
+        qs = qs.filter(local_code=int(local_code))
+    qs = qs.order_by('sta_name')
+    data = [{'sta_code': s.sta_code, 'sta_name': s.sta_name} for s in qs]
+    return JsonResponse(data, safe=False)
+
+
+@office_login_required
+def ajax_student_course(request):
+    """AJAX: 구장(sta_code)별 강좌 목록"""
+    sta_code = request.GET.get('sta_code', '')
+    qs = Lecture.objects.filter(stadium__sta_code=int(sta_code)) if sta_code else Lecture.objects.none()
+    qs = qs.order_by('-use_gbn', 'lecture_day', 'class_gbn', 'lecture_time')
+    data = []
+    for l in qs:
+        title = l.lecture_title
+        if l.use_gbn == 'N':
+            title = '(종료)' + title
+        data.append({'lecture_code': l.lecture_code, 'lecture_title': title})
+    return JsonResponse(data, safe=False)
+
+
+# ============================================================
+# 수강생관리 > 기본금액관리
+# ============================================================
+
+@office_login_required
+@office_permission_required('H')
+def dues_setting(request):
+    """기본금액관리 - 교육용품비/패키지금액 설정"""
+    setting = Setting.objects.first()
+    if not setting:
+        setting = Setting.objects.create(join_price=0, pk_price=0, insert_dt=timezone.now())
+
+    if request.method == 'POST':
+        setting.join_price = int(request.POST.get('join_price', '0') or '0')
+        setting.pk_price = int(request.POST.get('pk_price', '0') or '0')
+        setting.insert_id = request.session.get('office_user', {}).get('office_id', '')
+        setting.insert_dt = timezone.now()
+        setting.save()
+        return redirect('office_dues_setting')
+
+    return render(request, 'ba_office/lfstudent/dues_setting.html', {
+        'setting': setting,
+    })
+
+
+# ============================================================
+# 수강생관리 > 수강생정보(NEW) 목록
+# ============================================================
+
+def _get_default_ym():
+    """기본 기준월 계산 (22일 이후면 다음달)"""
+    now = datetime.now()
+    y, m = now.year, now.month
+    if now.day > 22:
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+    return f'{y}{m:02d}'
+
+
+def _build_ym_choices():
+    """기준월 드롭다운 옵션 (현재부터 과거 24개월)"""
+    now = datetime.now()
+    choices = []
+    for i in range(-2, 25):
+        y = now.year
+        m = now.month - i + 2
+        while m > 12:
+            m -= 12
+            y += 1
+        while m < 1:
+            m += 12
+            y -= 1
+        ym = f'{y}{m:02d}'
+        choices.append(ym)
+    # 중복 제거 후 역순 정렬
+    choices = sorted(set(choices), reverse=True)
+    return choices
+
+
+@office_login_required
+@office_permission_required('H')
+def student_list(request):
+    """수강생정보 목록"""
+    # 검색 파라미터
+    sch_ym = request.GET.get('sch_ym', _get_default_ym())
+    sch_code_desc = request.GET.get('sch_code_desc', '')
+    sch_local_code = request.GET.get('sch_local_code', '')
+    sch_sta_code = request.GET.get('sch_sta_code', '')
+    sch_lecture_code = request.GET.get('sch_lecture_code', '')
+    sch_lecture_stats = request.GET.get('sch_lecture_stats', '')
+    sch_pay_stats = request.GET.get('sch_pay_stats', '')
+    sch_child_name = request.GET.get('sch_child_name', '')
+    page = request.GET.get('page', '1')
+
+    # 기준월 → date 변환
+    try:
+        ym_year = int(sch_ym[:4])
+        ym_month = int(sch_ym[4:6])
+        course_ym_date = date(ym_year, ym_month, 1)
+    except (ValueError, IndexError):
+        course_ym_date = date(datetime.now().year, datetime.now().month, 1)
+
+    # 강좌 필터링을 위한 lecture_code 집합
+    lecture_filter_codes = None
+    if sch_lecture_code:
+        lecture_filter_codes = [int(sch_lecture_code)]
+    elif sch_sta_code:
+        lecture_filter_codes = list(Lecture.objects.filter(
+            stadium__sta_code=int(sch_sta_code)
+        ).values_list('lecture_code', flat=True))
+    elif sch_local_code:
+        lecture_filter_codes = list(Lecture.objects.filter(
+            local_code=int(sch_local_code)
+        ).values_list('lecture_code', flat=True))
+
+    # EnrollmentCourse에서 해당 월의 no_seq 목록 추출
+    courses_qs = EnrollmentCourse.objects.filter(
+        bill_code='1001',
+        course_ym=course_ym_date,
+        enrollment__del_chk='N',
+    )
+    if lecture_filter_codes is not None:
+        courses_qs = courses_qs.filter(lecture_code__in=lecture_filter_codes)
+
+    enrollment_ids = courses_qs.values_list('enrollment_id', flat=True).distinct()
+
+    # Enrollment 목록
+    qs = Enrollment.objects.filter(id__in=enrollment_ids)
+    if sch_lecture_stats:
+        qs = qs.filter(lecture_stats=sch_lecture_stats)
+    if sch_pay_stats:
+        qs = qs.filter(pay_stats=sch_pay_stats)
+    if sch_child_name:
+        qs = qs.filter(child__name__icontains=sch_child_name)
+
+    qs = qs.select_related('member', 'child').order_by('child__name', '-id')
+
+    # 각 enrollment에 대해 강좌 정보 매핑
+    paginator = Paginator(qs, 30)
+    students = paginator.get_page(page)
+
+    # 현재 페이지 enrollment들의 강좌정보 가져오기
+    page_enrollment_ids = [e.id for e in students]
+    course_entries = EnrollmentCourse.objects.filter(
+        enrollment_id__in=page_enrollment_ids,
+        bill_code='1001',
+        course_ym=course_ym_date,
+    )
+    # lecture_code → Lecture 매핑
+    lec_codes = set(c.lecture_code for c in course_entries)
+    lectures_map = {}
+    if lec_codes:
+        for l in Lecture.objects.filter(lecture_code__in=lec_codes).select_related('stadium'):
+            lectures_map[l.lecture_code] = l
+    # enrollment_id → lecture 매핑
+    enrollment_lecture_map = {}
+    for c in course_entries:
+        lec = lectures_map.get(c.lecture_code)
+        if lec and c.enrollment_id not in enrollment_lecture_map:
+            enrollment_lecture_map[c.enrollment_id] = lec
+
+    # 대기등록자
+    wait_students = WaitStudent.objects.filter(
+        trans_gbn='N', del_chk='N'
+    ).order_by('sta_code', 'child_name')
+
+    # 필드명(code_desc) 목록
+    code_descs = CodeValue.objects.filter(
+        group__grpcode='LOCD', del_chk='N'
+    ).values_list('code_desc', flat=True).distinct().order_by('code_desc')
+
+    # 구장/강좌 목록 (선택된 필터 유지)
+    stadiums = []
+    courses = []
+    if sch_local_code:
+        stadiums = Stadium.objects.filter(use_gbn='Y', local_code=int(sch_local_code)).order_by('sta_name')
+    if sch_sta_code:
+        courses = Lecture.objects.filter(stadium__sta_code=int(sch_sta_code)).order_by('lecture_title')
+
+    return render(request, 'ba_office/lfstudent/student_list.html', {
+        'students': students,
+        'total_count': paginator.count,
+        'enrollment_lecture_map': enrollment_lecture_map,
+        'wait_students': wait_students,
+        'ym_choices': _build_ym_choices(),
+        'code_descs': code_descs,
+        'stadiums': stadiums,
+        'courses': courses,
+        'sch_ym': sch_ym,
+        'sch_code_desc': sch_code_desc,
+        'sch_local_code': sch_local_code,
+        'sch_sta_code': sch_sta_code,
+        'sch_lecture_code': sch_lecture_code,
+        'sch_lecture_stats': sch_lecture_stats,
+        'sch_pay_stats': sch_pay_stats,
+        'sch_child_name': sch_child_name,
+    })
+
+
+# ============================================================
+# 수강생관리 > 수강생조회(이름검색)
+# ============================================================
+
+@office_login_required
+@office_permission_required('H')
+def student_search(request):
+    """수강생조회 - 이름검색"""
+    sch_ym = request.GET.get('sch_ym', _get_default_ym())
+    sch_child_name = request.GET.get('sch_child_name', '')
+    results = []
+
+    if sch_child_name and len(sch_child_name) >= 2:
+        try:
+            ym_year = int(sch_ym[:4])
+            ym_month = int(sch_ym[4:6])
+            course_ym_date = date(ym_year, ym_month, 1)
+        except (ValueError, IndexError):
+            course_ym_date = date(datetime.now().year, datetime.now().month, 1)
+
+        enrollment_ids = EnrollmentCourse.objects.filter(
+            bill_code='1001',
+            course_ym=course_ym_date,
+        ).values_list('enrollment_id', flat=True).distinct()
+
+        results = Enrollment.objects.filter(
+            id__in=enrollment_ids,
+            del_chk='N',
+            child__name__icontains=sch_child_name,
+        ).select_related('member', 'child').order_by('child__name')
+
+    return render(request, 'ba_office/lfstudent/student_search.html', {
+        'results': results,
+        'ym_choices': _build_ym_choices(),
+        'sch_ym': sch_ym,
+        'sch_child_name': sch_child_name,
+    })
+
+
+# ============================================================
+# 수강생관리 > 수강생상세
+# ============================================================
+
+@office_login_required
+@office_permission_required('H')
+def student_detail(request, no_seq):
+    """수강생상세 보기/수정"""
+    enrollment = get_object_or_404(Enrollment, id=no_seq)
+    member = enrollment.member
+    child = enrollment.child
+    office_user = request.session.get('office_user', {})
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+
+        if action == 'update':
+            with transaction.atomic():
+                new_lecture_stats = request.POST.get('lecture_stats', enrollment.lecture_stats)
+                new_pay_stats = request.POST.get('pay_stats', enrollment.pay_stats)
+                new_pay_method = request.POST.get('pay_method', enrollment.pay_method)
+                new_apply_gubun = request.POST.get('apply_gubun', enrollment.apply_gubun)
+                new_bigo = request.POST.get('bigo_content', enrollment.bigo_content)
+                new_account_no = request.POST.get('account_no', enrollment.account_no)
+                cancel_code = request.POST.get('cancel_code', '')
+                cancel_desc = request.POST.get('cancel_desc', '')
+
+                # 수강상태 변경 처리
+                if new_lecture_stats != enrollment.lecture_stats:
+                    if new_lecture_stats == 'LY':
+                        EnrollmentCourse.objects.filter(enrollment=enrollment).update(course_stats='LY')
+                        MemberChild.objects.filter(child_id=child.child_id).update(course_state='ING')
+                    elif new_lecture_stats == 'PN':
+                        EnrollmentCourse.objects.filter(enrollment=enrollment).update(course_stats='PN')
+                        MemberChild.objects.filter(child_id=child.child_id).update(course_state='PAU')
+                        enrollment.cancel_code = cancel_code
+                        enrollment.cancel_desc = cancel_desc
+                    elif new_lecture_stats == 'LN':
+                        EnrollmentCourse.objects.filter(enrollment=enrollment).update(course_stats='LN')
+                        EnrollmentBill.objects.filter(enrollment=enrollment).update(pay_stats='PZ')
+                        MemberChild.objects.filter(child_id=child.child_id).update(course_state='END')
+                        enrollment.cancel_code = cancel_code
+                        enrollment.cancel_desc = cancel_desc
+                        if not enrollment.cancel_date:
+                            enrollment.cancel_date = timezone.now()
+                        new_pay_stats = 'PZ'
+                    elif new_lecture_stats == 'LP':
+                        EnrollmentCourse.objects.filter(enrollment=enrollment).update(course_stats='LP')
+
+                # 결제상태 변경 처리
+                if new_pay_stats != enrollment.pay_stats:
+                    EnrollmentBill.objects.filter(enrollment=enrollment).update(pay_stats=new_pay_stats)
+                    if new_pay_stats == 'PY' and not enrollment.pay_dt:
+                        enrollment.pay_dt = timezone.now()
+
+                enrollment.lecture_stats = new_lecture_stats
+                enrollment.pay_stats = new_pay_stats
+                enrollment.pay_method = new_pay_method
+                enrollment.apply_gubun = new_apply_gubun
+                enrollment.bigo_content = new_bigo
+                enrollment.account_no = new_account_no
+                enrollment.save()
+
+            return redirect('office_student_detail', no_seq=no_seq)
+
+        elif action == 'delete':
+            with transaction.atomic():
+                EnrollmentCourse.objects.filter(enrollment=enrollment).delete()
+                EnrollmentBill.objects.filter(enrollment=enrollment).delete()
+                enrollment.delete()
+            return redirect('office_student_list')
+
+    # 수강과정 목록
+    course_entries = EnrollmentCourse.objects.filter(
+        enrollment=enrollment, bill_code='1001'
+    ).order_by('-course_ym')
+
+    # 강좌 정보 매핑
+    lec_codes = set(c.lecture_code for c in course_entries)
+    lectures_map = {}
+    if lec_codes:
+        for l in Lecture.objects.filter(lecture_code__in=lec_codes).select_related('stadium'):
+            lectures_map[l.lecture_code] = l
+
+    # 청구내역
+    bills = EnrollmentBill.objects.filter(enrollment=enrollment).order_by('bill_code')
+
+    # 셔틀비 정보
+    shuttle_bill = EnrollmentBill.objects.filter(enrollment=enrollment, bill_code='1009').first()
+
+    # 알림글 이력
+    notifications = Notification.objects.filter(
+        child_id=child.child_id, del_chk='N'
+    ).order_by('-insert_dt')[:20]
+
+    # 취소사유 코드 (RESN 그룹)
+    cancel_reasons = CodeValue.objects.filter(
+        group__grpcode='RESN', del_chk='N'
+    ).order_by('code_order')
+
+    return render(request, 'ba_office/lfstudent/student_detail.html', {
+        'enrollment': enrollment,
+        'member': member,
+        'child': child,
+        'course_entries': course_entries,
+        'lectures_map': lectures_map,
+        'bills': bills,
+        'shuttle_bill': shuttle_bill,
+        'notifications': notifications,
+        'cancel_reasons': cancel_reasons,
+    })
+
+
+@office_login_required
+@office_permission_required('H')
+def student_shuttle_proc(request):
+    """셔틀비 관리 처리 (AJAX POST)"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST만 허용'}, status=405)
+
+    no_seq = int(request.POST.get('no_seq', '0'))
+    gubun = request.POST.get('gubun', '')  # insert, update, delete
+    shuttle_amt = int(request.POST.get('shuttle_amt', '0') or '0')
+
+    enrollment = get_object_or_404(Enrollment, id=no_seq)
+
+    with transaction.atomic():
+        existing = EnrollmentBill.objects.filter(enrollment=enrollment, bill_code='1009').first()
+
+        if gubun == 'insert' and not existing:
+            EnrollmentBill.objects.create(
+                enrollment=enrollment,
+                bill_code='1009',
+                bill_desc='차량이용료',
+                bill_amt=shuttle_amt,
+                pay_stats='PP',
+            )
+            enrollment.shuttle_yn = 'Y'
+            enrollment.pay_price = enrollment.pay_price + shuttle_amt
+            enrollment.save()
+
+        elif gubun == 'update' and existing:
+            old_amt = existing.bill_amt
+            existing.bill_amt = shuttle_amt
+            existing.save()
+            enrollment.pay_price = enrollment.pay_price - old_amt + shuttle_amt
+            enrollment.save()
+
+        elif gubun == 'delete' and existing:
+            old_amt = existing.bill_amt
+            existing.delete()
+            enrollment.shuttle_yn = ''
+            enrollment.pay_price = enrollment.pay_price - old_amt
+            enrollment.save()
+
+    return JsonResponse({'result': 'ok'})
+
+
+# ============================================================
+# 수강생관리 > 입단신청내역
+# ============================================================
+
+@office_login_required
+@office_permission_required('H')
+def master_list(request):
+    """입단신청내역 목록"""
+    sch_local_code = request.GET.get('sch_local_code', '')
+    sch_sta_code = request.GET.get('sch_sta_code', '')
+    sch_apply_gubun = request.GET.get('sch_apply_gubun', '')
+    sch_lecture_stats = request.GET.get('sch_lecture_stats', '')
+    sch_pay_method = request.GET.get('sch_pay_method', '')
+    sch_pay_stats = request.GET.get('sch_pay_stats', '')
+    sch_sdate = request.GET.get('sch_sdate', '')
+    sch_edate = request.GET.get('sch_edate', '')
+    sch_skey = request.GET.get('sch_skey', 'child_name')
+    sch_sword = request.GET.get('sch_sword', '')
+    page = request.GET.get('page', '1')
+
+    qs = Enrollment.objects.filter(del_chk='N').select_related('member', 'child')
+
+    # 권역/구장 필터
+    if sch_sta_code:
+        lec_codes = Lecture.objects.filter(
+            stadium__sta_code=int(sch_sta_code)
+        ).values_list('lecture_code', flat=True)
+        enrollment_ids = EnrollmentCourse.objects.filter(
+            lecture_code__in=lec_codes
+        ).values_list('enrollment_id', flat=True).distinct()
+        qs = qs.filter(id__in=enrollment_ids)
+    elif sch_local_code:
+        lec_codes = Lecture.objects.filter(
+            local_code=int(sch_local_code)
+        ).values_list('lecture_code', flat=True)
+        enrollment_ids = EnrollmentCourse.objects.filter(
+            lecture_code__in=lec_codes
+        ).values_list('enrollment_id', flat=True).distinct()
+        qs = qs.filter(id__in=enrollment_ids)
+
+    if sch_apply_gubun:
+        qs = qs.filter(apply_gubun=sch_apply_gubun)
+    if sch_lecture_stats:
+        qs = qs.filter(lecture_stats=sch_lecture_stats)
+    if sch_pay_method:
+        qs = qs.filter(pay_method=sch_pay_method)
+    if sch_pay_stats:
+        qs = qs.filter(pay_stats=sch_pay_stats)
+
+    # 기간 필터
+    if sch_sdate:
+        qs = qs.filter(insert_dt__date__gte=sch_sdate)
+    if sch_edate:
+        qs = qs.filter(insert_dt__date__lte=sch_edate)
+
+    # 텍스트 검색
+    if sch_sword:
+        if sch_skey == 'member_id':
+            qs = qs.filter(member__username__icontains=sch_sword)
+        elif sch_skey == 'member_name':
+            qs = qs.filter(member__name__icontains=sch_sword)
+        elif sch_skey == 'child_id':
+            qs = qs.filter(child__child_id__icontains=sch_sword)
+        else:  # child_name
+            qs = qs.filter(child__name__icontains=sch_sword)
+
+    qs = qs.order_by('-insert_dt')
+
+    paginator = Paginator(qs, 30)
+    masters = paginator.get_page(page)
+
+    # 구장 목록 (선택 유지)
+    stadiums = []
+    if sch_local_code:
+        stadiums = Stadium.objects.filter(use_gbn='Y', local_code=int(sch_local_code)).order_by('sta_name')
+
+    # 필드명 목록
+    code_descs = CodeValue.objects.filter(
+        group__grpcode='LOCD', del_chk='N'
+    ).values_list('code_desc', flat=True).distinct().order_by('code_desc')
+
+    return render(request, 'ba_office/lfstudent/master_list.html', {
+        'masters': masters,
+        'total_count': paginator.count,
+        'code_descs': code_descs,
+        'stadiums': stadiums,
+        'sch_local_code': sch_local_code,
+        'sch_sta_code': sch_sta_code,
+        'sch_apply_gubun': sch_apply_gubun,
+        'sch_lecture_stats': sch_lecture_stats,
+        'sch_pay_method': sch_pay_method,
+        'sch_pay_stats': sch_pay_stats,
+        'sch_sdate': sch_sdate,
+        'sch_edate': sch_edate,
+        'sch_skey': sch_skey,
+        'sch_sword': sch_sword,
+    })
+
+
+@office_login_required
+@office_permission_required('H')
+def master_detail(request, no_seq):
+    """입단신청상세 보기/수정"""
+    enrollment = get_object_or_404(Enrollment, id=no_seq)
+    member = enrollment.member
+    child = enrollment.child
+    office_user = request.session.get('office_user', {})
+
+    if request.method == 'POST':
+        with transaction.atomic():
+            new_lecture_stats = request.POST.get('lecture_stats', enrollment.lecture_stats)
+            new_pay_stats = request.POST.get('pay_stats', enrollment.pay_stats)
+            new_pay_method = request.POST.get('pay_method', enrollment.pay_method)
+            new_apply_gubun = request.POST.get('apply_gubun', enrollment.apply_gubun)
+            new_account_no = request.POST.get('account_no', enrollment.account_no)
+            cancel_code = request.POST.get('cancel_code', '')
+            cancel_desc = request.POST.get('cancel_desc', '')
+
+            if new_lecture_stats != enrollment.lecture_stats:
+                if new_lecture_stats == 'LY':
+                    EnrollmentCourse.objects.filter(enrollment=enrollment).update(course_stats='LY')
+                    MemberChild.objects.filter(child_id=child.child_id).update(course_state='ING')
+                elif new_lecture_stats == 'PN':
+                    EnrollmentCourse.objects.filter(enrollment=enrollment).update(course_stats='PN')
+                    MemberChild.objects.filter(child_id=child.child_id).update(course_state='PAU')
+                    enrollment.cancel_code = cancel_code
+                    enrollment.cancel_desc = cancel_desc
+                elif new_lecture_stats == 'LN':
+                    EnrollmentCourse.objects.filter(enrollment=enrollment).update(course_stats='LN')
+                    EnrollmentBill.objects.filter(enrollment=enrollment).update(pay_stats='PZ')
+                    MemberChild.objects.filter(child_id=child.child_id).update(course_state='END')
+                    enrollment.cancel_code = cancel_code
+                    enrollment.cancel_desc = cancel_desc
+                    if not enrollment.cancel_date:
+                        enrollment.cancel_date = timezone.now()
+                    new_pay_stats = 'PZ'
+                elif new_lecture_stats == 'LP':
+                    EnrollmentCourse.objects.filter(enrollment=enrollment).update(course_stats='LP')
+
+            if new_pay_stats != enrollment.pay_stats:
+                EnrollmentBill.objects.filter(enrollment=enrollment).update(pay_stats=new_pay_stats)
+                if new_pay_stats == 'PY' and not enrollment.pay_dt:
+                    enrollment.pay_dt = timezone.now()
+
+            enrollment.lecture_stats = new_lecture_stats
+            enrollment.pay_stats = new_pay_stats
+            enrollment.pay_method = new_pay_method
+            enrollment.apply_gubun = new_apply_gubun
+            enrollment.account_no = new_account_no
+            enrollment.save()
+
+        return redirect('office_master_detail', no_seq=no_seq)
+
+    # 수강과정 목록
+    course_entries = EnrollmentCourse.objects.filter(
+        enrollment=enrollment, bill_code='1001'
+    ).order_by('-course_ym')
+    lec_codes = set(c.lecture_code for c in course_entries)
+    lectures_map = {}
+    if lec_codes:
+        for l in Lecture.objects.filter(lecture_code__in=lec_codes).select_related('stadium'):
+            lectures_map[l.lecture_code] = l
+
+    # 청구내역
+    bills = EnrollmentBill.objects.filter(enrollment=enrollment).order_by('bill_code')
+
+    # 취소사유 코드
+    cancel_reasons = CodeValue.objects.filter(
+        group__grpcode='RESN', del_chk='N'
+    ).order_by('code_order')
+
+    return render(request, 'ba_office/lfstudent/master_detail.html', {
+        'enrollment': enrollment,
+        'member': member,
+        'child': child,
+        'course_entries': course_entries,
+        'lectures_map': lectures_map,
+        'bills': bills,
+        'cancel_reasons': cancel_reasons,
+    })
+
+
+@office_login_required
+@office_permission_required('H')
+def master_list_excel(request):
+    """입단신청내역 Excel 다운로드"""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+    sch_local_code = request.GET.get('sch_local_code', '')
+    sch_sta_code = request.GET.get('sch_sta_code', '')
+    sch_apply_gubun = request.GET.get('sch_apply_gubun', '')
+    sch_lecture_stats = request.GET.get('sch_lecture_stats', '')
+    sch_pay_method = request.GET.get('sch_pay_method', '')
+    sch_pay_stats = request.GET.get('sch_pay_stats', '')
+    sch_sdate = request.GET.get('sch_sdate', '')
+    sch_edate = request.GET.get('sch_edate', '')
+    sch_skey = request.GET.get('sch_skey', 'child_name')
+    sch_sword = request.GET.get('sch_sword', '')
+
+    qs = Enrollment.objects.filter(del_chk='N').select_related('member', 'child')
+
+    if sch_sta_code:
+        lec_codes = Lecture.objects.filter(stadium__sta_code=int(sch_sta_code)).values_list('lecture_code', flat=True)
+        eids = EnrollmentCourse.objects.filter(lecture_code__in=lec_codes).values_list('enrollment_id', flat=True).distinct()
+        qs = qs.filter(id__in=eids)
+    elif sch_local_code:
+        lec_codes = Lecture.objects.filter(local_code=int(sch_local_code)).values_list('lecture_code', flat=True)
+        eids = EnrollmentCourse.objects.filter(lecture_code__in=lec_codes).values_list('enrollment_id', flat=True).distinct()
+        qs = qs.filter(id__in=eids)
+    if sch_apply_gubun:
+        qs = qs.filter(apply_gubun=sch_apply_gubun)
+    if sch_lecture_stats:
+        qs = qs.filter(lecture_stats=sch_lecture_stats)
+    if sch_pay_method:
+        qs = qs.filter(pay_method=sch_pay_method)
+    if sch_pay_stats:
+        qs = qs.filter(pay_stats=sch_pay_stats)
+    if sch_sdate:
+        qs = qs.filter(insert_dt__date__gte=sch_sdate)
+    if sch_edate:
+        qs = qs.filter(insert_dt__date__lte=sch_edate)
+    if sch_sword:
+        if sch_skey == 'member_id':
+            qs = qs.filter(member__username__icontains=sch_sword)
+        elif sch_skey == 'member_name':
+            qs = qs.filter(member__name__icontains=sch_sword)
+        elif sch_skey == 'child_id':
+            qs = qs.filter(child__child_id__icontains=sch_sword)
+        else:
+            qs = qs.filter(child__name__icontains=sch_sword)
+
+    qs = qs.order_by('-insert_dt')[:10000]
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = '입단신청내역'
+
+    header_fill = PatternFill(start_color='D9E1F2', end_color='D9E1F2', fill_type='solid')
+    header_font = Font(bold=True, size=10)
+    thin_border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin'),
+    )
+
+    headers = ['No', '회원ID', '회원명', '자녀ID', '자녀명', '신청구분',
+               '수강상태', '결제방법', '결제상태', '결제금액', '시작월', '종료월', '등록일']
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=h)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = thin_border
+
+    apply_map = dict(Enrollment.apply_gubun.field.choices)
+    lstat_map = dict(Enrollment.lecture_stats.field.choices)
+    pmethod_map = dict(Enrollment.pay_method.field.choices)
+    pstat_map = dict(Enrollment.pay_stats.field.choices)
+
+    for idx, e in enumerate(qs, 1):
+        row = idx + 1
+        ws.cell(row=row, column=1, value=idx).border = thin_border
+        ws.cell(row=row, column=2, value=e.member_id).border = thin_border
+        ws.cell(row=row, column=3, value=e.member.name if e.member else '').border = thin_border
+        ws.cell(row=row, column=4, value=e.child_id).border = thin_border
+        ws.cell(row=row, column=5, value=e.child.name if e.child else '').border = thin_border
+        ws.cell(row=row, column=6, value=apply_map.get(e.apply_gubun, e.apply_gubun)).border = thin_border
+        ws.cell(row=row, column=7, value=lstat_map.get(e.lecture_stats, e.lecture_stats)).border = thin_border
+        ws.cell(row=row, column=8, value=pmethod_map.get(e.pay_method, e.pay_method)).border = thin_border
+        ws.cell(row=row, column=9, value=pstat_map.get(e.pay_stats, e.pay_stats)).border = thin_border
+        ws.cell(row=row, column=10, value=e.pay_price).border = thin_border
+        ws.cell(row=row, column=11, value=e.start_dt).border = thin_border
+        ws.cell(row=row, column=12, value=e.end_dt).border = thin_border
+        dt_str = e.insert_dt.strftime('%Y-%m-%d') if e.insert_dt else ''
+        ws.cell(row=row, column=13, value=dt_str).border = thin_border
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="enrollment_list.xlsx"'
+    wb.save(response)
+    return response
+
+
+# ============================================================
+# 수강생관리 > 변경이력조회
+# ============================================================
+
+@office_login_required
+@office_permission_required('H')
+def chghis_list(request):
+    """변경이력 목록"""
+    sch_reg_month = request.GET.get('sch_reg_month', '')
+    sch_child_name = request.GET.get('sch_child_name', '')
+    page = request.GET.get('page', '1')
+
+    qs = ChangeHistory.objects.all()
+
+    if sch_reg_month:
+        try:
+            ym_year = int(sch_reg_month[:4])
+            ym_month = int(sch_reg_month[4:6])
+            qs = qs.filter(reg_dt__year=ym_year, reg_dt__month=ym_month)
+        except (ValueError, IndexError):
+            pass
+    if sch_child_name:
+        # child_id로 MemberChild 검색
+        child_ids = MemberChild.objects.filter(
+            name__icontains=sch_child_name
+        ).values_list('child_id', flat=True)
+        qs = qs.filter(child_id__in=child_ids)
+
+    qs = qs.order_by('-reg_dt')
+
+    paginator = Paginator(qs, 20)
+    histories = paginator.get_page(page)
+
+    # 이력에 연결된 멤버/자녀 이름 매핑
+    member_ids = set(h.member_id for h in histories)
+    child_ids = set(h.child_id for h in histories)
+    member_names = {m.username: m.name for m in Member.objects.filter(username__in=member_ids)}
+    child_names = {c.child_id: c.name for c in MemberChild.objects.filter(child_id__in=child_ids)}
+
+    # 각 history 객체에 이름 속성 부여
+    for h in histories:
+        h.member_name = member_names.get(h.member_id, '')
+        h.child_name = child_names.get(h.child_id, '')
+
+    return render(request, 'ba_office/lfstudent/chghis_list.html', {
+        'histories': histories,
+        'total_count': paginator.count,
+        'ym_choices': _build_ym_choices(),
+        'sch_reg_month': sch_reg_month,
+        'sch_child_name': sch_child_name,
+    })
+
+
+@office_login_required
+@office_permission_required('H')
+def chghis_detail(request, pk):
+    """변경이력 상세"""
+    history = get_object_or_404(ChangeHistory, pk=pk)
+
+    # 현재 Enrollment 정보
+    enrollment = None
+    if history.no_seq:
+        enrollment = Enrollment.objects.filter(id=history.no_seq).select_related('member', 'child').first()
+
+    # 수강과정 (현재)
+    course_entries = []
+    lectures_map = {}
+    bills = []
+    if enrollment:
+        course_entries = EnrollmentCourse.objects.filter(
+            enrollment=enrollment, bill_code='1001'
+        ).order_by('-course_ym')
+        lec_codes = set(c.lecture_code for c in course_entries)
+        if lec_codes:
+            for l in Lecture.objects.filter(lecture_code__in=lec_codes).select_related('stadium'):
+                lectures_map[l.lecture_code] = l
+        bills = EnrollmentBill.objects.filter(enrollment=enrollment).order_by('bill_code')
+
+    # 멤버/자녀 이름
+    member_name = ''
+    child_name = ''
+    try:
+        member_name = Member.objects.get(username=history.member_id).name
+    except Member.DoesNotExist:
+        pass
+    try:
+        child_name = MemberChild.objects.get(child_id=history.child_id).name
+    except MemberChild.DoesNotExist:
+        pass
+
+    return render(request, 'ba_office/lfstudent/chghis_detail.html', {
+        'history': history,
+        'enrollment': enrollment,
+        'course_entries': course_entries,
+        'lectures_map': lectures_map,
+        'bills': bills,
+        'member_name': member_name,
+        'child_name': child_name,
+    })
+
+
+# ============================================================
+# 수강생관리 > 출결관리
+# ============================================================
+
+@office_login_required
+@office_permission_required('H')
+def attendance_view(request):
+    """출결관리 - 검색/조회"""
+    sch_local_code = request.GET.get('sch_local_code', '')
+    sch_sta_code = request.GET.get('sch_sta_code', '')
+    sch_lecture_code = request.GET.get('sch_lecture_code', '')
+    sch_mode = request.GET.get('sch_mode', '1')  # 1=출석체크, 2=조회용
+    sch_date = request.GET.get('sch_date', '')
+    sch_sdate = request.GET.get('sch_sdate', '')
+    sch_edate = request.GET.get('sch_edate', '')
+
+    students = []
+    records = []
+    searched = False
+
+    # 필드명 목록
+    code_descs = CodeValue.objects.filter(
+        group__grpcode='LOCD', del_chk='N'
+    ).values_list('code_desc', flat=True).distinct().order_by('code_desc')
+
+    # 구장/강좌 (선택 유지)
+    stadiums = []
+    courses = []
+    if sch_local_code:
+        stadiums = Stadium.objects.filter(use_gbn='Y', local_code=int(sch_local_code)).order_by('sta_name')
+    if sch_sta_code:
+        courses = Lecture.objects.filter(stadium__sta_code=int(sch_sta_code), use_gbn='Y').order_by('lecture_title')
+
+    if sch_lecture_code and (sch_date or (sch_sdate and sch_edate)):
+        searched = True
+        lecture_code = int(sch_lecture_code)
+
+        if sch_mode == '1' and sch_date:
+            # 모드 1: 출석체크 - 해당 강좌의 수강생 목록
+            try:
+                att_date_parts = sch_date.split('-')
+                att_year = int(att_date_parts[0])
+                att_month = int(att_date_parts[1])
+                course_ym_date = date(att_year, att_month, 1)
+            except (ValueError, IndexError):
+                course_ym_date = date(datetime.now().year, datetime.now().month, 1)
+
+            # 수강 중인 학생들
+            enrolled = EnrollmentCourse.objects.filter(
+                bill_code='1001',
+                lecture_code=lecture_code,
+                course_ym=course_ym_date,
+                enrollment__del_chk='N',
+            ).filter(
+                Q(enrollment__apply_gubun__in=['NEW', 'RENEW'], enrollment__lecture_stats='LY') |
+                Q(enrollment__apply_gubun='AGAIN', enrollment__lecture_stats__in=['LY', 'LP'])
+            ).select_related('enrollment__child')
+
+            # 기존 출결 데이터
+            existing_att = {}
+            for a in Attendance.objects.filter(lecture_code=lecture_code, attendance_dt=sch_date):
+                existing_att[a.child_id] = a
+
+            seen_children = set()
+            for ec in enrolled:
+                cid = ec.enrollment.child_id
+                if cid in seen_children:
+                    continue
+                seen_children.add(cid)
+                att = existing_att.get(cid)
+                students.append({
+                    'child_id': cid,
+                    'child_name': ec.enrollment.child.name if ec.enrollment.child else '',
+                    'no_seq': ec.enrollment_id,
+                    'attendance_gbn': att.attendance_gbn if att else '',
+                    'attendance_desc': att.attendance_desc if att else '',
+                    'mata': att.mata if att else '',
+                    'app_month': att.app_month if att else '',
+                    'complete_yn': att.complete_yn if att else 'N',
+                    'uid': att.id if att else 0,
+                })
+
+        elif sch_mode == '2' and sch_sdate and sch_edate:
+            # 모드 2: 조회 - 기간별 출결 데이터
+            records = Attendance.objects.filter(
+                lecture_code=lecture_code,
+                attendance_dt__gte=sch_sdate,
+                attendance_dt__lte=sch_edate,
+            ).order_by('attendance_dt', 'child_id')
+
+            # 자녀 이름 매핑
+            child_ids = set(r.child_id for r in records)
+            child_map = {c.child_id: c.name for c in MemberChild.objects.filter(child_id__in=child_ids)}
+            for r in records:
+                r.child_name = child_map.get(r.child_id, '')
+
+    return render(request, 'ba_office/lfstudent/attendance.html', {
+        'code_descs': code_descs,
+        'stadiums': stadiums,
+        'courses': courses,
+        'students': students,
+        'records': records,
+        'searched': searched,
+        'sch_local_code': sch_local_code,
+        'sch_sta_code': sch_sta_code,
+        'sch_lecture_code': sch_lecture_code,
+        'sch_mode': sch_mode,
+        'sch_date': sch_date,
+        'sch_sdate': sch_sdate,
+        'sch_edate': sch_edate,
+    })
+
+
+@office_login_required
+@office_permission_required('H')
+def attendance_proc(request):
+    """출결관리 처리 (저장)"""
+    if request.method != 'POST':
+        return redirect('office_attendance')
+
+    lecture_code = int(request.POST.get('lecture_code', '0'))
+    att_date = request.POST.get('att_date', '')
+    att_mode = request.POST.get('att_mode', '2')  # 1=일괄, 2=개별
+    child_ids = request.POST.getlist('child_ids')
+
+    office_user = request.session.get('office_user', {})
+    insert_id = office_user.get('office_id', '')
+
+    # 강좌 정보
+    lecture = Lecture.objects.filter(lecture_code=lecture_code).first()
+    local_code = lecture.local_code if lecture else 0
+    sta_code = lecture.stadium.sta_code if lecture and lecture.stadium else 0
+
+    with transaction.atomic():
+        if att_mode == '1':
+            # 일괄처리: 모든 학생에게 동일 출결
+            batch_gbn = request.POST.get('batch_gbn', 'Y')
+            batch_desc = request.POST.get('batch_desc', '')
+
+            # 기존 삭제
+            Attendance.objects.filter(
+                lecture_code=lecture_code, attendance_dt=att_date
+            ).delete()
+
+            # 일괄 입력
+            for cid in child_ids:
+                Attendance.objects.create(
+                    local_code=local_code,
+                    sta_code=sta_code,
+                    lecture_code=lecture_code,
+                    child_id=cid,
+                    attendance_dt=att_date,
+                    attendance_gbn=batch_gbn,
+                    attendance_desc=batch_desc,
+                    insert_id=insert_id,
+                    insert_dt=timezone.now(),
+                )
+        else:
+            # 개별처리
+            for cid in child_ids:
+                gbn = request.POST.get(f'gbn_{cid}', '')
+                if not gbn:
+                    continue
+                desc = request.POST.get(f'desc_{cid}', '')
+                mata = request.POST.get(f'mata_{cid}', '')
+                app_month = request.POST.get(f'app_month_{cid}', '')
+                complete_yn = request.POST.get(f'complete_yn_{cid}', 'N')
+
+                Attendance.objects.filter(
+                    child_id=cid, lecture_code=lecture_code, attendance_dt=att_date
+                ).delete()
+
+                Attendance.objects.create(
+                    local_code=local_code,
+                    sta_code=sta_code,
+                    lecture_code=lecture_code,
+                    child_id=cid,
+                    attendance_dt=att_date,
+                    attendance_gbn=gbn,
+                    attendance_desc=desc,
+                    mata=mata,
+                    app_month=app_month,
+                    complete_yn=complete_yn,
+                    insert_id=insert_id,
+                    insert_dt=timezone.now(),
+                )
+
+    # 원래 검색 조건으로 리다이렉트
+    sch_local_code = request.POST.get('sch_local_code', '')
+    sch_sta_code = request.POST.get('sch_sta_code', '')
+    return redirect(f'/ba_office/lfstudent/attendance/?sch_mode=1&sch_lecture_code={lecture_code}&sch_date={att_date}&sch_local_code={sch_local_code}&sch_sta_code={sch_sta_code}')

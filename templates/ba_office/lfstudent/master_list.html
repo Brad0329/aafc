@@ -1,0 +1,191 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfstudent_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fn_search() {
+    document.schform.submit();
+}
+function sel_stadium(local_code) {
+    $.getJSON("{% url 'office_ajax_student_stadium' %}", {local_code: local_code}, function(data) {
+        var sel = document.schform.sch_sta_code;
+        sel.options.length = 1;
+        for (var i = 0; i < data.length; i++) {
+            sel.options[sel.options.length] = new Option(data[i].sta_name, data[i].sta_code);
+        }
+    });
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  수강생관리  &gt;  입단신청내역</div>
+<div class="h_55"></div>
+
+<p class="title">입단신청내역(NEW)</p>
+
+<form name="schform" method="get" action="{% url 'office_master_list' %}">
+<div class="tb_basic" style="margin-bottom:5px;">
+<table summary="검색" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="10%" /><col width="23%" /><col width="10%" /><col width="23%" /><col width="10%" /><col width="24%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">권역</th>
+            <td class="left">
+                <select name="sch_local_code" class="select" style="width:120px;" onchange="sel_stadium(this.value);">
+                    <option value="">==선택==</option>
+                    {% for cd in code_descs %}
+                    <option value="" {% if sch_local_code == cd %}selected{% endif %}>{{ cd }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">구장</th>
+            <td class="left">
+                <select name="sch_sta_code" class="select" style="width:120px;">
+                    <option value="">==선택==</option>
+                    {% for s in stadiums %}
+                    <option value="{{ s.sta_code }}" {% if sch_sta_code == s.sta_code|stringformat:"d" %}selected{% endif %}>{{ s.sta_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">신청구분</th>
+            <td class="left">
+                <select name="sch_apply_gubun" class="select" style="width:120px;">
+                    <option value="">==전체==</option>
+                    <option value="NEW" {% if sch_apply_gubun == "NEW" %}selected{% endif %}>신규입단</option>
+                    <option value="AGAIN" {% if sch_apply_gubun == "AGAIN" %}selected{% endif %}>재수강</option>
+                    <option value="RENEW" {% if sch_apply_gubun == "RENEW" %}selected{% endif %}>재입단</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">수강상태</th>
+            <td class="left">
+                <select name="sch_lecture_stats" class="select" style="width:120px;">
+                    <option value="">==전체==</option>
+                    <option value="LY" {% if sch_lecture_stats == "LY" %}selected{% endif %}>수강확정</option>
+                    <option value="LP" {% if sch_lecture_stats == "LP" %}selected{% endif %}>수강예정</option>
+                    <option value="LN" {% if sch_lecture_stats == "LN" %}selected{% endif %}>퇴단</option>
+                    <option value="PN" {% if sch_lecture_stats == "PN" %}selected{% endif %}>일시중지</option>
+                </select>
+            </td>
+            <th scope="col">결제방법</th>
+            <td class="left">
+                <select name="sch_pay_method" class="select" style="width:120px;">
+                    <option value="">==전체==</option>
+                    <option value="ACCT" {% if sch_pay_method == "ACCT" %}selected{% endif %}>계좌</option>
+                    <option value="CARD" {% if sch_pay_method == "CARD" %}selected{% endif %}>카드</option>
+                    <option value="R" {% if sch_pay_method == "R" %}selected{% endif %}>계좌이체</option>
+                    <option value="ZEROPAY" {% if sch_pay_method == "ZEROPAY" %}selected{% endif %}>제로페이</option>
+                    <option value="BENEFIT" {% if sch_pay_method == "BENEFIT" %}selected{% endif %}>복지</option>
+                </select>
+            </td>
+            <th scope="col">결제상태</th>
+            <td class="left">
+                <select name="sch_pay_stats" class="select" style="width:120px;">
+                    <option value="">==전체==</option>
+                    <option value="PP" {% if sch_pay_stats == "PP" %}selected{% endif %}>결제대기</option>
+                    <option value="PY" {% if sch_pay_stats == "PY" %}selected{% endif %}>결제완료</option>
+                    <option value="PZ" {% if sch_pay_stats == "PZ" %}selected{% endif %}>취소</option>
+                    <option value="PQ" {% if sch_pay_stats == "PQ" %}selected{% endif %}>환불</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">기간</th>
+            <td class="left" colspan="3">
+                <input type="date" name="sch_sdate" value="{{ sch_sdate }}" class="input" style="width:130px;" />
+                ~
+                <input type="date" name="sch_edate" value="{{ sch_edate }}" class="input" style="width:130px;" />
+            </td>
+            <th scope="col">검색</th>
+            <td class="left">
+                <select name="sch_skey" class="select" style="width:80px;">
+                    <option value="child_name" {% if sch_skey == "child_name" %}selected{% endif %}>자녀명</option>
+                    <option value="member_name" {% if sch_skey == "member_name" %}selected{% endif %}>회원명</option>
+                    <option value="member_id" {% if sch_skey == "member_id" %}selected{% endif %}>회원ID</option>
+                    <option value="child_id" {% if sch_skey == "child_id" %}selected{% endif %}>자녀ID</option>
+                </select>
+                <input type="text" name="sch_sword" value="{{ sch_sword }}" class="input" style="width:100px;" />
+                <a href="javascript:fn_search();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+</form>
+
+<p style="margin:5px 0;">
+    총 <b>{{ total_count }}</b>건
+    <a href="{% url 'office_master_list_excel' %}?sch_local_code={{ sch_local_code }}&sch_sta_code={{ sch_sta_code }}&sch_apply_gubun={{ sch_apply_gubun }}&sch_lecture_stats={{ sch_lecture_stats }}&sch_pay_method={{ sch_pay_method }}&sch_pay_stats={{ sch_pay_stats }}&sch_sdate={{ sch_sdate }}&sch_edate={{ sch_edate }}&sch_skey={{ sch_skey }}&sch_sword={{ sch_sword }}" style="margin-left:10px;">
+        <img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="Excel" />
+    </a>
+</p>
+
+<div class="scroll">
+<table class="tb_scroll" border="0" cellpadding="0" cellspacing="0">
+    <colgroup>
+        <col width="4%" /><col width="8%" /><col width="8%" /><col width="8%" />
+        <col width="8%" /><col width="8%" /><col width="8%" /><col width="8%" />
+        <col width="10%" /><col width="8%" /><col width="8%" /><col width="8%" /><col width="6%" />
+    </colgroup>
+    <thead>
+    <tr>
+        <th>No</th>
+        <th>회원ID</th>
+        <th>회원명</th>
+        <th>자녀ID</th>
+        <th>자녀명</th>
+        <th>신청구분</th>
+        <th>수강상태</th>
+        <th>결제방법</th>
+        <th>결제금액</th>
+        <th>결제상태</th>
+        <th>시작월</th>
+        <th>등록일</th>
+        <th>상세</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for e in masters %}
+    <tr>
+        <td>{{ forloop.counter|page_index:masters.start_index }}</td>
+        <td>{{ e.member_id }}</td>
+        <td>{{ e.member.name }}</td>
+        <td>{{ e.child_id }}</td>
+        <td>{{ e.child.name }}</td>
+        <td>{{ e.get_apply_gubun_display }}</td>
+        <td>{{ e.get_lecture_stats_display }}</td>
+        <td>{{ e.get_pay_method_display }}</td>
+        <td style="text-align:right;">{{ e.pay_price|intcomma }}</td>
+        <td>{{ e.get_pay_stats_display }}</td>
+        <td>{{ e.start_dt|slice:":4" }}-{{ e.start_dt|slice:"4:6" }}</td>
+        <td>{{ e.insert_dt|date:"Y-m-d" }}</td>
+        <td><a href="{% url 'office_master_detail' e.id %}"><img src="{% static 'ba_office/images/btn_detail.gif' %}" alt="상세" /></a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="13">검색 결과가 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{% if masters.has_other_pages %}
+<div style="text-align:center; margin:10px 0;">
+    {% for p in masters.paginator.page_range %}
+        {% if p == masters.number %}
+        <b>[{{ p }}]</b>
+        {% else %}
+        <a href="?page={{ p }}&sch_local_code={{ sch_local_code }}&sch_sta_code={{ sch_sta_code }}&sch_apply_gubun={{ sch_apply_gubun }}&sch_lecture_stats={{ sch_lecture_stats }}&sch_pay_method={{ sch_pay_method }}&sch_pay_stats={{ sch_pay_stats }}&sch_sdate={{ sch_sdate }}&sch_edate={{ sch_edate }}&sch_skey={{ sch_skey }}&sch_sword={{ sch_sword }}">[{{ p }}]</a>
+        {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

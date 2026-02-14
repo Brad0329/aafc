@@ -1,0 +1,150 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfstudent_left.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  수강생관리  &gt;  변경이력상세</div>
+<div class="h_55"></div>
+
+<p class="title">변경이력상세</p>
+
+<div class="btn_right">
+    <a href="{% url 'office_chghis_list' %}"><img src="{% static 'ba_office/images/btn_list.gif' %}" alt="목록" /></a>
+</div>
+
+<!-- 변경 정보 -->
+<div class="tb_basic" style="margin-bottom:10px;">
+<table summary="변경정보" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="15%" /><col width="35%" /><col width="15%" /><col width="35%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">회원ID</th>
+            <td class="left">{{ history.member_id }}</td>
+            <th scope="col">회원명</th>
+            <td class="left">{{ member_name }}</td>
+        </tr>
+        <tr>
+            <th scope="col">자녀ID</th>
+            <td class="left">{{ history.child_id }}</td>
+            <th scope="col">자녀명</th>
+            <td class="left">{{ child_name }}</td>
+        </tr>
+        <tr>
+            <th scope="col">변경구분</th>
+            <td class="left">{{ history.chg_gbn }}</td>
+            <th scope="col">등록일</th>
+            <td class="left">{% if history.reg_dt %}{{ history.reg_dt|date:"Y-m-d H:i" }}{% endif %}</td>
+        </tr>
+        <tr>
+            <th scope="col">변경설명</th>
+            <td class="left" colspan="3">{{ history.chg_desc }}</td>
+        </tr>
+        <tr>
+            <th scope="col">입단번호</th>
+            <td class="left">{{ history.no_seq }}</td>
+            <th scope="col">등록자</th>
+            <td class="left">{{ history.reg_id }}</td>
+        </tr>
+    </tbody>
+</table>
+</div>
+
+{% if enrollment %}
+<!-- 현재 입단 정보 -->
+<p class="title">현재 입단정보 (No.{{ enrollment.id }})</p>
+<div class="tb_basic" style="margin-bottom:10px;">
+<table summary="현재입단정보" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="15%" /><col width="35%" /><col width="15%" /><col width="35%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">신청구분</th>
+            <td class="left">{{ enrollment.get_apply_gubun_display }}</td>
+            <th scope="col">결제방법</th>
+            <td class="left">{{ enrollment.get_pay_method_display }}</td>
+        </tr>
+        <tr>
+            <th scope="col">수강상태</th>
+            <td class="left">{{ enrollment.get_lecture_stats_display }}</td>
+            <th scope="col">결제상태</th>
+            <td class="left">{{ enrollment.get_pay_stats_display }}</td>
+        </tr>
+        <tr>
+            <th scope="col">결제금액</th>
+            <td class="left">{{ enrollment.pay_price|intcomma }}원</td>
+            <th scope="col">수강기간</th>
+            <td class="left">{{ enrollment.lec_period }}개월</td>
+        </tr>
+        <tr>
+            <th scope="col">시작월</th>
+            <td class="left">{{ enrollment.start_dt }}</td>
+            <th scope="col">종료월</th>
+            <td class="left">{{ enrollment.end_dt }}</td>
+        </tr>
+    </tbody>
+</table>
+</div>
+
+<!-- 수강과정 -->
+{% if course_entries %}
+<p class="title">수강과정</p>
+<div class="scroll" style="margin-bottom:10px;">
+<table class="tb_scroll" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="5%" /><col width="15%" /><col width="25%" /><col width="15%" /><col width="15%" /><col width="15%" /><col width="10%" /></colgroup>
+    <thead>
+    <tr>
+        <th>No</th><th>수강년월</th><th>과정명</th><th>구장</th><th>시작일</th><th>수강금액</th><th>상태</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for c in course_entries %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ c.course_ym|date:"Y-m" }}</td>
+        <td class="left">{% for code, l in lectures_map.items %}{% if code == c.lecture_code %}{{ l.lecture_title }}{% endif %}{% endfor %}</td>
+        <td>{% for code, l in lectures_map.items %}{% if code == c.lecture_code %}{{ l.stadium.sta_nickname }}{% endif %}{% endfor %}</td>
+        <td>{% if c.start_ymd %}{{ c.start_ymd|date:"Y-m-d" }}{% endif %}</td>
+        <td style="text-align:right;">{{ c.course_ym_amt|intcomma }}</td>
+        <td>{{ c.course_stats }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endif %}
+
+<!-- 청구내역 -->
+{% if bills %}
+<p class="title">청구내역</p>
+<div class="scroll">
+<table class="tb_scroll" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="10%" /><col width="15%" /><col width="45%" /><col width="15%" /><col width="15%" /></colgroup>
+    <thead>
+    <tr>
+        <th>No</th><th>청구코드</th><th>청구내용</th><th>금액</th><th>결제상태</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for b in bills %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ b.bill_code }}</td>
+        <td class="left">{{ b.bill_desc }}</td>
+        <td style="text-align:right;">{{ b.bill_amt|intcomma }}</td>
+        <td>{{ b.pay_stats }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endif %}
+
+{% else %}
+<p style="margin:10px 0; color:#999;">해당 입단 정보가 삭제되었거나 존재하지 않습니다.</p>
+{% endif %}
+
+{% endblock %}

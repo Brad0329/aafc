@@ -3,14 +3,12 @@
     <div id="la20">
         <div class="menu">
             <ul>
-                <li><a href="{% url 'office_main' %}">수강생정보(NEW)</a></li>
-                <li><a href="{% url 'office_main' %}">수강생조회(이름검색)</a></li>
-                <li><a href="{% url 'office_main' %}">변경이력조회</a></li>
-                <li><a href="{% url 'office_main' %}">입단신청내역(NEW)</a></li>
-                <li><a href="{% url 'office_main' %}">출결관리(NEW)</a></li>
-                <li><a href="{% url 'office_main' %}">기본금액관리</a></li>
-                <li><a href="{% url 'office_main' %}">대기정보관리</a></li>
-                <li><a href="{% url 'office_main' %}">클래식반관리</a></li>
+                <li><a href="{% url 'office_student_list' %}">수강생정보(NEW)</a></li>
+                <li><a href="{% url 'office_student_search' %}">수강생조회(이름검색)</a></li>
+                <li><a href="{% url 'office_chghis_list' %}">변경이력조회</a></li>
+                <li><a href="{% url 'office_master_list' %}">입단신청내역(NEW)</a></li>
+                <li><a href="{% url 'office_attendance' %}">출결관리(NEW)</a></li>
+                <li><a href="{% url 'office_dues_setting' %}">기본금액관리</a></li>
             </ul>
         </div>
     </div>

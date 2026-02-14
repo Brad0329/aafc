@@ -1,0 +1,90 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfstudent_left.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  수강생관리  &gt;  수강생조회(이름검색)</div>
+<div class="h_55"></div>
+
+<p class="title">수강생조회(이름검색)</p>
+
+<form name="schform" method="get" action="{% url 'office_student_search' %}">
+<div class="tb_basic" style="margin-bottom:5px;">
+<table summary="검색" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="15%" /><col width="35%" /><col width="15%" /><col width="35%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">기준월</th>
+            <td class="left">
+                <select name="sch_ym" class="select" style="width:150px;">
+                    {% for ym in ym_choices %}
+                    <option value="{{ ym }}" {% if sch_ym == ym %}selected{% endif %}>{{ ym|slice:":4" }}-{{ ym|slice:"4:6" }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">수강생명</th>
+            <td class="left">
+                <input type="text" name="sch_child_name" value="{{ sch_child_name }}" class="input" style="width:150px;" />
+                <a href="javascript:document.schform.submit();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+                <span style="color:#999; font-size:11px;">(2자 이상 입력)</span>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+</form>
+
+{% if results %}
+<p style="margin:5px 0;">검색결과: <b>{{ results|length }}</b>건</p>
+
+<div class="scroll">
+<table class="tb_scroll" border="0" cellpadding="0" cellspacing="0">
+    <colgroup>
+        <col width="5%" /><col width="10%" /><col width="10%" /><col width="10%" />
+        <col width="10%" /><col width="10%" /><col width="12%" /><col width="12%" />
+        <col width="10%" /><col width="11%" />
+    </colgroup>
+    <thead>
+    <tr>
+        <th>No</th>
+        <th>회원ID</th>
+        <th>자녀ID</th>
+        <th>자녀명</th>
+        <th>신청구분</th>
+        <th>결제상태</th>
+        <th>시작월</th>
+        <th>종료월</th>
+        <th>결제금액</th>
+        <th>관리</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for e in results %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ e.member_id }}</td>
+        <td>{{ e.child_id }}</td>
+        <td>{{ e.child.name }}</td>
+        <td>{{ e.get_apply_gubun_display }}</td>
+        <td>{{ e.get_pay_stats_display }}</td>
+        <td>{{ e.start_dt|slice:":4" }}-{{ e.start_dt|slice:"4:6" }}</td>
+        <td>{{ e.end_dt|slice:":4" }}-{{ e.end_dt|slice:"4:6" }}</td>
+        <td style="text-align:right;">{{ e.pay_price|intcomma }}</td>
+        <td>
+            <a href="{% url 'office_student_detail' e.id %}"><img src="{% static 'ba_office/images/btn_detail.gif' %}" alt="상세" /></a>
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% elif sch_child_name %}
+<p style="margin:10px 0; color:#999;">검색 결과가 없습니다.</p>
+{% endif %}
+
+{% endblock %}

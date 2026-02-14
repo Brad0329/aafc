@@ -1,0 +1,240 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfstudent_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var editMode = false;
+
+function toggleEdit() {
+    editMode = !editMode;
+    var fields = document.querySelectorAll('.editable');
+    for (var i = 0; i < fields.length; i++) {
+        fields[i].disabled = !editMode;
+    }
+    document.getElementById('btnEdit').style.display = editMode ? 'none' : '';
+    document.getElementById('btnSave').style.display = editMode ? '' : 'none';
+    document.getElementById('cancelArea').style.display = (editMode) ? '' : 'none';
+}
+
+function saveDetail() {
+    var lecStat = document.getElementById('lecture_stats').value;
+    if (lecStat == 'LN' || lecStat == 'PN') {
+        var cc = document.getElementById('cancel_code').value;
+        var cd = document.getElementById('cancel_desc').value;
+        if (!cc) { alert('취소사유코드를 선택하세요.'); return; }
+        if (!cd) { alert('취소사유를 입력하세요.'); return; }
+    }
+    document.frmDetail.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  수강생관리  &gt;  입단신청상세</div>
+<div class="h_55"></div>
+
+<p class="title">입단신청상세 - No.{{ enrollment.id }}</p>
+
+<div class="btn_right">
+    <a href="{% url 'office_master_list' %}"><img src="{% static 'ba_office/images/btn_list.gif' %}" alt="목록" /></a>
+</div>
+
+<!-- 신청자/자녀 정보 -->
+<div class="tb_basic" style="margin-bottom:10px;">
+<table summary="신청자정보" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="12%" /><col width="38%" /><col width="12%" /><col width="38%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">회원ID</th>
+            <td class="left">{{ member.username }}</td>
+            <th scope="col">회원명</th>
+            <td class="left">{{ member.name }}</td>
+        </tr>
+        <tr>
+            <th scope="col">연락처</th>
+            <td class="left">{{ member.phone }}</td>
+            <th scope="col">이메일</th>
+            <td class="left">{{ member.email }}</td>
+        </tr>
+        <tr>
+            <th scope="col">자녀ID</th>
+            <td class="left">{{ child.child_id }}</td>
+            <th scope="col">자녀명</th>
+            <td class="left">{{ child.name }}</td>
+        </tr>
+        <tr>
+            <th scope="col">신청일</th>
+            <td class="left" colspan="3">{{ enrollment.insert_dt|date:"Y-m-d H:i" }}</td>
+        </tr>
+    </tbody>
+</table>
+</div>
+
+<!-- 교육신청내역 -->
+<p class="title">교육신청내역</p>
+<form name="frmDetail" method="post" action="{% url 'office_master_detail' enrollment.id %}">
+{% csrf_token %}
+<div class="tb_basic" style="margin-bottom:10px;">
+<table summary="교육신청내역" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="12%" /><col width="38%" /><col width="12%" /><col width="38%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">신청구분</th>
+            <td class="left">
+                <select name="apply_gubun" class="select editable" disabled>
+                    <option value="NEW" {% if enrollment.apply_gubun == "NEW" %}selected{% endif %}>신규입단</option>
+                    <option value="AGAIN" {% if enrollment.apply_gubun == "AGAIN" %}selected{% endif %}>재수강</option>
+                    <option value="RENEW" {% if enrollment.apply_gubun == "RENEW" %}selected{% endif %}>재입단</option>
+                </select>
+            </td>
+            <th scope="col">결제방법</th>
+            <td class="left">
+                <select name="pay_method" class="select editable" disabled>
+                    <option value="">==선택==</option>
+                    <option value="ACCT" {% if enrollment.pay_method == "ACCT" %}selected{% endif %}>계좌</option>
+                    <option value="ZEROPAY" {% if enrollment.pay_method == "ZEROPAY" %}selected{% endif %}>제로페이</option>
+                    <option value="BENEFIT" {% if enrollment.pay_method == "BENEFIT" %}selected{% endif %}>복지</option>
+                    <option value="GRPY" {% if enrollment.pay_method == "GRPY" %}selected{% endif %}>그룹페이</option>
+                    <option value="CARD" {% if enrollment.pay_method == "CARD" %}selected{% endif %}>카드</option>
+                    <option value="R" {% if enrollment.pay_method == "R" %}selected{% endif %}>계좌이체</option>
+                    <option value="VACCT" {% if enrollment.pay_method == "VACCT" %}selected{% endif %}>가상계좌</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">수강상태</th>
+            <td class="left">
+                <select name="lecture_stats" id="lecture_stats" class="select editable" disabled>
+                    <option value="LY" {% if enrollment.lecture_stats == "LY" %}selected{% endif %}>수강확정</option>
+                    <option value="LP" {% if enrollment.lecture_stats == "LP" %}selected{% endif %}>수강예정</option>
+                    <option value="PN" {% if enrollment.lecture_stats == "PN" %}selected{% endif %}>일시중지</option>
+                    <option value="LN" {% if enrollment.lecture_stats == "LN" %}selected{% endif %}>퇴단</option>
+                </select>
+            </td>
+            <th scope="col">결제상태</th>
+            <td class="left">
+                <select name="pay_stats" class="select editable" disabled>
+                    <option value="PP" {% if enrollment.pay_stats == "PP" %}selected{% endif %}>결제대기</option>
+                    <option value="PY" {% if enrollment.pay_stats == "PY" %}selected{% endif %}>결제완료</option>
+                    <option value="PZ" {% if enrollment.pay_stats == "PZ" %}selected{% endif %}>취소</option>
+                    <option value="PQ" {% if enrollment.pay_stats == "PQ" %}selected{% endif %}>환불</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">수강기간</th>
+            <td class="left">주{{ enrollment.lec_cycle }}회 / {{ enrollment.lec_period }}개월</td>
+            <th scope="col">결제금액</th>
+            <td class="left">{{ enrollment.pay_price|intcomma }}원</td>
+        </tr>
+        <tr>
+            <th scope="col">시작월</th>
+            <td class="left">{{ enrollment.start_dt|slice:":4" }}-{{ enrollment.start_dt|slice:"4:6" }}</td>
+            <th scope="col">종료월</th>
+            <td class="left">{{ enrollment.end_dt|slice:":4" }}-{{ enrollment.end_dt|slice:"4:6" }}</td>
+        </tr>
+        <tr>
+            <th scope="col">계좌번호</th>
+            <td class="left" colspan="3">
+                <input type="text" name="account_no" value="{{ enrollment.account_no }}" class="input editable" style="width:200px;" disabled />
+            </td>
+        </tr>
+        <tr id="cancelArea" style="display:{% if enrollment.lecture_stats == 'LN' or enrollment.lecture_stats == 'PN' %}{% else %}none{% endif %};">
+            <th scope="col">취소사유코드</th>
+            <td class="left">
+                <select name="cancel_code" id="cancel_code" class="select editable" disabled>
+                    <option value="">==선택==</option>
+                    {% for cr in cancel_reasons %}
+                    <option value="{{ cr.subcode }}" {% if enrollment.cancel_code == cr.subcode|stringformat:"d" %}selected{% endif %}>{{ cr.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">취소사유</th>
+            <td class="left">
+                <input type="text" name="cancel_desc" id="cancel_desc" value="{{ enrollment.cancel_desc }}" class="input editable" style="width:250px;" disabled />
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+
+<div class="btn_right" style="margin-bottom:15px;">
+    <span id="btnEdit"><a href="javascript:toggleEdit();"><img src="{% static 'ba_office/images/btn_edit.gif' %}" alt="수정" /></a></span>
+    <span id="btnSave" style="display:none;">
+        <a href="javascript:saveDetail();"><img src="{% static 'ba_office/images/btn_modify.gif' %}" alt="저장" /></a>
+        <a href="javascript:toggleEdit();"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+    </span>
+</div>
+</form>
+
+<!-- 수강과정 목록 -->
+<p class="title">수강과정</p>
+<div class="scroll" style="margin-bottom:15px;">
+<table class="tb_scroll" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="5%" /><col width="15%" /><col width="25%" /><col width="15%" /><col width="15%" /><col width="15%" /><col width="10%" /></colgroup>
+    <thead>
+    <tr>
+        <th>No</th>
+        <th>수강년월</th>
+        <th>과정명</th>
+        <th>구장</th>
+        <th>시작일</th>
+        <th>수강금액</th>
+        <th>상태</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for c in course_entries %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ c.course_ym|date:"Y-m" }}</td>
+        <td class="left">{% for code, l in lectures_map.items %}{% if code == c.lecture_code %}{{ l.lecture_title }}{% endif %}{% endfor %}</td>
+        <td>{% for code, l in lectures_map.items %}{% if code == c.lecture_code %}{{ l.stadium.sta_nickname }}{% endif %}{% endfor %}</td>
+        <td>{% if c.start_ymd %}{{ c.start_ymd|date:"Y-m-d" }}{% endif %}</td>
+        <td style="text-align:right;">{{ c.course_ym_amt|intcomma }}</td>
+        <td>{{ c.course_stats }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7">수강과정이 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<!-- 청구내역 -->
+<p class="title">청구내역</p>
+<div class="scroll">
+<table class="tb_scroll" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="10%" /><col width="15%" /><col width="45%" /><col width="15%" /><col width="15%" /></colgroup>
+    <thead>
+    <tr>
+        <th>No</th>
+        <th>청구코드</th>
+        <th>청구내용</th>
+        <th>금액</th>
+        <th>결제상태</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for b in bills %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ b.bill_code }}</td>
+        <td class="left">{{ b.bill_desc }}</td>
+        <td style="text-align:right;">{{ b.bill_amt|intcomma }}</td>
+        <td>{{ b.pay_stats }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5">청구내역이 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{% endblock %}

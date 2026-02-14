@@ -62,7 +62,7 @@
                             <li><a href="{% url 'office_consult_list' %}">상담관리</a></li>
                             {% endif %}
                             {% if 'H' in office_user.power_level %}
-                            <li><a href="{% url 'office_main' %}">수강생관리</a></li>
+                            <li><a href="{% url 'office_student_list' %}">수강생관리</a></li>
                             {% endif %}
                             {% if 'L' in office_user.power_level %}
                             <li><a href="{% url 'office_main' %}">과정관리</a></li>

@@ -1,0 +1,94 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfstudent_left.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  수강생관리  &gt;  변경이력조회</div>
+<div class="h_55"></div>
+
+<p class="title">변경이력조회</p>
+
+<form name="schform" method="get" action="{% url 'office_chghis_list' %}">
+<div class="tb_basic" style="margin-bottom:5px;">
+<table summary="검색" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="15%" /><col width="35%" /><col width="15%" /><col width="35%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">등록월</th>
+            <td class="left">
+                <select name="sch_reg_month" class="select" style="width:150px;">
+                    <option value="">==전체==</option>
+                    {% for ym in ym_choices %}
+                    <option value="{{ ym }}" {% if sch_reg_month == ym %}selected{% endif %}>{{ ym|slice:":4" }}-{{ ym|slice:"4:6" }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">수강생명</th>
+            <td class="left">
+                <input type="text" name="sch_child_name" value="{{ sch_child_name }}" class="input" style="width:150px;" />
+                <a href="javascript:document.schform.submit();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+</form>
+
+<p style="margin:5px 0;">총 <b>{{ total_count }}</b>건</p>
+
+<div class="scroll">
+<table class="tb_scroll" border="0" cellpadding="0" cellspacing="0">
+    <colgroup>
+        <col width="5%" /><col width="10%" /><col width="10%" /><col width="10%" />
+        <col width="10%" /><col width="15%" /><col width="25%" /><col width="8%" /><col width="7%" />
+    </colgroup>
+    <thead>
+    <tr>
+        <th>No</th>
+        <th>회원ID</th>
+        <th>회원명</th>
+        <th>자녀ID</th>
+        <th>자녀명</th>
+        <th>변경구분</th>
+        <th>변경설명</th>
+        <th>등록일</th>
+        <th>상세</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for h in histories %}
+    <tr>
+        <td>{{ forloop.counter|page_index:histories.start_index }}</td>
+        <td>{{ h.member_id }}</td>
+        <td>{{ h.member_name }}</td>
+        <td>{{ h.child_id }}</td>
+        <td>{{ h.child_name }}</td>
+        <td>{{ h.chg_gbn }}</td>
+        <td class="left">{{ h.chg_desc }}</td>
+        <td>{% if h.reg_dt %}{{ h.reg_dt|date:"Y-m-d" }}{% endif %}</td>
+        <td><a href="{% url 'office_chghis_detail' h.id %}"><img src="{% static 'ba_office/images/btn_detail.gif' %}" alt="상세" /></a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="9">변경이력이 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{% if histories.has_other_pages %}
+<div style="text-align:center; margin:10px 0;">
+    {% for p in histories.paginator.page_range %}
+        {% if p == histories.number %}
+        <b>[{{ p }}]</b>
+        {% else %}
+        <a href="?page={{ p }}&sch_reg_month={{ sch_reg_month }}&sch_child_name={{ sch_child_name }}">[{{ p }}]</a>
+        {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

@@ -85,4 +85,35 @@ urlpatterns = [
     # 상담관리 > 무료체험
     path('lfconsult/free/', views.consult_free_list, name='office_consult_free'),
     path('lfconsult/free/confirm/<int:pk>/', views.consult_free_confirm, name='office_consult_free_confirm'),
+
+    # 수강생관리 > AJAX
+    path('lfstudent/ajax/local/', views.ajax_student_local, name='office_ajax_student_local'),
+    path('lfstudent/ajax/stadium/', views.ajax_student_stadium, name='office_ajax_student_stadium'),
+    path('lfstudent/ajax/course/', views.ajax_student_course, name='office_ajax_student_course'),
+
+    # 수강생관리 > 기본금액관리
+    path('lfstudent/dues/', views.dues_setting, name='office_dues_setting'),
+
+    # 수강생관리 > 수강생정보
+    path('lfstudent/student/', views.student_list, name='office_student_list'),
+
+    # 수강생관리 > 수강생조회(이름검색)
+    path('lfstudent/search/', views.student_search, name='office_student_search'),
+
+    # 수강생관리 > 수강생상세
+    path('lfstudent/student/detail/<int:no_seq>/', views.student_detail, name='office_student_detail'),
+    path('lfstudent/student/shuttle-proc/', views.student_shuttle_proc, name='office_student_shuttle_proc'),
+
+    # 수강생관리 > 입단신청내역
+    path('lfstudent/master/', views.master_list, name='office_master_list'),
+    path('lfstudent/master/detail/<int:no_seq>/', views.master_detail, name='office_master_detail'),
+    path('lfstudent/master/excel/', views.master_list_excel, name='office_master_list_excel'),
+
+    # 수강생관리 > 변경이력조회
+    path('lfstudent/chghis/', views.chghis_list, name='office_chghis_list'),
+    path('lfstudent/chghis/detail/<int:pk>/', views.chghis_detail, name='office_chghis_detail'),
+
+    # 수강생관리 > 출결관리
+    path('lfstudent/attendance/', views.attendance_view, name='office_attendance'),
+    path('lfstudent/attendance/proc/', views.attendance_proc, name='office_attendance_proc'),
 ]

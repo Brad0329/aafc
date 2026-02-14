@@ -1,0 +1,41 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfstudent_left.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  수강생관리  &gt;  기본금액관리</div>
+<div class="h_55"></div>
+
+<p class="title">기본금액관리</p>
+
+<form name="frmSetting" method="post" action="{% url 'office_dues_setting' %}">
+{% csrf_token %}
+<div class="tb_basic">
+<table summary="기본금액설정" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="20%" /><col width="80%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">교육용품비</th>
+            <td class="left">
+                <input type="text" name="join_price" value="{{ setting.join_price }}" class="input" style="width:150px; text-align:right;" /> 원
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">패키지금액</th>
+            <td class="left">
+                <input type="text" name="pk_price" value="{{ setting.pk_price }}" class="input" style="width:150px; text-align:right;" /> 원
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+
+<div class="btn_right" style="margin-top:10px;">
+    <a href="javascript:document.frmSetting.submit();"><img src="{% static 'ba_office/images/btn_modify.gif' %}" alt="수정" /></a>
+</div>
+</form>
+{% endblock %}
