@@ -1,0 +1,231 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfconsult_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fn_search() {
+    document.schform.submit();
+}
+function sel_stadium(local_code) {
+    $.getJSON("{% url 'office_ajax_consult_stadium' %}", {local_code: local_code}, function(data) {
+        var sel = document.schform.sch_stadium;
+        sel.options.length = 1;
+        for (var i = 0; i < data.length; i++) {
+            sel.options[sel.options.length] = new Option(data[i].sta_name, data[i].sta_code);
+        }
+    });
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  상담관리  &gt;  상담관리</div>
+<div class="h_55"></div>
+
+<p class="title">상담관리 - 리스트</p>
+
+<form name="schform" method="get" action="{% url 'office_consult_list' %}">
+<div class="tb_basic" style="margin-bottom:5px;">
+<table summary="검색" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="12%" /><col width="38%" /><col width="12%" /><col width="38%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">필드</th>
+            <td class="left">
+                <select name="sch_local" class="select" style="width:200px;" onchange="sel_stadium(this.value);">
+                    <option value="">==선택==</option>
+                    {% for c in locd_codes %}
+                    <option value="{{ c.subcode }}" {% if sch_local == c.subcode|stringformat:"d" %}selected{% endif %}>{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">구장</th>
+            <td class="left">
+                <select name="sch_stadium" class="select" style="width:200px;">
+                    <option value="">==선택==</option>
+                    {% for s in stadiums %}
+                    <option value="{{ s.sta_code }}" {% if sch_stadium == s.sta_code|stringformat:"d" %}selected{% endif %}>{{ s.sta_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">상담유형</th>
+            <td class="left">
+                <select name="sch_cont" class="select" style="width:200px;">
+                    <option value="">==선택==</option>
+                    {% for c in cont_codes %}
+                    <option value="{{ c.subcode }}" {% if sch_cont == c.subcode|stringformat:"d" %}selected{% endif %}>{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">접수자</th>
+            <td class="left">
+                <select name="sch_manage" class="select" style="width:200px;">
+                    <option value="">==선택==</option>
+                    {% for m in managers %}
+                    <option value="{{ m.office_id }}" {% if sch_manage == m.office_id %}selected{% endif %}>{{ m.office_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">상담상태</th>
+            <td class="left">
+                <select name="sch_stat" class="select" style="width:200px;">
+                    <option value="">==선택==</option>
+                    {% for c in stat_codes %}
+                    <option value="{{ c.subcode }}" {% if sch_stat == c.subcode|stringformat:"d" %}selected{% endif %}>{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">고객상태</th>
+            <td class="left">
+                <select name="sch_cust" class="select" style="width:200px;">
+                    <option value="">==선택==</option>
+                    {% for c in cust_codes %}
+                    <option value="{{ c.subcode }}" {% if sch_cust == c.subcode|stringformat:"d" %}selected{% endif %}>{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">접수경로</th>
+            <td class="left">
+                <select name="sch_line" class="select" style="width:200px;">
+                    <option value="">==선택==</option>
+                    {% for c in line_codes %}
+                    <option value="{{ c.subcode }}" {% if sch_line == c.subcode|stringformat:"d" %}selected{% endif %}>{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">신청경로</th>
+            <td class="left">
+                <select name="sch_path" class="select" style="width:200px;">
+                    <option value="">==선택==</option>
+                    {% for c in path_codes %}
+                    <option value="{{ c.subcode }}" {% if sch_path == c.subcode|stringformat:"d" %}selected{% endif %}>{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">담당코치</th>
+            <td class="left">
+                <select name="sch_coach" class="select" style="width:200px;">
+                    <option value="">==선택==</option>
+                    {% for c in coaches %}
+                    <option value="{{ c.coach_code }}" {% if sch_coach == c.coach_code|stringformat:"d" %}selected{% endif %}>{{ c.coach_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">회원구분</th>
+            <td class="left">
+                <select name="sch_member_gbn" class="select" style="width:200px;">
+                    <option value="">==선택==</option>
+                    <option value="1" {% if sch_member_gbn == '1' %}selected{% endif %}>회원</option>
+                    <option value="2" {% if sch_member_gbn == '2' %}selected{% endif %}>비회원</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">검색</th>
+            <td class="left" colspan="3">
+                <select name="sch_txt" class="select">
+                    <option value="member_id" {% if sch_txt == 'member_id' %}selected{% endif %}>부모아이디</option>
+                    <option value="member_name" {% if sch_txt == 'member_name' %}selected{% endif %}>부모이름</option>
+                    <option value="child_id" {% if sch_txt == 'child_id' %}selected{% endif %}>자녀아이디</option>
+                    <option value="child_name" {% if sch_txt == 'child_name' %}selected{% endif %}>자녀이름</option>
+                    <option value="consult_name" {% if sch_txt == 'consult_name' %}selected{% endif %}>신청자</option>
+                    <option value="stu_name" {% if sch_txt == 'stu_name' %}selected{% endif %}>수강생</option>
+                    <option value="consult_title" {% if sch_txt == 'consult_title' %}selected{% endif %}>제목</option>
+                    <option value="consult_content" {% if sch_txt == 'consult_content' %}selected{% endif %}>내용</option>
+                    <option value="consult_answer" {% if sch_txt == 'consult_answer' %}selected{% endif %}>답변</option>
+                    <option value="consult_tel" {% if sch_txt == 'consult_tel' %}selected{% endif %}>전화번호</option>
+                </select>
+                <input type="text" name="sch_val" value="{{ sch_val }}" size="50" class="input" style="width:60%;" />
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<div style="text-align:right; margin-bottom:10px;">
+    <a href="javascript:fn_search();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+</div>
+</form>
+
+<div class="tb_basic">
+    <table summary="상담리스트" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="5%" />
+            <col width="7%" />
+            <col width="8%" />
+            <col width="5%" />
+            <col width="8%" />
+            <col />
+            <col width="9%" />
+            <col width="7%" />
+            <col width="7%" />
+            <col width="7%" />
+            <col width="8%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">순번</th>
+                <th scope="col">회원구분</th>
+                <th scope="col">접수경로</th>
+                <th scope="col">접수자</th>
+                <th scope="col">상담유형</th>
+                <th scope="col">제목</th>
+                <th scope="col">구장</th>
+                <th scope="col">담당코치</th>
+                <th scope="col">상담상태</th>
+                <th scope="col">고객상태</th>
+                <th scope="col">등록일자</th>
+            </tr>
+            {% for con in consults %}
+            <tr{% if con.stat_name == '상담접수' %} style="background:#FFA7A7;"{% elif con.stat_name == '이관/상담대기' %} style="background:#B2EBF4;"{% endif %}>
+                <td>{{ total_count|subtract:forloop.counter0 }}</td>
+                <td>{{ con.member_gbn_name }}</td>
+                <td>{{ con.line_name }}</td>
+                <td>{{ con.manage_name }}</td>
+                <td>{{ con.cont_name }}</td>
+                <td class="left"><a href="{% url 'office_consult_detail' con.id %}">{{ con.consult_title|truncatewords:10 }}</a></td>
+                <td>{{ con.sta_name }}</td>
+                <td>{{ con.coach_name_display }}</td>
+                <td>{{ con.stat_name }}</td>
+                <td>{{ con.cust_name }}</td>
+                <td>{{ con.consult_dt|date:"Y.m.d" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="11" style="padding:20px;">상담 내역이 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if consults.has_other_pages %}
+<div class="paging">
+    {% if consults.has_previous %}
+    <a href="?page=1&sch_local={{ sch_local }}&sch_stadium={{ sch_stadium }}&sch_cont={{ sch_cont }}&sch_manage={{ sch_manage }}&sch_stat={{ sch_stat }}&sch_cust={{ sch_cust }}&sch_line={{ sch_line }}&sch_path={{ sch_path }}&sch_coach={{ sch_coach }}&sch_member_gbn={{ sch_member_gbn }}&sch_txt={{ sch_txt }}&sch_val={{ sch_val }}">&laquo;</a>
+    <a href="?page={{ consults.previous_page_number }}&sch_local={{ sch_local }}&sch_stadium={{ sch_stadium }}&sch_cont={{ sch_cont }}&sch_manage={{ sch_manage }}&sch_stat={{ sch_stat }}&sch_cust={{ sch_cust }}&sch_line={{ sch_line }}&sch_path={{ sch_path }}&sch_coach={{ sch_coach }}&sch_member_gbn={{ sch_member_gbn }}&sch_txt={{ sch_txt }}&sch_val={{ sch_val }}">&lt;</a>
+    {% endif %}
+    {% for num in consults.paginator.page_range %}
+        {% if consults.number == num %}
+        <strong>{{ num }}</strong>
+        {% elif num > consults.number|add:"-5" and num < consults.number|add:"5" %}
+        <a href="?page={{ num }}&sch_local={{ sch_local }}&sch_stadium={{ sch_stadium }}&sch_cont={{ sch_cont }}&sch_manage={{ sch_manage }}&sch_stat={{ sch_stat }}&sch_cust={{ sch_cust }}&sch_line={{ sch_line }}&sch_path={{ sch_path }}&sch_coach={{ sch_coach }}&sch_member_gbn={{ sch_member_gbn }}&sch_txt={{ sch_txt }}&sch_val={{ sch_val }}">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if consults.has_next %}
+    <a href="?page={{ consults.next_page_number }}&sch_local={{ sch_local }}&sch_stadium={{ sch_stadium }}&sch_cont={{ sch_cont }}&sch_manage={{ sch_manage }}&sch_stat={{ sch_stat }}&sch_cust={{ sch_cust }}&sch_line={{ sch_line }}&sch_path={{ sch_path }}&sch_coach={{ sch_coach }}&sch_member_gbn={{ sch_member_gbn }}&sch_txt={{ sch_txt }}&sch_val={{ sch_val }}">&gt;</a>
+    <a href="?page={{ consults.paginator.num_pages }}&sch_local={{ sch_local }}&sch_stadium={{ sch_stadium }}&sch_cont={{ sch_cont }}&sch_manage={{ sch_manage }}&sch_stat={{ sch_stat }}&sch_cust={{ sch_cust }}&sch_line={{ sch_line }}&sch_path={{ sch_path }}&sch_coach={{ sch_coach }}&sch_member_gbn={{ sch_member_gbn }}&sch_txt={{ sch_txt }}&sch_val={{ sch_val }}">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -59,4 +59,30 @@ urlpatterns = [
 
     # 회원관리 > 탈퇴회원리스트
     path('lfmember/secession/', views.secession_list, name='office_secession_list'),
+
+    # 상담관리 > 상담 리스트
+    path('lfconsult/consult/', views.consult_list, name='office_consult_list'),
+    path('lfconsult/consult/detail/<int:pk>/', views.consult_detail, name='office_consult_detail'),
+    path('lfconsult/consult/input/', views.consult_input, name='office_consult_input'),
+
+    # 상담관리 > 답변 관리
+    path('lfconsult/answer/add/', views.consult_answer_add, name='office_consult_answer_add'),
+    path('lfconsult/answer/edit/<int:pk>/', views.consult_answer_edit, name='office_consult_answer_edit'),
+    path('lfconsult/answer/del/<int:pk>/', views.consult_answer_del, name='office_consult_answer_del'),
+
+    # 상담관리 > AJAX
+    path('lfconsult/ajax/stadium/', views.ajax_consult_stadium, name='office_ajax_consult_stadium'),
+    path('lfconsult/ajax/coach/', views.ajax_consult_coach, name='office_ajax_consult_coach'),
+    path('lfconsult/ajax/member-search/', views.ajax_consult_member_search, name='office_ajax_member_search'),
+    path('lfconsult/ajax/child-list/', views.ajax_consult_child_list, name='office_ajax_child_list'),
+
+    # 상담관리 > 권역설정
+    path('lfconsult/local/', views.consult_local, name='office_consult_local'),
+    path('lfconsult/local/write/', views.consult_local_write, name='office_consult_local_write'),
+    path('lfconsult/local/modify/<int:pk>/', views.consult_local_modify, name='office_consult_local_modify'),
+    path('lfconsult/local/del/<int:pk>/', views.consult_local_del, name='office_consult_local_del'),
+
+    # 상담관리 > 무료체험
+    path('lfconsult/free/', views.consult_free_list, name='office_consult_free'),
+    path('lfconsult/free/confirm/<int:pk>/', views.consult_free_confirm, name='office_consult_free_confirm'),
 ]

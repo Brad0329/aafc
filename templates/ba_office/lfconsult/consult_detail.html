@@ -1,0 +1,291 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfconsult_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function sel_stadium(local_code) {
+    $.getJSON("{% url 'office_ajax_consult_stadium' %}", {local_code: local_code}, function(data) {
+        var sel = document.getElementById('sta_code');
+        sel.options.length = 1;
+        for (var i = 0; i < data.length; i++) {
+            sel.options[sel.options.length] = new Option(data[i].sta_name, data[i].sta_code);
+        }
+    });
+}
+
+function consult_update() {
+    var f = document.detailform;
+    if (!f.consult_name.value.trim()) { alert('이름(신청자)을 입력해주세요.'); f.consult_name.focus(); return; }
+    if (!f.consult_title.value.trim()) { alert('제목을 입력해주세요.'); f.consult_title.focus(); return; }
+    f.submit();
+}
+
+function answer_add() {
+    var f = document.getElementById('addform');
+    if (!f.consult_answer.value.trim()) { alert('답변내용을 입력해주세요.'); return; }
+    f.submit();
+}
+
+function answer_edit(formId) {
+    var f = document.getElementById(formId);
+    if (!f.consult_answer.value.trim()) { alert('답변내용을 입력해주세요.'); return; }
+    f.submit();
+}
+
+function answer_delete(url) {
+    if (!confirm('답변을 삭제하시겠습니까?')) return;
+    var f = document.createElement('form');
+    f.method = 'POST';
+    f.action = url;
+    var csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'csrfmiddlewaretoken'; inp.value = csrf;
+    f.appendChild(inp);
+    document.body.appendChild(f);
+    f.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  상담관리  &gt;  상담정보</div>
+<div class="h_55"></div>
+
+<p class="title">상담정보 - 수정</p>
+
+<div class="tb_basic">
+<form name="detailform" method="post" action="{% url 'office_consult_detail' consult.id %}">
+{% csrf_token %}
+<table summary="상담정보" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="12%" /><col width="38%" /><col width="12%" /><col width="38%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">구분</th>
+            <td class="left">
+                <select name="consult_gbn" class="select">
+                    <option value="guest" {% if consult.consult_gbn == 'guest' %}selected{% endif %}>신규회원</option>
+                    <option value="old" {% if consult.consult_gbn == 'old' %}selected{% endif %}>기존회원</option>
+                </select>
+            </td>
+            <th scope="col">부모아이디</th>
+            <td class="left"><input type="text" name="member_id" value="{{ consult.member_id }}" size="20" class="input" /></td>
+        </tr>
+        <tr>
+            <th scope="col">자녀아이디</th>
+            <td class="left"><input type="text" name="child_id" value="{{ consult.child_id }}" size="20" class="input" /></td>
+            <th scope="col">권역</th>
+            <td class="left">
+                <select name="local_code" class="select" onchange="sel_stadium(this.value);">
+                    <option value="">선택</option>
+                    {% for c in locd_codes %}
+                    <option value="{{ c.subcode }}" {% if consult.local_code == c.subcode|stringformat:"d" %}selected{% endif %}>{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">구장</th>
+            <td class="left">
+                <select name="sta_code" id="sta_code" class="select">
+                    <option value="">선택</option>
+                    {% for s in stadiums %}
+                    <option value="{{ s.sta_code }}" {% if consult.sta_code == s.sta_code|stringformat:"d" %}selected{% endif %}>{{ s.sta_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">이름(신청자)</th>
+            <td class="left"><input type="text" name="consult_name" value="{{ consult.consult_name }}" size="10" class="input" /></td>
+        </tr>
+        <tr>
+            <th scope="col">연락처</th>
+            <td class="left"><input type="text" name="consult_tel" value="{{ consult.consult_tel }}" size="20" class="input" /></td>
+            <th scope="col">이름(수강생)</th>
+            <td class="left"><input type="text" name="stu_name" value="{{ consult.stu_name }}" size="10" class="input" /></td>
+        </tr>
+        <tr>
+            <th scope="col">성별/나이</th>
+            <td class="left">
+                <select name="stu_sex" class="select">
+                    <option value="">선택</option>
+                    <option value="M" {% if consult.stu_sex == 'M' %}selected{% endif %}>남</option>
+                    <option value="F" {% if consult.stu_sex == 'F' %}selected{% endif %}>여</option>
+                </select>
+                / <input type="text" name="stu_age" value="{{ consult.stu_age }}" size="3" class="input" /> 세
+            </td>
+            <th scope="col">신청경로</th>
+            <td class="left">
+                <select name="path_code" class="select">
+                    {% for c in path_codes %}
+                    <option value="{{ c.subcode }}" {% if consult.path_code == c.subcode %}selected{% endif %}>{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">접수경로</th>
+            <td class="left">
+                <select name="line_code" class="select">
+                    {% for c in line_codes %}
+                    <option value="{{ c.subcode }}" {% if consult.line_code == c.subcode %}selected{% endif %}>{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">접수시간</th>
+            <td class="left">{{ consult.consult_dt|date:"Y-m-d H:i" }}</td>
+        </tr>
+        <tr>
+            <th scope="col">제목</th>
+            <td class="left" colspan="3"><input type="text" name="consult_title" value="{{ consult.consult_title }}" size="80" class="input" style="width:80%;" /></td>
+        </tr>
+        <tr>
+            <th scope="col">내용</th>
+            <td class="left" colspan="3"><textarea name="consult_content" rows="5" cols="60" style="width:80%;">{{ consult.consult_content }}</textarea></td>
+        </tr>
+    </tbody>
+</table>
+</form>
+</div>
+
+<div class="btn_right">
+    <a href="javascript:consult_update();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+    <a href="{% url 'office_consult_input' %}"><img src="{% static 'ba_office/images/btn_write.gif' %}" alt="신규상담등록" /></a>
+    <a href="{% url 'office_consult_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+
+<div class="h_55"></div>
+
+<!-- 답변 목록 -->
+<p class="title">답변 관리</p>
+
+{% for ans in answers %}
+<div class="tb_basic" style="margin-bottom:10px;">
+<form id="editform_{{ ans.id }}" method="post" action="{% url 'office_consult_answer_edit' ans.id %}">
+{% csrf_token %}
+<table summary="답변" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="12%" /><col width="38%" /><col width="12%" /><col width="38%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">상담유형</th>
+            <td class="left">
+                <select name="consult_category" class="select">
+                    <option value="">선택</option>
+                    {% for c in cont_codes %}
+                    <option value="{{ c.subcode }}" {% if ans.consult_category == c.subcode %}selected{% endif %}>{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">상담상태</th>
+            <td class="left">
+                <select name="stat_code" class="select">
+                    {% for c in stat_codes %}
+                    <option value="{{ c.subcode }}" {% if ans.stat_code == c.subcode %}selected{% endif %}>{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">고객상태</th>
+            <td class="left">
+                <select name="cus_stat_code" class="select">
+                    <option value="">선택</option>
+                    {% for c in cust_codes %}
+                    <option value="{{ c.subcode }}" {% if ans.cus_stat_code == c.subcode %}selected{% endif %}>{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">담당코치</th>
+            <td class="left">
+                <select name="coach_code" class="select">
+                    <option value="">선택</option>
+                    {% for c in coaches %}
+                    <option value="{{ c.coach_code }}" {% if ans.coach_code == c.coach_code %}selected{% endif %}>{{ c.coach_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">답변시각</th>
+            <td class="left" colspan="3">{{ ans.con_answer_dt|date:"Y-m-d H:i" }}</td>
+        </tr>
+        <tr>
+            <th scope="col">답변내용</th>
+            <td class="left" colspan="3"><textarea name="consult_answer" rows="4" cols="60" style="width:80%;">{{ ans.consult_answer }}</textarea></td>
+        </tr>
+    </tbody>
+</table>
+</form>
+<div class="btn_right" style="margin-top:3px;">
+    <a href="javascript:answer_edit('editform_{{ ans.id }}');"><img src="{% static 'ba_office/images/btn_modify.gif' %}" alt="답변수정" /></a>
+    <a href="javascript:answer_delete('{% url 'office_consult_answer_del' ans.id %}');"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="답변삭제" /></a>
+</div>
+</div>
+{% empty %}
+<p style="padding:10px; color:#999;">등록된 답변이 없습니다.</p>
+{% endfor %}
+
+<div class="h_55"></div>
+
+<!-- 답변 추가 -->
+<p class="title">답변 추가</p>
+<div class="tb_basic">
+<form id="addform" method="post" action="{% url 'office_consult_answer_add' %}">
+{% csrf_token %}
+<input type="hidden" name="con_id" value="{{ consult.id }}" />
+<table summary="답변추가" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="12%" /><col width="38%" /><col width="12%" /><col width="38%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">상담유형</th>
+            <td class="left">
+                <select name="consult_category" class="select">
+                    <option value="">선택</option>
+                    {% for c in cont_codes %}
+                    <option value="{{ c.subcode }}">{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">상담상태</th>
+            <td class="left">
+                <select name="stat_code" class="select">
+                    {% for c in stat_codes %}
+                    <option value="{{ c.subcode }}">{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">고객상태</th>
+            <td class="left">
+                <select name="cus_stat_code" class="select">
+                    <option value="">선택</option>
+                    {% for c in cust_codes %}
+                    <option value="{{ c.subcode }}">{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">담당코치</th>
+            <td class="left">
+                <select name="coach_code" class="select">
+                    <option value="">선택</option>
+                    {% for c in coaches %}
+                    <option value="{{ c.coach_code }}">{{ c.coach_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">답변내용</th>
+            <td class="left" colspan="3"><textarea name="consult_answer" rows="4" cols="60" style="width:80%;"></textarea></td>
+        </tr>
+    </tbody>
+</table>
+</form>
+</div>
+<div class="btn_right">
+    <a href="javascript:answer_add();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="답변등록" /></a>
+</div>
+{% endblock %}

@@ -1,0 +1,158 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfconsult_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function local_input() {
+    var f = document.regform;
+    if (!f.reg_name.value.trim()) { alert('이름을 입력해주세요.'); f.reg_name.focus(); return; }
+    f.submit();
+}
+
+function uplocal_update(pk, reg_gbn, reg_name, mphone) {
+    document.getElementById('edit_area').style.display = '';
+    document.getElementById('edit_pk').value = pk;
+    document.getElementById('edit_reg_gbn').value = reg_gbn;
+    document.getElementById('edit_reg_name').value = reg_name;
+    document.getElementById('edit_mphone').value = mphone;
+    document.getElementById('editform').action = '/ba_office/lfconsult/local/modify/' + pk + '/';
+}
+
+function uplocal_update_proc() {
+    var f = document.getElementById('editform');
+    if (!f.reg_name.value.trim()) { alert('이름을 입력해주세요.'); return; }
+    f.submit();
+}
+
+function uplocal_del(pk) {
+    if (!confirm('삭제하시겠습니까?')) return;
+    var f = document.createElement('form');
+    f.method = 'POST';
+    f.action = '/ba_office/lfconsult/local/del/' + pk + '/';
+    var csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'csrfmiddlewaretoken'; inp.value = csrf;
+    f.appendChild(inp);
+    document.body.appendChild(f);
+    f.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  상담관리  &gt;  상담권역설정</div>
+<div class="h_55"></div>
+
+<p class="title">상담 권역/지역 설정</p>
+
+<!-- 등록 폼 -->
+<div class="tb_basic" style="margin-bottom:10px;">
+<form name="regform" method="post" action="{% url 'office_consult_local_write' %}">
+{% csrf_token %}
+<table summary="등록" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="12%" /><col width="88%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">구분</th>
+            <td class="left">
+                <select name="reg_gbn" class="select">
+                    <option value="A">필드</option>
+                    <option value="L" selected>지역</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">이름 *</th>
+            <td class="left"><input type="text" name="reg_name" size="30" maxlength="100" class="input" /></td>
+        </tr>
+        <tr>
+            <th scope="col">연락처</th>
+            <td class="left"><input type="text" name="mphone" size="20" maxlength="20" class="input" /></td>
+        </tr>
+    </tbody>
+</table>
+</form>
+</div>
+<div class="btn_right">
+    <a href="javascript:local_input();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+</div>
+
+<!-- 수정 폼 (숨김) -->
+<div id="edit_area" style="display:none; margin:10px 0;">
+<div class="tb_basic">
+<form id="editform" method="post" action="">
+{% csrf_token %}
+<input type="hidden" id="edit_pk" name="pk" value="" />
+<table summary="수정" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="12%" /><col width="88%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">구분</th>
+            <td class="left">
+                <select id="edit_reg_gbn" name="reg_gbn" class="select">
+                    <option value="A">필드</option>
+                    <option value="L">지역</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">이름 *</th>
+            <td class="left"><input type="text" id="edit_reg_name" name="reg_name" size="30" maxlength="100" class="input" /></td>
+        </tr>
+        <tr>
+            <th scope="col">연락처</th>
+            <td class="left"><input type="text" id="edit_mphone" name="mphone" size="20" maxlength="20" class="input" /></td>
+        </tr>
+    </tbody>
+</table>
+</form>
+</div>
+<div class="btn_right">
+    <a href="javascript:uplocal_update_proc();"><img src="{% static 'ba_office/images/btn_modify.gif' %}" alt="수정" /></a>
+</div>
+</div>
+
+<div class="h_55"></div>
+
+<!-- 목록 -->
+<p class="title">등록 목록</p>
+
+<div class="tb_basic">
+<table summary="권역목록" border="0" cellpadding="0" cellspacing="0">
+    <colgroup>
+        <col width="8%" />
+        <col width="10%" />
+        <col width="25%" />
+        <col width="20%" />
+        <col width="15%" />
+    </colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">번호</th>
+            <th scope="col">구분</th>
+            <th scope="col">이름</th>
+            <th scope="col">연락처</th>
+            <th scope="col">관리</th>
+        </tr>
+        {% for r in regions %}
+        <tr>
+            <td>{{ r.id }}</td>
+            <td>{% if r.reg_gbn == 'A' %}필드{% elif r.reg_gbn == 'L' %}지역{% else %}{{ r.reg_gbn }}{% endif %}</td>
+            <td>{{ r.reg_name }}</td>
+            <td>{{ r.mphone }}</td>
+            <td>
+                <a href="javascript:uplocal_update({{ r.id }}, '{{ r.reg_gbn }}', '{{ r.reg_name }}', '{{ r.mphone }}');"><img src="{% static 'ba_office/images/btn_edit.gif' %}" alt="수정" /></a>
+                <a href="javascript:uplocal_del({{ r.id }});"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" style="padding:20px;">등록된 권역이 없습니다.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

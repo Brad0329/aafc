@@ -1,0 +1,141 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfconsult_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fn_search() {
+    document.schform.submit();
+}
+
+function goAdjust(pk) {
+    var memo = document.getElementById('memo_' + pk).value.trim();
+    if (!memo) { alert('메모를 입력해주세요.'); return; }
+    if (!confirm('확인 처리하시겠습니까?')) return;
+
+    var f = document.createElement('form');
+    f.method = 'POST';
+    f.action = '/ba_office/lfconsult/free/confirm/' + pk + '/';
+    var csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    var inp1 = document.createElement('input');
+    inp1.type = 'hidden'; inp1.name = 'csrfmiddlewaretoken'; inp1.value = csrf;
+    f.appendChild(inp1);
+
+    var inp2 = document.createElement('input');
+    inp2.type = 'hidden'; inp2.name = 'confirm_memo'; inp2.value = memo;
+    f.appendChild(inp2);
+
+    document.body.appendChild(f);
+    f.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  상담관리  &gt;  메인상담신청(체험수업)</div>
+<div class="h_55"></div>
+
+<p class="title">메인상담신청 리스트 (총 {{ total_count }}건)</p>
+
+<form name="schform" method="get" action="{% url 'office_consult_free' %}">
+{% csrf_token %}
+<table border="0" cellpadding="3" cellspacing="0" style="margin-bottom:5px;">
+    <tr>
+        <td>확인여부
+            <select name="sch_confirm" class="select" onchange="fn_search();">
+                <option value="">전체</option>
+                <option value="N" {% if sch_confirm == 'N' %}selected{% endif %}>미완료</option>
+                <option value="Y" {% if sch_confirm == 'Y' %}selected{% endif %}>완료</option>
+            </select>
+        </td>
+        <td>지역
+            <select name="sch_local" class="select">
+                <option value="">전체</option>
+                {% for r in regions %}
+                <option value="{{ r.reg_name }}" {% if sch_local == r.reg_name %}selected{% endif %}>{{ r.reg_name }}</option>
+                {% endfor %}
+            </select>
+        </td>
+        <td>신청자명 <input type="text" name="sch_name" value="{{ sch_name }}" size="10" class="input" /></td>
+        <td>연락처(뒷4자리) <input type="text" name="sch_phone" value="{{ sch_phone }}" size="6" class="input" /></td>
+        <td>&nbsp;<a href="javascript:fn_search();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></td>
+    </tr>
+</table>
+</form>
+
+<div class="tb_basic">
+    <table summary="무료체험" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="5%" />
+            <col width="8%" />
+            <col width="8%" />
+            <col width="12%" />
+            <col />
+            <col width="12%" />
+            <col width="6%" />
+            <col width="8%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">순번</th>
+                <th scope="col">회원명</th>
+                <th scope="col">선택지역</th>
+                <th scope="col">연락처</th>
+                <th scope="col">메모</th>
+                <th scope="col">등록일자</th>
+                <th scope="col">확인여부</th>
+                <th scope="col">관리</th>
+            </tr>
+            {% for f in frees %}
+            <tr{% if f.confirm_yn == 'Y' %} style="background:#e8f5e9;"{% endif %}>
+                <td>{{ forloop.counter|page_index:frees.start_index }}</td>
+                <td>{{ f.jname }}</td>
+                <td>{{ f.jlocal }}</td>
+                <td>{{ f.jphone1 }}-{{ f.jphone2 }}-{{ f.jphone3 }}</td>
+                <td class="left">
+                    {% if f.confirm_yn == 'Y' %}
+                    {{ f.confirm_memo }} <span style="color:#999;">({{ f.confirm_name }})</span>
+                    {% else %}
+                    <textarea id="memo_{{ f.id }}" rows="2" cols="40" style="width:95%;">{{ f.confirm_memo }}</textarea>
+                    {% endif %}
+                </td>
+                <td>{{ f.j_date|date:"Y-m-d H:i" }}</td>
+                <td>{% if f.confirm_yn == 'Y' %}<font color="blue">완료</font>{% else %}<font color="red">미완료</font>{% endif %}</td>
+                <td>
+                    {% if f.confirm_yn != 'Y' %}
+                    <a href="javascript:goAdjust({{ f.id }});"><img src="{% static 'ba_office/images/btn_check.gif' %}" alt="반영" /></a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" style="padding:20px;">신청 내역이 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if frees.has_other_pages %}
+<div class="paging">
+    {% if frees.has_previous %}
+    <a href="?page=1&sch_confirm={{ sch_confirm }}&sch_local={{ sch_local }}&sch_name={{ sch_name }}&sch_phone={{ sch_phone }}">&laquo;</a>
+    <a href="?page={{ frees.previous_page_number }}&sch_confirm={{ sch_confirm }}&sch_local={{ sch_local }}&sch_name={{ sch_name }}&sch_phone={{ sch_phone }}">&lt;</a>
+    {% endif %}
+    {% for num in frees.paginator.page_range %}
+        {% if frees.number == num %}
+        <strong>{{ num }}</strong>
+        {% elif num > frees.number|add:"-5" and num < frees.number|add:"5" %}
+        <a href="?page={{ num }}&sch_confirm={{ sch_confirm }}&sch_local={{ sch_local }}&sch_name={{ sch_name }}&sch_phone={{ sch_phone }}">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if frees.has_next %}
+    <a href="?page={{ frees.next_page_number }}&sch_confirm={{ sch_confirm }}&sch_local={{ sch_local }}&sch_name={{ sch_name }}&sch_phone={{ sch_phone }}">&gt;</a>
+    <a href="?page={{ frees.paginator.num_pages }}&sch_confirm={{ sch_confirm }}&sch_local={{ sch_local }}&sch_name={{ sch_name }}&sch_phone={{ sch_phone }}">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

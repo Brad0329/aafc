@@ -1,0 +1,267 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfconsult_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function sel_stadium(local_code) {
+    $.getJSON("{% url 'office_ajax_consult_stadium' %}", {local_code: local_code}, function(data) {
+        var sel = document.getElementById('sta_code');
+        sel.options.length = 1;
+        for (var i = 0; i < data.length; i++) {
+            sel.options[sel.options.length] = new Option(data[i].sta_name, data[i].sta_code);
+        }
+    });
+}
+
+function srch_snd() {
+    var skey = document.getElementById('skey').value;
+    var sword = document.getElementById('sword').value.trim();
+    if (!sword) { alert('검색어를 입력해주세요.'); return; }
+
+    $.getJSON("{% url 'office_ajax_member_search' %}", {skey: skey, sword: sword}, function(data) {
+        var html = '';
+        if (data.length == 0) {
+            html = '<p style="padding:10px; color:#999;">검색 결과가 없습니다.</p>';
+        } else {
+            var h = 50 + (data.length * 30);
+            if (h > 300) h = 300;
+            html = '<div class="scroll" style="height:' + h + 'px; overflow:auto;">';
+            html += '<table class="tb_scroll" border="0" cellpadding="3" cellspacing="0" style="width:100%;">';
+            html += '<tr><th>선택</th><th>이름</th><th>아이디</th><th>연락처</th><th>메일</th><th>주소</th><th>등록자녀</th><th>가입일</th></tr>';
+            for (var i = 0; i < data.length; i++) {
+                var m = data[i];
+                html += '<tr>';
+                html += '<td><input type="radio" name="sel_member" value="' + m.member_id + '" onclick="sel_member_chk(\'' + m.member_id + '\', \'' + m.member_name + '\', ' + m.child_cnt + ');" /></td>';
+                html += '<td>' + m.member_name + '</td>';
+                html += '<td><font color="blue">' + m.member_id + '</font></td>';
+                html += '<td>' + m.phone + '</td>';
+                html += '<td>' + m.email + '</td>';
+                html += '<td>' + m.address + '</td>';
+                html += '<td><a href="javascript:;" onclick="sel_member_chk(\'' + m.member_id + '\', \'' + m.member_name + '\', ' + m.child_cnt + ');">' + m.child_cnt + '명</a></td>';
+                html += '<td>' + m.insert_dt + '</td>';
+                html += '</tr>';
+            }
+            html += '</table></div>';
+        }
+        document.getElementById('member_result').innerHTML = html;
+    });
+}
+
+function sel_member_chk(member_id, member_name, child_cnt) {
+    document.getElementById('member_id').value = member_id;
+    document.getElementById('member_name').value = member_name;
+    document.getElementById('consult_gbn').value = 'old';
+
+    if (child_cnt > 0) {
+        $.getJSON("{% url 'office_ajax_child_list' %}", {member_id: member_id}, function(data) {
+            var html = '<b>자녀선택:</b> ';
+            for (var i = 0; i < data.length; i++) {
+                html += '<label><input type="radio" name="sel_child" value="' + data[i].child_id + '|' + data[i].name + '" onclick="sel_child(\'' + data[i].child_id + '\', \'' + data[i].name + '\');" /> ' + data[i].name + '(' + data[i].child_id + ')</label> &nbsp;';
+            }
+            document.getElementById('child_area').innerHTML = html;
+            document.getElementById('child_area').style.display = '';
+        });
+    } else {
+        document.getElementById('child_area').style.display = 'none';
+    }
+}
+
+function sel_child(child_id, child_name) {
+    document.getElementById('child_id').value = child_id;
+    document.getElementById('child_name').value = child_name;
+}
+
+function stadium_info() {
+    alert('구장정보 팝업은 운영 환경에서 활성화됩니다.');
+}
+
+function consult_input() {
+    var f = document.inputform;
+    if (!f.consult_name.value.trim()) { alert('이름(신청자)을 입력해주세요.'); f.consult_name.focus(); return; }
+    if (!f.consult_tel.value.trim()) { alert('연락처를 입력해주세요.'); f.consult_tel.focus(); return; }
+    if (!f.consult_title.value.trim()) { alert('제목을 입력해주세요.'); f.consult_title.focus(); return; }
+    f.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  상담관리  &gt;  상담정보</div>
+<div class="h_55"></div>
+
+<p class="title">상담정보 - 등록</p>
+
+<!-- 회원 검색 -->
+<div class="tb_basic" style="margin-bottom:10px;">
+<table summary="회원검색" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="12%" /><col width="88%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">회원검색</th>
+            <td class="left">
+                <select id="skey" class="select">
+                    <option value="member_id">회원아이디</option>
+                    <option value="member_name">회원이름</option>
+                </select>
+                <input type="text" id="sword" size="60" class="input" style="width:60%;" onkeypress="if(event.keyCode==13){srch_snd();return false;}" />
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<div style="text-align:right; margin-bottom:5px;">
+    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+</div>
+
+<div id="member_result" style="margin-bottom:10px;"></div>
+<div id="child_area" style="display:none; padding:5px 10px; margin-bottom:10px; background:#f9f9f9; border:1px solid #ddd;"></div>
+
+<!-- 상담 정보 입력 -->
+<div class="tb_basic">
+<form name="inputform" method="post" action="{% url 'office_consult_input' %}">
+{% csrf_token %}
+<input type="hidden" id="member_id" name="member_id" value="" />
+<input type="hidden" id="member_name" name="member_name" value="" />
+<input type="hidden" id="child_id" name="child_id" value="" />
+<input type="hidden" id="child_name" name="child_name" value="" />
+<table summary="상담등록" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="12%" /><col width="38%" /><col width="12%" /><col width="38%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">구분</th>
+            <td class="left" colspan="3">
+                <select id="consult_gbn" name="consult_gbn" class="select">
+                    <option value="">==선택==</option>
+                    <option value="guest">신규회원</option>
+                    <option value="old">기존회원</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">필드</th>
+            <td class="left">
+                <select name="local_code" class="select" style="width:200px;" onchange="sel_stadium(this.value);">
+                    <option value="">필드선택</option>
+                    {% for c in locd_codes %}
+                    <option value="{{ c.subcode }}">{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">구장</th>
+            <td class="left">
+                <select name="sta_code" id="sta_code" class="select" style="width:200px;">
+                    <option value="">==선택==</option>
+                </select>
+                <a href="javascript:stadium_info();">구장정보</a>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">이름(신청자)</th>
+            <td class="left"><input type="text" name="consult_name" size="10" class="input" /></td>
+            <th scope="col">연락처</th>
+            <td class="left"><input type="text" name="consult_tel" size="20" class="input" /></td>
+        </tr>
+        <tr>
+            <th scope="col">이름(수강생)</th>
+            <td class="left"><input type="text" name="stu_name" size="10" class="input" /></td>
+            <th scope="col">성별/나이</th>
+            <td class="left">
+                <select name="stu_sex" class="select">
+                    <option value="M">남자</option>
+                    <option value="F">여자</option>
+                </select>
+                / <input type="text" name="stu_age" size="3" class="input" />
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">신청경로</th>
+            <td class="left">
+                <select name="path_code" class="select">
+                    {% for c in path_codes %}
+                    <option value="{{ c.subcode }}" {% if c.subcode == 44 %}selected{% endif %}>{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">ON/OFF</th>
+            <td class="left">
+                <select name="line_code" class="select">
+                    {% for c in line_codes %}
+                    <option value="{{ c.subcode }}" {% if c.subcode == 33 %}selected{% endif %}>{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">제목</th>
+            <td class="left" colspan="3"><input type="text" name="consult_title" size="80" class="input" style="width:90%;" /></td>
+        </tr>
+        <tr>
+            <th scope="col">내용</th>
+            <td class="left" colspan="3"><textarea name="consult_content" rows="5" style="width:90%;"></textarea></td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="h_55"></div>
+<p class="title">답변 동시등록</p>
+
+<table summary="답변등록" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="12%" /><col width="38%" /><col width="12%" /><col width="38%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">내용분류</th>
+            <td class="left">
+                <select name="answer_category" class="select">
+                    <option value="">선택</option>
+                    {% for c in cont_codes %}
+                    <option value="{{ c.subcode }}">{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">접수상태</th>
+            <td class="left">
+                <select name="answer_stat" class="select">
+                    {% for c in stat_codes %}
+                    <option value="{{ c.subcode }}">{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">고객상태</th>
+            <td class="left">
+                <select name="answer_cust" class="select">
+                    <option value="">선택</option>
+                    {% for c in cust_codes %}
+                    <option value="{{ c.subcode }}">{{ c.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">담당코치</th>
+            <td class="left">
+                <select name="answer_coach" class="select">
+                    <option value="">선택</option>
+                    {% for c in coaches %}
+                    <option value="{{ c.coach_code }}">{{ c.coach_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">답변내용</th>
+            <td class="left" colspan="3"><textarea name="consult_answer" rows="4" style="width:90%;"></textarea></td>
+        </tr>
+    </tbody>
+</table>
+</form>
+</div>
+
+<div class="btn_right">
+    <a href="javascript:consult_input();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+    <a href="{% url 'office_consult_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+{% endblock %}

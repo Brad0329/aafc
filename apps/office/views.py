@@ -10,9 +10,10 @@ from .decorators import office_login_required, office_permission_required
 from apps.notifications.models import OfficeNotification, SMSLog
 from apps.common.models import CodeGroup, CodeValue
 from apps.points.models import PointConfig, PointHistory
-from apps.courses.models import Coach
+from apps.courses.models import Coach, Stadium
 from apps.accounts.models import Member, MemberChild, OutMember
 from apps.enrollment.models import Enrollment, EnrollmentCourse
+from apps.consult.models import Consult, ConsultAnswer, ConsultFree, ConsultRegion
 
 
 def login_view(request):
@@ -1341,3 +1342,493 @@ def secession_list(request):
         'sch_member_id': sch_id,
         'total_count': paginator.count,
     })
+
+
+# ============================================================
+# 상담관리 > 상담 리스트
+# ============================================================
+
+def _get_consult_codes():
+    """상담 관련 공통코드 조회 헬퍼"""
+    return {
+        'locd_codes': CodeValue.objects.filter(group_id='LOCD', del_chk='N').order_by('code_order'),
+        'path_codes': CodeValue.objects.filter(group_id='PATH', del_chk='N').order_by('code_order'),
+        'line_codes': CodeValue.objects.filter(group_id='LINE', del_chk='N').order_by('code_order'),
+        'stat_codes': CodeValue.objects.filter(group_id='STAT', del_chk='N').order_by('code_order'),
+        'cont_codes': CodeValue.objects.filter(group_id='CONT', del_chk='N').order_by('code_order'),
+        'cust_codes': CodeValue.objects.filter(group_id='CUST', del_chk='N').order_by('code_order'),
+    }
+
+
+@office_login_required
+@office_permission_required('C')
+def consult_list(request):
+    """상담 리스트"""
+    page = request.GET.get('page', '1')
+    sch_local = request.GET.get('sch_local', '')
+    sch_stadium = request.GET.get('sch_stadium', '')
+    sch_cont = request.GET.get('sch_cont', '')
+    sch_manage = request.GET.get('sch_manage', '')
+    sch_stat = request.GET.get('sch_stat', '')
+    sch_cust = request.GET.get('sch_cust', '')
+    sch_line = request.GET.get('sch_line', '')
+    sch_path = request.GET.get('sch_path', '')
+    sch_coach = request.GET.get('sch_coach', '')
+    sch_member_gbn = request.GET.get('sch_member_gbn', '')
+    sch_txt = request.GET.get('sch_txt', '')
+    sch_val = request.GET.get('sch_val', '').strip()
+
+    qs = Consult.objects.filter(del_chk='N').order_by('-id')
+
+    if sch_local:
+        qs = qs.filter(local_code=sch_local)
+    if sch_stadium:
+        qs = qs.filter(sta_code=sch_stadium)
+    if sch_cont:
+        qs = qs.filter(answers__consult_category=int(sch_cont))
+    if sch_manage:
+        qs = qs.filter(manage_id=sch_manage)
+    if sch_stat:
+        qs = qs.filter(answers__stat_code=int(sch_stat))
+    if sch_cust:
+        qs = qs.filter(answers__cus_stat_code=int(sch_cust))
+    if sch_line:
+        qs = qs.filter(line_code=int(sch_line))
+    if sch_path:
+        qs = qs.filter(path_code=int(sch_path))
+    if sch_coach:
+        qs = qs.filter(answers__coach_code=int(sch_coach))
+    if sch_member_gbn:
+        if sch_member_gbn == '1':
+            qs = qs.filter(consult_gbn='old')
+        elif sch_member_gbn == '2':
+            qs = qs.filter(Q(consult_gbn='guest') | Q(consult_gbn=''))
+    if sch_txt and sch_val:
+        if sch_txt == 'member_id':
+            qs = qs.filter(member_id__icontains=sch_val)
+        elif sch_txt == 'member_name':
+            qs = qs.filter(member_name__icontains=sch_val)
+        elif sch_txt == 'child_id':
+            qs = qs.filter(child_id__icontains=sch_val)
+        elif sch_txt == 'child_name':
+            qs = qs.filter(child_name__icontains=sch_val)
+        elif sch_txt == 'consult_name':
+            qs = qs.filter(consult_name__icontains=sch_val)
+        elif sch_txt == 'stu_name':
+            qs = qs.filter(stu_name__icontains=sch_val)
+        elif sch_txt == 'consult_title':
+            qs = qs.filter(consult_title__icontains=sch_val)
+        elif sch_txt == 'consult_content':
+            qs = qs.filter(consult_content__icontains=sch_val)
+        elif sch_txt == 'consult_answer':
+            qs = qs.filter(answers__consult_answer__icontains=sch_val)
+        elif sch_txt == 'consult_tel':
+            qs = qs.filter(consult_tel__icontains=sch_val)
+
+    qs = qs.distinct()
+
+    # 최신 답변 정보를 위해 prefetch
+    from django.db.models import Prefetch
+    qs = qs.prefetch_related(
+        Prefetch('answers', queryset=ConsultAnswer.objects.order_by('-id'))
+    )
+
+    paginator = Paginator(qs, 20)
+    consults = paginator.get_page(page)
+
+    # 코드명 매핑용 딕셔너리
+    codes = _get_consult_codes()
+    stat_dict = {c.subcode: c.code_name for c in codes['stat_codes']}
+    cont_dict = {c.subcode: c.code_name for c in codes['cont_codes']}
+    cust_dict = {c.subcode: c.code_name for c in codes['cust_codes']}
+    line_dict = {c.subcode: c.code_name for c in codes['line_codes']}
+
+    # 구장명, 코치명 매핑
+    sta_dict = {s.sta_code: s.sta_name for s in Stadium.objects.filter(use_gbn='Y')}
+    coach_dict = {c.coach_code: c.coach_name for c in Coach.objects.filter(use_gbn='Y')}
+    manage_dict = {u.office_id: u.office_name for u in OfficeUser.objects.filter(del_chk='N')}
+
+    # 각 상담에 표시용 데이터 추가
+    for con in consults:
+        latest = con.answers.first()
+        con.latest_answer = latest
+        con.stat_name = stat_dict.get(latest.stat_code, '') if latest else ''
+        con.cont_name = cont_dict.get(latest.consult_category, '') if latest else ''
+        con.cust_name = cust_dict.get(latest.cus_stat_code, '') if latest else ''
+        con.coach_name_display = coach_dict.get(latest.coach_code, '') if latest else ''
+        con.line_name = line_dict.get(con.line_code, '')
+        con.sta_name = sta_dict.get(int(con.sta_code), '') if con.sta_code and con.sta_code.isdigit() else ''
+        con.manage_name = manage_dict.get(con.manage_id, '')
+        con.member_gbn_name = '기존회원' if con.consult_gbn == 'old' else ('신규회원' if con.consult_gbn == 'guest' else '미가입자')
+
+    # 구장 목록 (선택된 권역에 따라)
+    stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
+    if sch_local:
+        stadiums = stadiums.filter(local_code=int(sch_local))
+    coaches = Coach.objects.filter(use_gbn='Y').order_by('coach_name')
+    managers = OfficeUser.objects.filter(del_chk='N').order_by('office_name')
+
+    ctx = {
+        'consults': consults,
+        'total_count': paginator.count,
+        'stadiums': stadiums,
+        'coaches': coaches,
+        'managers': managers,
+        'sch_local': sch_local, 'sch_stadium': sch_stadium,
+        'sch_cont': sch_cont, 'sch_manage': sch_manage,
+        'sch_stat': sch_stat, 'sch_cust': sch_cust,
+        'sch_line': sch_line, 'sch_path': sch_path,
+        'sch_coach': sch_coach, 'sch_member_gbn': sch_member_gbn,
+        'sch_txt': sch_txt, 'sch_val': sch_val,
+    }
+    ctx.update(codes)
+    return render(request, 'ba_office/lfconsult/consult_list.html', ctx)
+
+
+# ============================================================
+# 상담관리 > 상담 상세/수정
+# ============================================================
+
+@office_login_required
+@office_permission_required('C')
+def consult_detail(request, pk):
+    """상담 상세 보기/수정"""
+    consult = get_object_or_404(Consult, pk=pk, del_chk='N')
+
+    if request.method == 'POST':
+        consult.consult_gbn = request.POST.get('consult_gbn', '')
+        consult.member_id = request.POST.get('member_id', '')
+        consult.child_id = request.POST.get('child_id', '')
+        consult.local_code = request.POST.get('local_code', '')
+        consult.sta_code = request.POST.get('sta_code', '')
+        consult.consult_name = request.POST.get('consult_name', '')
+        consult.consult_tel = request.POST.get('consult_tel', '')
+        consult.stu_name = request.POST.get('stu_name', '')
+        consult.stu_sex = request.POST.get('stu_sex', '')
+        try:
+            consult.stu_age = int(request.POST.get('stu_age', '0'))
+        except ValueError:
+            consult.stu_age = 0
+        consult.path_code = int(request.POST.get('path_code', '44') or '44')
+        consult.line_code = int(request.POST.get('line_code', '33') or '33')
+        consult.consult_title = request.POST.get('consult_title', '')
+        consult.consult_content = request.POST.get('consult_content', '')
+        consult.save()
+        return redirect('office_consult_detail', pk=pk)
+
+    answers = consult.answers.all().order_by('id')
+    codes = _get_consult_codes()
+    stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
+    if consult.local_code:
+        try:
+            stadiums = stadiums.filter(local_code=int(consult.local_code))
+        except ValueError:
+            pass
+    coaches = Coach.objects.filter(use_gbn='Y').order_by('coach_name')
+
+    # 코치명 매핑
+    coach_dict = {c.coach_code: c.coach_name for c in coaches}
+    stat_dict = {c.subcode: c.code_name for c in codes['stat_codes']}
+    cont_dict = {c.subcode: c.code_name for c in codes['cont_codes']}
+    cust_dict = {c.subcode: c.code_name for c in codes['cust_codes']}
+
+    for ans in answers:
+        ans.coach_name_display = coach_dict.get(ans.coach_code, '')
+        ans.stat_name = stat_dict.get(ans.stat_code, '')
+        ans.cont_name = cont_dict.get(ans.consult_category, '')
+        ans.cust_name = cust_dict.get(ans.cus_stat_code, '')
+
+    ctx = {
+        'consult': consult,
+        'answers': answers,
+        'stadiums': stadiums,
+        'coaches': coaches,
+    }
+    ctx.update(codes)
+    return render(request, 'ba_office/lfconsult/consult_detail.html', ctx)
+
+
+# ============================================================
+# 상담관리 > 답변 추가/수정/삭제
+# ============================================================
+
+@office_login_required
+@office_permission_required('C')
+def consult_answer_add(request):
+    """답변 추가"""
+    if request.method == 'POST':
+        con_id = request.POST.get('con_id', '')
+        consult = get_object_or_404(Consult, pk=con_id)
+        office_user = request.session.get('office_user', {})
+
+        ConsultAnswer.objects.create(
+            consult=consult,
+            consult_category=int(request.POST.get('consult_category', '0') or '0'),
+            stat_code=int(request.POST.get('stat_code', '76') or '76'),
+            cus_stat_code=int(request.POST.get('cus_stat_code', '0') or '0') or None,
+            coach_code=int(request.POST.get('coach_code', '0') or '0') or None,
+            consult_answer=request.POST.get('consult_answer', ''),
+            receive_code=office_user.get('coach_code', None) or None,
+            con_answer_dt=timezone.now(),
+        )
+        return redirect('office_consult_detail', pk=con_id)
+    return redirect('office_consult_list')
+
+
+@office_login_required
+@office_permission_required('C')
+def consult_answer_edit(request, pk):
+    """답변 수정"""
+    answer = get_object_or_404(ConsultAnswer, pk=pk)
+    if request.method == 'POST':
+        answer.consult_category = int(request.POST.get('consult_category', '0') or '0')
+        answer.stat_code = int(request.POST.get('stat_code', '76') or '76')
+        answer.cus_stat_code = int(request.POST.get('cus_stat_code', '0') or '0') or None
+        answer.coach_code = int(request.POST.get('coach_code', '0') or '0') or None
+        answer.consult_answer = request.POST.get('consult_answer', '')
+        answer.con_answer_dt = timezone.now()
+        answer.save()
+    return redirect('office_consult_detail', pk=answer.consult_id)
+
+
+@office_login_required
+@office_permission_required('C')
+def consult_answer_del(request, pk):
+    """답변 삭제"""
+    answer = get_object_or_404(ConsultAnswer, pk=pk)
+    con_id = answer.consult_id
+    if request.method == 'POST':
+        answer.delete()
+    return redirect('office_consult_detail', pk=con_id)
+
+
+# ============================================================
+# 상담관리 > 상담 등록
+# ============================================================
+
+@office_login_required
+@office_permission_required('C')
+def consult_input(request):
+    """상담 등록"""
+    office_user = request.session.get('office_user', {})
+
+    if request.method == 'POST':
+        consult = Consult.objects.create(
+            consult_gbn=request.POST.get('consult_gbn', 'guest'),
+            member_id=request.POST.get('member_id', ''),
+            member_name=request.POST.get('member_name', ''),
+            child_id=request.POST.get('child_id', ''),
+            child_name=request.POST.get('child_name', ''),
+            local_code=request.POST.get('local_code', ''),
+            sta_code=request.POST.get('sta_code', ''),
+            consult_name=request.POST.get('consult_name', ''),
+            consult_tel=request.POST.get('consult_tel', ''),
+            stu_name=request.POST.get('stu_name', ''),
+            stu_sex=request.POST.get('stu_sex', ''),
+            stu_age=int(request.POST.get('stu_age', '0') or '0'),
+            path_code=int(request.POST.get('path_code', '44') or '44'),
+            line_code=int(request.POST.get('line_code', '33') or '33'),
+            consult_title=request.POST.get('consult_title', ''),
+            consult_content=request.POST.get('consult_content', ''),
+            manage_id=office_user.get('office_id', ''),
+            consult_dt=timezone.now(),
+        )
+
+        # 답변 동시 등록
+        answer_content = request.POST.get('consult_answer', '').strip()
+        if answer_content:
+            ConsultAnswer.objects.create(
+                consult=consult,
+                consult_category=int(request.POST.get('answer_category', '0') or '0'),
+                stat_code=int(request.POST.get('answer_stat', '76') or '76'),
+                cus_stat_code=int(request.POST.get('answer_cust', '0') or '0') or None,
+                coach_code=int(request.POST.get('answer_coach', '0') or '0') or None,
+                consult_answer=answer_content,
+                receive_code=office_user.get('coach_code', None) or None,
+                con_answer_dt=timezone.now(),
+            )
+
+        return redirect('office_consult_list')
+
+    codes = _get_consult_codes()
+    coaches = Coach.objects.filter(use_gbn='Y').order_by('coach_name')
+    ctx = {'coaches': coaches}
+    ctx.update(codes)
+    return render(request, 'ba_office/lfconsult/consult_input.html', ctx)
+
+
+# ============================================================
+# 상담관리 > AJAX 엔드포인트
+# ============================================================
+
+@office_login_required
+def ajax_consult_stadium(request):
+    """AJAX: 권역별 구장 목록"""
+    local_code = request.GET.get('local_code', '')
+    stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
+    if local_code:
+        stadiums = stadiums.filter(local_code=int(local_code))
+    data = [{'sta_code': s.sta_code, 'sta_name': s.sta_name} for s in stadiums]
+    return JsonResponse(data, safe=False)
+
+
+@office_login_required
+def ajax_consult_coach(request):
+    """AJAX: 권역별 코치 목록"""
+    local_code = request.GET.get('local_code', '')
+    coaches = Coach.objects.filter(use_gbn='Y').order_by('coach_name')
+    if local_code:
+        # 권역코드의 code_desc로 코치 dpart 매칭
+        code_val = CodeValue.objects.filter(group_id='LOCD', subcode=int(local_code), del_chk='N').first()
+        if code_val and code_val.code_desc:
+            coaches = coaches.filter(dpart=code_val.code_desc)
+    data = [{'coach_code': c.coach_code, 'coach_name': f'{c.coach_name}({c.dpart})'} for c in coaches]
+    return JsonResponse(data, safe=False)
+
+
+@office_login_required
+def ajax_consult_member_search(request):
+    """AJAX: 회원 검색"""
+    skey = request.GET.get('skey', 'member_id')
+    sword = request.GET.get('sword', '').strip()
+    if not sword:
+        return JsonResponse([], safe=False)
+
+    qs = Member.objects.filter(status='N', is_superuser=False)
+    if skey == 'member_id':
+        qs = qs.filter(username__icontains=sword)
+    else:
+        qs = qs.filter(name__icontains=sword)
+
+    members = []
+    for m in qs[:20]:
+        child_cnt = MemberChild.objects.filter(parent=m, status='N').count()
+        members.append({
+            'member_id': m.username,
+            'member_name': m.name,
+            'phone': m.phone,
+            'email': m.email,
+            'address': m.address1,
+            'child_cnt': child_cnt,
+            'insert_dt': m.insert_dt.strftime('%Y-%m-%d') if m.insert_dt else '',
+        })
+    return JsonResponse(members, safe=False)
+
+
+@office_login_required
+def ajax_consult_child_list(request):
+    """AJAX: 회원 자녀 목록"""
+    member_id = request.GET.get('member_id', '')
+    if not member_id:
+        return JsonResponse([], safe=False)
+
+    children = MemberChild.objects.filter(
+        parent__username=member_id, status='N'
+    ).values('child_id', 'name')
+    return JsonResponse(list(children), safe=False)
+
+
+# ============================================================
+# 상담관리 > 상담권역설정
+# ============================================================
+
+@office_login_required
+@office_permission_required('C')
+def consult_local(request):
+    """상담 권역설정"""
+    regions = ConsultRegion.objects.filter(del_chk='N').order_by('id')
+    return render(request, 'ba_office/lfconsult/consult_local.html', {
+        'regions': regions,
+    })
+
+
+@office_login_required
+@office_permission_required('C')
+def consult_local_write(request):
+    """권역 등록"""
+    if request.method == 'POST':
+        ConsultRegion.objects.create(
+            reg_gbn=request.POST.get('reg_gbn', 'L'),
+            reg_name=request.POST.get('reg_name', ''),
+            mphone=request.POST.get('mphone', ''),
+        )
+    return redirect('office_consult_local')
+
+
+@office_login_required
+@office_permission_required('C')
+def consult_local_modify(request, pk):
+    """권역 수정"""
+    region = get_object_or_404(ConsultRegion, pk=pk)
+    if request.method == 'POST':
+        region.reg_gbn = request.POST.get('reg_gbn', 'L')
+        region.reg_name = request.POST.get('reg_name', '')
+        region.mphone = request.POST.get('mphone', '')
+        region.save()
+    return redirect('office_consult_local')
+
+
+@office_login_required
+@office_permission_required('C')
+def consult_local_del(request, pk):
+    """권역 삭제"""
+    if request.method == 'POST':
+        region = get_object_or_404(ConsultRegion, pk=pk)
+        region.del_chk = 'Y'
+        region.save()
+    return redirect('office_consult_local')
+
+
+# ============================================================
+# 상담관리 > 메인상담신청 (무료체험)
+# ============================================================
+
+@office_login_required
+@office_permission_required('C')
+def consult_free_list(request):
+    """무료체험 신청 목록"""
+    page = request.GET.get('page', '1')
+    sch_confirm = request.GET.get('sch_confirm', '')
+    sch_local = request.GET.get('sch_local', '')
+    sch_name = request.GET.get('sch_name', '').strip()
+    sch_phone = request.GET.get('sch_phone', '').strip()
+
+    qs = ConsultFree.objects.filter(del_chk='N').order_by('-id')
+    if sch_confirm:
+        qs = qs.filter(confirm_yn=sch_confirm)
+    if sch_local:
+        qs = qs.filter(jlocal__icontains=sch_local)
+    if sch_name:
+        qs = qs.filter(jname__icontains=sch_name)
+    if sch_phone:
+        qs = qs.filter(Q(jphone2__icontains=sch_phone) | Q(jphone3__icontains=sch_phone))
+
+    paginator = Paginator(qs, 20)
+    frees = paginator.get_page(page)
+    regions = ConsultRegion.objects.filter(del_chk='N', reg_gbn='L').order_by('reg_name')
+
+    return render(request, 'ba_office/lfconsult/consult_free.html', {
+        'frees': frees,
+        'regions': regions,
+        'total_count': paginator.count,
+        'sch_confirm': sch_confirm,
+        'sch_local': sch_local,
+        'sch_name': sch_name,
+        'sch_phone': sch_phone,
+    })
+
+
+@office_login_required
+@office_permission_required('C')
+def consult_free_confirm(request, pk):
+    """무료체험 확인 처리"""
+    if request.method == 'POST':
+        free = get_object_or_404(ConsultFree, pk=pk)
+        office_user = request.session.get('office_user', {})
+        free.confirm_memo = request.POST.get('confirm_memo', '')
+        free.confirm_yn = 'Y'
+        free.confirm_id = office_user.get('office_id', '')
+        free.confirm_name = office_user.get('office_name', '')
+        free.confirm_date = timezone.now()
+        free.save()
+    return redirect('office_consult_free')
