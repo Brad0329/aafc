@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}결제 실패 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top shop"><img src="{% static 'images/sub/sub_top_m_shop.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                {% for menu in shop_menu %}
+                <li {% if menu.id == current_menu %}class="present"{% endif %}><a href="{% url menu.url_name %}">{{ menu.title }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">결제 실패<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;쇼핑몰&nbsp;&nbsp;>&nbsp;&nbsp;<b>결제 실패</b></span></h2>
+
+            <div style="text-align:center;padding:80px 0;">
+                <p style="font-size:24px;font-weight:bold;color:#dd3b26;margin-bottom:20px;">결제에 실패하였습니다.</p>
+                <p style="font-size:14px;color:#666;">{{ res_msg }}</p>
+                <div style="margin-top:40px;">
+                    <a href="{% url 'shop:cart' %}" style="display:inline-block;padding:12px 30px;background:#002b69;color:white;font-weight:600;border-radius:5px;">장바구니로 이동</a>
+                    <a href="{% url 'shop:goods_list' %}" style="display:inline-block;padding:12px 30px;background:#5c5c5c;color:white;font-weight:600;border-radius:5px;margin-left:10px;">쇼핑 계속하기</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

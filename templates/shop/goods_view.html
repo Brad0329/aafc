@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ product.gd_name }} - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top shop"><img src="{% static 'images/sub/sub_top_m_shop.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                {% for menu in shop_menu %}
+                <li {% if menu.id == current_menu %}class="present"{% endif %}><a href="{% url menu.url_name %}">{{ menu.title }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">상품리스트<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;쇼핑몰&nbsp;&nbsp;>&nbsp;&nbsp;<b>{{ product.gd_name }}</b></span></h2>
+
+            <div class="good_view_sel">
+                <form name="Frm" method="post" action="{% url 'shop:cart_add' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="gd_code" value="{{ product.gd_code }}"/>
+                    <input type="hidden" name="option_kind" value="{{ product.gd_option_kind }}"/>
+                    <input type="hidden" name="option_count" id="option_count" value="0"/>
+
+                    <div class="good_view_sel_l">
+                        {% if product.gd_img_b %}
+                        <img src="/fcdata/shop_goods/{{ product.gd_img_b }}" alt="{{ product.gd_name }}"/>
+                        {% else %}
+                        <img src="{% static 'images/sub/junior_coach_noimage.jpg' %}" alt=""/>
+                        {% endif %}
+                    </div>
+                    <div class="good_view_sel_r">
+                        <h4>{{ product.gd_name }}</h4>
+                        <table summary="">
+                            <tbody>
+                                {% if product.category %}
+                                <tr>
+                                    <td><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>카테고리</td>
+                                    <td>{{ product.category.cate_name }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>판매가격</td>
+                                    <td>
+                                        {% if product.gd_market_price and product.gd_market_price != product.gd_price %}
+                                        <strike>{{ product.gd_market_price|intcomma }}원</strike> →
+                                        {% endif %}
+                                        <font color="red"><b>{{ product.gd_price|intcomma }}</b></font> 원
+                                    </td>
+                                </tr>
+                                {% if product.gd_delivery_kind == '101' %}
+                                <tr>
+                                    <td><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>배송비</td>
+                                    <td>무료배송</td>
+                                </tr>
+                                {% elif product.gd_delivery_kind == '102' %}
+                                <tr>
+                                    <td><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>배송비</td>
+                                    <td>{{ product.gd_delivery_fee|intcomma }}원
+                                        {% if product.gd_delivery_limit > 0 %}({{ product.gd_delivery_limit|intcomma }}원 이상 무료){% endif %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+
+                                <!-- 옵션 -->
+                                {% for opt in options %}
+                                <tr>
+                                    <td><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>{{ opt.opt_name }}</td>
+                                    <td>
+                                        <select name="goodsOption_{{ forloop.counter0 }}" class="goodsOption" data-opt-idx="{{ forloop.counter0 }}" data-opt-name="{{ opt.opt_name }}" style="width:200px;height:35px;">
+                                            <option value="">선택해주세요</option>
+                                            {% for item in opt.items.all %}
+                                            <option value="{{ item.id }}|{{ item.opt_item }}|{{ item.opt_price }}">
+                                                {{ item.opt_item }}
+                                                {% if item.opt_price > 0 %}(+{{ item.opt_price|intcomma }}원){% endif %}
+                                                {% if item.opt_price < 0 %}({{ item.opt_price|intcomma }}원){% endif %}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+
+                                <tr>
+                                    <td><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>수량</td>
+                                    <td><input type="text" name="ea" value="1" size="2" class="input_join" style="width:50px;height:35px;text-align:center;border:1px solid #ccc;"/> 개</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="goods_btn_group" style="margin-top:30px;">
+                            {% if product.gd_is_soldout != 'Y' %}
+                            <a href="javascript:submitOrder('cart');"><span class="btn_2" style="display:inline-block;cursor:pointer;">장바구니</span></a>
+                            <a href="javascript:submitOrder('buy');"><span class="btn_1" style="display:inline-block;cursor:pointer;">바로구매</span></a>
+                            {% else %}
+                            <span class="btn_3" style="display:inline-block;">품절</span>
+                            {% endif %}
+                            <a href="{% url 'shop:goods_list' %}"><span class="btn_3" style="display:inline-block;cursor:pointer;">목록보기</span></a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 상품상세정보 -->
+            {% if product.gd_desc %}
+            <div class="good_view_detail">
+                <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_01.png' %}" alt="">상품상세정보</h3>
+                <div style="border-top:1px solid #cecece;padding:30px 0;">
+                    {{ product.gd_desc|safe }}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 반품/교환정보 -->
+            {% if product.gd_change_policy %}
+            <div class="good_view_info">
+                <h3>반품/교환/배송정보</h3>
+                <p>{{ product.gd_change_policy|linebreaksbr }}</p>
+            </div>
+            {% endif %}
+
+            <!-- 배송안내 -->
+            {% if product.gd_delivery_policy %}
+            <div class="good_view_info" style="margin-top:10px;">
+                <h3>배송안내</h3>
+                <p>{{ product.gd_delivery_policy|linebreaksbr }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+<script>
+function submitOrder(mode) {
+    var form = document.Frm;
+    var ea = parseInt(form.ea.value);
+    if (isNaN(ea) || ea < 1) { alert('수량을 입력해주세요.'); return; }
+
+    // 옵션 검증 및 hidden 필드 생성
+    var optionSelects = document.querySelectorAll('.goodsOption');
+    var optCount = 0;
+
+    // 기존 옵션 hidden 필드 제거
+    var oldHiddens = form.querySelectorAll('.opt_hidden');
+    oldHiddens.forEach(function(el) { el.remove(); });
+
+    for (var i = 0; i < optionSelects.length; i++) {
+        var sel = optionSelects[i];
+        if (!sel.value) {
+            alert(sel.getAttribute('data-opt-name') + '을(를) 선택해주세요.');
+            return;
+        }
+        var parts = sel.value.split('|');
+        var itemUid = parts[0];
+        var itemText = parts[1];
+        var itemPrice = parts[2] || '0';
+
+        _addHidden(form, 'opt_title_' + optCount, sel.getAttribute('data-opt-name'));
+        _addHidden(form, 'opt_item_uid_' + optCount, itemUid);
+        _addHidden(form, 'opt_item_' + optCount, itemText);
+        _addHidden(form, 'opt_price_' + optCount, itemPrice);
+        optCount++;
+    }
+
+    document.getElementById('option_count').value = optCount;
+
+    if (mode === 'buy') {
+        _addHidden(form, 'buy_now', 'Y');
+    }
+    form.submit();
+}
+
+function _addHidden(form, name, value) {
+    var inp = document.createElement('input');
+    inp.type = 'hidden';
+    inp.name = name;
+    inp.value = value;
+    inp.className = 'opt_hidden';
+    form.appendChild(inp);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}장바구니 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top shop"><img src="{% static 'images/sub/sub_top_m_shop.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                {% for menu in shop_menu %}
+                <li {% if menu.id == current_menu %}class="present"{% endif %}><a href="{% url menu.url_name %}">{{ menu.title }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">장바구니<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;쇼핑몰&nbsp;&nbsp;>&nbsp;&nbsp;<b>장바구니</b></span></h2>
+
+            <div class="basket">
+                <form name="Frm" method="post">
+                    {% csrf_token %}
+                    <ul class="bakset_tit">
+                        <li>상품명</li>
+                        <li>수량</li>
+                        <li>가격</li>
+                        <li>&nbsp;</li>
+                        <li>선택</li>
+                    </ul>
+
+                    {% if not items_data %}
+                    <div style="text-align:center;padding:60px 0;border-bottom:1px solid #cecece;">장바구니가 비어있습니다.</div>
+                    {% else %}
+                        {% for data in items_data %}
+                        <div class="bakset_cont">
+                            <div class="bakset_cont_01">
+                                <input type="checkbox" name="cart_ids" value="{{ data.cart.id }}" checked/>
+                            </div>
+                            <div class="bakset_cont_02">
+                                <div class="img">
+                                    {% if data.cart.product.gd_img_s %}
+                                    <img src="/fcdata/shop_goods/{{ data.cart.product.gd_img_s }}" style="width:100%;height:100%;position:absolute;top:0;left:0;"/>
+                                    {% endif %}
+                                </div>
+                                <div class="txt">
+                                    <h3 class="name"><a href="{% url 'shop:goods_view' gd_code=data.cart.product.gd_code %}">{{ data.cart.product.gd_name }}</a></h3>
+                                    {% if data.cart.product.category %}
+                                    <p class="cate">{{ data.cart.product.category.cate_name }}</p>
+                                    {% endif %}
+                                    {% for opt in data.cart.options.all %}
+                                    <p class="size">{{ opt.option_title }}: {{ opt.option_item }}
+                                        {% if opt.option_price > 0 %}(+{{ opt.option_price|intcomma }}원){% endif %}
+                                    </p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="bakset_cont_03">
+                                <span class="mobile">수량 : </span>
+                                {{ data.cart.ea }} 개
+                            </div>
+                            <div class="bakset_cont_04">
+                                <span class="mobile">가격 : </span>
+                                <span class="red">{{ data.item_total|intcomma }}원</span>
+                            </div>
+                            <div class="bakset_cont_05">
+                                <span class="mobile">&nbsp;</span>
+                                <span class="yellow">&nbsp;</span>
+                            </div>
+                            <div class="bakset_cont_06">
+                                <p><a href="javascript:delItem({{ data.cart.id }});"><img src="{% static 'images/sub/g_b_delete.jpg' %}" alt="삭제"/></a></p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </form>
+            </div>
+
+            {% if items_data %}
+            <div style="text-align:right;padding:20px 0;font-size:14px;">
+                상품금액 <b>{{ total_price|intcomma }}</b>원
+                + 배송비 <b>{{ total_delivery|intcomma }}</b>원
+                = 합계 <b style="color:red;font-size:18px;">{{ grand_total|intcomma }}</b>원
+            </div>
+
+            <div class="basket_btn" style="padding:20px 0;">
+                <a href="javascript:orderAll();"><span class="red" style="display:inline-block;cursor:pointer;">전체 주문</span></a>
+                <a href="javascript:orderSelect();"><span class="yellow" style="display:inline-block;cursor:pointer;">선택 주문</span></a>
+                <a href="{% url 'shop:goods_list' %}"><span class="gray" style="display:inline-block;cursor:pointer;">쇼핑 계속하기</span></a>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+<script>
+function delItem(cartId) {
+    if (!confirm('삭제하시겠습니까?')) return;
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "shop:cart_delete" %}';
+    var csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = 'csrfmiddlewaretoken';
+    csrf.value = '{{ csrf_token }}';
+    form.appendChild(csrf);
+    var inp = document.createElement('input');
+    inp.type = 'hidden';
+    inp.name = 'cart_ids';
+    inp.value = cartId;
+    form.appendChild(inp);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function orderAll() {
+    var cbs = document.querySelectorAll('input[name="cart_ids"]');
+    cbs.forEach(function(cb) { cb.checked = true; });
+    submitOrder();
+}
+
+function orderSelect() {
+    submitOrder();
+}
+
+function submitOrder() {
+    var cbs = document.querySelectorAll('input[name="cart_ids"]:checked');
+    if (cbs.length === 0) { alert('주문할 상품을 선택해주세요.'); return; }
+    var form = document.Frm;
+    form.action = '{% url "shop:order_form" %}';
+    form.submit();
+}
+</script>
+{% endblock %}

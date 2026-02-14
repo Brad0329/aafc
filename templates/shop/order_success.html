@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}주문 완료 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top shop"><img src="{% static 'images/sub/sub_top_m_shop.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                {% for menu in shop_menu %}
+                <li {% if menu.id == current_menu %}class="present"{% endif %}><a href="{% url menu.url_name %}">{{ menu.title }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">주문 완료<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;쇼핑몰&nbsp;&nbsp;>&nbsp;&nbsp;<b>주문 완료</b></span></h2>
+
+            <div style="text-align:center;padding:80px 0;">
+                <p style="font-size:24px;font-weight:bold;color:#002b69;margin-bottom:20px;">주문이 완료되었습니다.</p>
+                <p style="font-size:14px;color:#666;line-height:24px;">
+                    주문번호: <b>{{ order.order_no }}</b><br/>
+                    결제금액: <b style="color:red;">{{ order.settle_price|intcomma }}원</b>
+                </p>
+                <div style="margin-top:40px;">
+                    <a href="{% url 'shop:order_list' %}" style="display:inline-block;padding:12px 30px;background:#002b69;color:white;font-weight:600;border-radius:5px;">주문조회</a>
+                    <a href="{% url 'shop:goods_list' %}" style="display:inline-block;padding:12px 30px;background:#5c5c5c;color:white;font-weight:600;border-radius:5px;margin-left:10px;">쇼핑 계속하기</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

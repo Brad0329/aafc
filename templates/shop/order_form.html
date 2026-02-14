@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}상품구매 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top shop"><img src="{% static 'images/sub/sub_top_m_shop.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                {% for menu in shop_menu %}
+                <li {% if menu.id == current_menu %}class="present"{% endif %}><a href="{% url menu.url_name %}">{{ menu.title }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">상품구매<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;쇼핑몰&nbsp;&nbsp;>&nbsp;&nbsp;<b>상품구매</b></span></h2>
+
+            <div class="goods_buy_top">
+                <p><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>고객님께서 <span>주문하신 상품내역을 변경하시거나 삭제</span>하실 수가 없습니다.</p>
+                <p><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주문 취소 및 변경은 <span>마이페이지 &gt; 주문/배송조회</span>에서 가능합니다.</p>
+            </div>
+
+            <!-- 주문 상품 목록 -->
+            <div class="goods_buy_info">
+                <ul class="g_b_i_tit">
+                    <li>상품명</li>
+                    <li>가격</li>
+                    <li>수량</li>
+                    <li>배송비</li>
+                    <li>합계</li>
+                </ul>
+
+                {% for data in items_data %}
+                <div class="g_b_i_cont">
+                    <div class="g_b_i_cont_01">
+                        <div class="img">
+                            {% if data.cart.product.gd_img_s %}
+                            <img src="/fcdata/shop_goods/{{ data.cart.product.gd_img_s }}" style="width:100%;height:100%;position:absolute;top:0;left:0;"/>
+                            {% endif %}
+                        </div>
+                        <div class="txt">
+                            <h3 class="name">{{ data.cart.product.gd_name }}</h3>
+                            {% if data.cart.product.category %}
+                            <p class="cate">{{ data.cart.product.category.cate_name }}</p>
+                            {% endif %}
+                            {% for opt in data.cart.options.all %}
+                            <p class="size">{{ opt.option_title }}: {{ opt.option_item }}
+                                {% if opt.option_price > 0 %}(+{{ opt.option_price|intcomma }}원){% endif %}
+                            </p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="g_b_i_cont_02">
+                        <span class="mobile">가격 : </span>
+                        {{ data.cart.product.gd_price|intcomma }}원
+                    </div>
+                    <div class="g_b_i_cont_03">
+                        <span class="mobile">수량 : </span>
+                        {{ data.cart.ea }} 개
+                    </div>
+                    <div class="g_b_i_cont_04">
+                        <span class="mobile">배송비 : </span>
+                        {% if data.delivery_fee > 0 %}{{ data.delivery_fee|intcomma }}원{% else %}무료{% endif %}
+                    </div>
+                    <div class="g_b_i_cont_05">
+                        <span class="mobile">합계 : </span>
+                        <span class="red">{{ data.item_total|intcomma }}원</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- 결제금액 확인 -->
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_07.png' %}" alt=""/>결제금액 확인</h3>
+            <div class="join_info">
+                <table summary="">
+                    <tbody>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>상품금액</th>
+                            <td>{{ total_price|intcomma }} 원</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>배송비</th>
+                            <td>{{ total_delivery|intcomma }} 원</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>결제금액</th>
+                            <td><b><font color="red">{{ settle_price|intcomma }} 원</font></b></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 주문자 확인 -->
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_07.png' %}" alt=""/>주문자 확인<span style="font-size:12px;font-weight:normal;color:#888;margin-left:10px;">※ 주문자의 정보를 확인해주세요.</span></h3>
+            <div class="join_info">
+                <table summary="">
+                    <tbody>
+                        {% if children %}
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>자녀선택</th>
+                            <td>
+                                {% for child in children %}
+                                <label><input type="radio" name="child_id" value="{{ child.child_id }}"/> {{ child.name }}</label>&nbsp;&nbsp;
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주문자</th>
+                            <td><input type="text" name="ord_name" id="ord_name" value="{{ user.name }}" maxlength="30" class="w_normal"/></td>
+                        </tr>
+                        <tr class="email">
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>이메일</th>
+                            <td><input type="text" name="ord_email" id="ord_email" value="{{ user.email }}" maxlength="50" class="w_normal"/></td>
+                        </tr>
+                        <tr class="contact">
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>연락처</th>
+                            <td><input type="text" name="ord_mobile" id="ord_mobile" value="{{ user.phone }}" maxlength="20" class="w_normal"/></td>
+                        </tr>
+                        <tr class="none">
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주소</th>
+                            <td><input type="text" name="ord_post" id="ord_post" value="{{ user.zipcode }}" readonly class="w_normal"/><a href="javascript:ordZipcode();"><img src="{% static 'images/sub/address_btn.png' %}" alt="우편번호 찾기"/></a></td>
+                        </tr>
+                        <tr class="none">
+                            <th>&nbsp;</th>
+                            <td><input type="text" name="ord_addr" id="ord_addr" value="{{ user.address1 }}" readonly class="w_max"/></td>
+                        </tr>
+                        <tr>
+                            <th>&nbsp;</th>
+                            <td><input type="text" name="ord_addr_detail" id="ord_addr_detail" value="{{ user.address2 }}" maxlength="30" class="w_max"/></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 배송정보 -->
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_01.png' %}" alt=""/>배송정보 확인</h3>
+            <div class="join_info">
+                <table summary="">
+                    <tbody>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주문자 동일</th>
+                            <td><input type="checkbox" id="isSameOrdInfo" onclick="copyInfo(this);"/></td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>수령인</th>
+                            <td><input type="text" name="rcv_name" id="rcv_name" value="" maxlength="30" class="w_normal"/></td>
+                        </tr>
+                        <tr class="contact">
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>연락처</th>
+                            <td><input type="text" name="rcv_mobile" id="rcv_mobile" value="" maxlength="20" class="w_normal"/></td>
+                        </tr>
+                        <tr class="none">
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주소</th>
+                            <td><input type="text" name="rcv_post" id="rcv_post" value="" readonly class="w_normal"/><a href="javascript:rcvZipcode();"><img src="{% static 'images/sub/address_btn.png' %}" alt="우편번호 찾기"/></a></td>
+                        </tr>
+                        <tr class="none">
+                            <th>&nbsp;</th>
+                            <td><input type="text" name="rcv_addr" id="rcv_addr" value="" readonly class="w_max"/></td>
+                        </tr>
+                        <tr>
+                            <th>&nbsp;</th>
+                            <td><input type="text" name="rcv_addr_detail" id="rcv_addr_detail" value="" maxlength="30" class="w_max"/></td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>배송메모</th>
+                            <td><input type="text" name="order_memo" id="order_memo" value="" class="w_max"/></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 결제정보 -->
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_09.png' %}" alt=""/>결제정보</h3>
+            <div class="join_info">
+                <table summary="">
+                    <tbody>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>결제방법</th>
+                            <td>
+                                <label><input type="radio" name="payway" value="CARD" checked/> 신용카드 </label>
+                                <label><input type="radio" name="payway" value="BANK"/> 실시간 계좌이체 </label>
+                                <label><input type="radio" name="payway" value="ZEROPAY"/> 제로페이 </label>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 결제 버튼 -->
+            <div class="join_btn" style="text-align:center;padding:30px 0;">
+                <a href="javascript:orderChk();"><img src="{% static 'images/sub/payment_btn.png' %}" alt="결제하기"/></a>
+                <a href="{% url 'shop:goods_list' %}"><img src="{% static 'images/sub/cancel_bts.png' %}" alt="취소"/></a>
+            </div>
+
+        </div>
+    </div>
+
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<script>
+function ordZipcode() {
+    new daum.Postcode({
+        oncomplete: function(data) {
+            document.getElementById('ord_post').value = data.zonecode;
+            document.getElementById('ord_addr').value = data.roadAddress;
+            document.getElementById('ord_addr_detail').focus();
+        }
+    }).open();
+}
+
+function rcvZipcode() {
+    new daum.Postcode({
+        oncomplete: function(data) {
+            document.getElementById('rcv_post').value = data.zonecode;
+            document.getElementById('rcv_addr').value = data.roadAddress;
+            document.getElementById('rcv_addr_detail').focus();
+        }
+    }).open();
+}
+
+function copyInfo(cb) {
+    if (cb.checked) {
+        document.getElementById('rcv_name').value = document.getElementById('ord_name').value;
+        document.getElementById('rcv_mobile').value = document.getElementById('ord_mobile').value;
+        document.getElementById('rcv_post').value = document.getElementById('ord_post').value;
+        document.getElementById('rcv_addr').value = document.getElementById('ord_addr').value;
+        document.getElementById('rcv_addr_detail').value = document.getElementById('ord_addr_detail').value;
+    } else {
+        document.getElementById('rcv_name').value = '';
+        document.getElementById('rcv_mobile').value = '';
+        document.getElementById('rcv_post').value = '';
+        document.getElementById('rcv_addr').value = '';
+        document.getElementById('rcv_addr_detail').value = '';
+    }
+}
+
+function orderChk() {
+    var ordName = document.getElementById('ord_name').value.trim();
+    var rcvName = document.getElementById('rcv_name').value.trim();
+    var rcvMobile = document.getElementById('rcv_mobile').value.trim();
+    var rcvAddr = document.getElementById('rcv_addr').value.trim();
+
+    if (!ordName) { alert('주문자 이름을 입력해주세요.'); return; }
+    if (!rcvName) { alert('수령인 이름을 입력해주세요.'); return; }
+    if (!rcvMobile) { alert('수령인 연락처를 입력해주세요.'); return; }
+    if (!rcvAddr) { alert('수령인 주소를 입력해주세요.'); return; }
+
+    if (!confirm('결제하시겠습니까?')) return;
+
+    // 주문 생성 AJAX 호출
+    var formData = new FormData();
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    formData.append('payway', document.querySelector('input[name="payway"]:checked').value);
+    var childRadio = document.querySelector('input[name="child_id"]:checked');
+    formData.append('child_id', childRadio ? childRadio.value : '');
+    formData.append('ord_name', ordName);
+    formData.append('ord_email', document.getElementById('ord_email').value);
+    formData.append('ord_mobile', document.getElementById('ord_mobile').value);
+    formData.append('ord_post', document.getElementById('ord_post').value);
+    formData.append('ord_addr', document.getElementById('ord_addr').value);
+    formData.append('ord_addr_detail', document.getElementById('ord_addr_detail').value);
+    formData.append('rcv_name', rcvName);
+    formData.append('rcv_mobile', rcvMobile);
+    formData.append('rcv_post', document.getElementById('rcv_post').value);
+    formData.append('rcv_addr', rcvAddr);
+    formData.append('rcv_addr_detail', document.getElementById('rcv_addr_detail').value);
+    formData.append('order_memo', document.getElementById('order_memo').value);
+
+    fetch('{% url "shop:order_create" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        if (data.success) {
+            // 결제 페이지로 이동 (KCP 연동)
+            // 현재는 테스트를 위해 결제 성공 처리
+            alert('주문이 완료되었습니다.\n주문번호: ' + data.order_no + '\n결제금액: ' + data.settle_price.toLocaleString() + '원\n\n* KCP 결제 연동은 운영 환경에서 활성화됩니다.');
+            location.href = '{% url "shop:order_list" %}';
+        } else {
+            alert(data.error || '주문 처리 중 오류가 발생하였습니다.');
+        }
+    })
+    .catch(function(err) {
+        alert('오류가 발생하였습니다: ' + err);
+    });
+}
+</script>
+{% endblock %}

@@ -11,6 +11,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     # project apps
     'apps.accounts',
     'apps.enrollment',
