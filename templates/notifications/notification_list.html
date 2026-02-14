@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}알림장 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li><a href="{% url 'accounts:mypage' %}">마이페이지</a></li>
+                <li><a href="{% url 'enrollment:payment_history' %}">결제내역</a></li>
+                <li><a href="{% url 'points:point_list' %}">마이포인트</a></li>
+                <li class="present"><a href="{% url 'notifications:notification_list' %}">알림장</a></li>
+                <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">알림장<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;마이아카데미&nbsp;&nbsp;>&nbsp;&nbsp;<b>알림장</b></span></h2>
+
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_09.png' %}" alt=""/>알림 목록</h3>
+            <table class="join_info" summary="">
+                <colgroup><col width="15%"/><col width="55%"/><col width="15%"/><col width="15%"/></colgroup>
+                <thead>
+                    <tr>
+                        <th>등록일</th>
+                        <th>제목</th>
+                        <th>작성자</th>
+                        <th>상태</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for noti in notifications %}
+                    <tr style="cursor:pointer;" onclick="toggleContent({{ noti.id }})">
+                        <td>{{ noti.insert_dt|date:"Y-m-d" }}</td>
+                        <td style="text-align:left;">{{ noti.alim_title }}</td>
+                        <td>{{ noti.insert_name }}</td>
+                        <td>
+                            {% if noti.alim_file %}
+                                <img src="{% static 'images/sub/file_ico.gif' %}" alt="첨부" style="width:12px;"/>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr id="content_{{ noti.id }}" style="display:none;">
+                        <td colspan="4" style="text-align:left;padding:15px;background:#f9f9f9;line-height:1.8;">
+                            {{ noti.alim_content|linebreaksbr }}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="4" style="text-align:center;padding:20px;">등록 알림글이 없습니다.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleContent(id) {
+    var row = document.getElementById('content_' + id);
+    if (row.style.display === 'none') {
+        row.style.display = '';
+    } else {
+        row.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

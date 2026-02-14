@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}마이포인트 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li><a href="{% url 'accounts:mypage' %}">마이페이지</a></li>
+                <li><a href="{% url 'enrollment:payment_history' %}">결제내역</a></li>
+                <li class="present"><a href="{% url 'points:point_list' %}">마이포인트</a></li>
+                <li><a href="{% url 'notifications:notification_list' %}">알림장</a></li>
+                <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">마이포인트<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;마이아카데미&nbsp;&nbsp;>&nbsp;&nbsp;<b>마이포인트</b></span></h2>
+
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_09.png' %}" alt=""/>포인트 현황</h3>
+            <div class="join_info">
+                <table summary="">
+                    <tbody>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>보유 포인트</th>
+                            <td><b style="color:#2b68af;font-size:18px;">{{ point_balance|intcomma }}</b> P</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>총 적립</th>
+                            <td>{{ total_save|intcomma }} P</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>총 사용</th>
+                            <td>{{ total_use|intcomma }} P</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="member_tit" style="margin-top:30px;"><img src="{% static 'images/sub/join_ico_09.png' %}" alt=""/>포인트 내역</h3>
+            <table class="join_info" summary="">
+                <colgroup><col width="15%"/><col width="12%"/><col width="15%"/><col width="58%"/></colgroup>
+                <thead>
+                    <tr>
+                        <th>일자</th>
+                        <th>구분</th>
+                        <th>포인트</th>
+                        <th>내용</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for item in page_obj %}
+                    <tr>
+                        <td>{{ item.point_dt }}</td>
+                        <td>
+                            {% if item.app_gbn == 'S' %}
+                                <span style="color:#2b68af;">적립</span>
+                            {% else %}
+                                <span style="color:#e57373;">사용</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.app_gbn == 'S' %}
+                                <span style="color:#2b68af;">+{{ item.app_point|intcomma }}</span>
+                            {% else %}
+                                <span style="color:#e57373;">-{{ item.app_point|intcomma }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.point_desc }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="4" style="text-align:center;padding:20px;">포인트 내역이 없습니다.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- 페이지네이션 -->
+            {% if page_obj.has_other_pages %}
+            <div style="text-align:center;margin:20px 0;">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}" style="margin:0 4px;">&laquo; 이전</a>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <b style="margin:0 4px;color:#2b68af;">{{ num }}</b>
+                    {% elif num > page_obj.number|add:"-5" and num < page_obj.number|add:"5" %}
+                        <a href="?page={{ num }}" style="margin:0 4px;">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" style="margin:0 4px;">다음 &raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

@@ -14,6 +14,8 @@ urlpatterns = [
     path('board/', include('apps.board.urls')),
     path('consult/', include('apps.consult.urls')),
     path('shop/', include('apps.shop.urls')),
+    path('points/', include('apps.points.urls')),
+    path('notifications/', include('apps.notifications.urls')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
 ]
 

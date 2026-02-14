@@ -475,6 +475,28 @@ def shop_kcp_return(request):
             insert_dt=timezone.localtime(),
         )
 
+        # 포인트 적립/사용 처리
+        from apps.points.utils import calculate_shop_point, add_point_history
+        save_points = calculate_shop_point(order.settle_price)
+        if save_points > 0:
+            add_point_history(
+                member_id=request.user.username,
+                member_name=request.user.name,
+                app_gbn='S',
+                app_point=save_points,
+                point_desc='쇼핑몰구매',
+                order_no=order.order_no,
+            )
+        if order.use_cmoney and order.use_cmoney > 0:
+            add_point_history(
+                member_id=request.user.username,
+                member_name=request.user.name,
+                app_gbn='U',
+                app_point=order.use_cmoney,
+                point_desc='쇼핑몰사용',
+                order_no=order.order_no,
+            )
+
         # 세션 정리
         if 'shop_order_id' in request.session:
             del request.session['shop_order_id']
