@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ board.b_title }} - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top {{ config.sub_top }}"><img src="{% static 'images/sub/sub_top_m_community.jpg' %}" alt=""/></div>
+        {% if is_classic %}
+        <div class="sub_menu">
+            <ul>
+                <li><a href="{% url 'courses:stadium_list' %}">구장안내</a></li>
+                <li><a href="{% url 'courses:coach_list' %}">코칭스태프</a></li>
+                <li><a href="{% url 'courses:program' %}">교육 프로그램</a></li>
+                <li class="present"><a href="{% url 'board:view' board_id='U8' b_seq=199 %}">클래식반</a></li>
+            </ul>
+        </div>
+        {% else %}
+        <div class="sub_menu">
+            <ul>
+                {% for menu in community_menu %}
+                <li {% if menu.id == board_id %}class="present"{% endif %}><a href="{% url 'board:list' board_id=menu.id %}">{{ menu.title }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        <div class="sub_contents">
+            {% if is_classic %}
+            <h2 class="sub_tit">{{ config.title }}<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;아카데미&nbsp;&nbsp;>&nbsp;&nbsp;<b>{{ config.title }}</b></span></h2>
+
+            <ul class="goods_tab">
+                <li {% if board_id == 'U8' %}class="current"{% endif %}><a href="{% url 'board:view' board_id='U8' b_seq=199 %}">U-8</a></li>
+                <li {% if board_id == 'U10' %}class="current"{% endif %}><a href="{% url 'board:view' board_id='U10' b_seq=200 %}">U-10</a></li>
+                <li {% if board_id == 'U12' %}class="current"{% endif %}><a href="{% url 'board:view' board_id='U12' b_seq=201 %}">U-12</a></li>
+            </ul>
+            {% else %}
+            <h2 class="sub_tit">{{ config.title }}<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;<b>{{ config.title }}</b></span></h2>
+            {% endif %}
+
+            <table summary="" class="notice_view">
+                <colgroup>
+                    <col width="110px"/>
+                    <col width="*"/>
+                </colgroup>
+                {% if not is_classic %}
+                <thead>
+                    <tr>
+                        <th colspan="2">{{ board.b_title }}</th>
+                    </tr>
+                </thead>
+                {% endif %}
+                <tbody>
+                    {% if not is_classic %}
+                    <tr class="tit">
+                        <td>{{ board.insert_name }}</td>
+                        <td>{{ board.insert_dt }}&nbsp;&nbsp;/&nbsp;&nbsp;조회수 : {{ board.b_hit }}</td>
+                    </tr>
+                    {% endif %}
+
+                    <tr class="txt">
+                        <td colspan="2">
+                            {% for img in images %}
+                            <div><img src="/fcdata/board/{{ img.bs_img }}"></div><br><br>
+                            {% endfor %}
+                            {{ board.b_content|safe }}
+                        </td>
+                    </tr>
+
+                    {% if attachments %}
+                    <tr class="add_files">
+                        <td>첨부파일</td>
+                        <td>
+                            {% for att in attachments %}
+                            <a href="/fcdata/board/{{ att.bs_file }}"><font color='blue'>{{ att.bs_file }}</font></a><br>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+
+            <div class="notice_btn">
+                {% if user.is_authenticated and user.username == board.insert_id %}
+                <a href="{% url 'board:edit' board_id=board_id b_seq=board.b_seq %}" class="left"><img src="{% static 'images/sub/edit_bts.png' %}" alt=""/></a>
+                <a href="javascript:if(confirm('게시물을 삭제하시겠습니까?'))location.href='{% url 'board:delete' board_id=board_id b_seq=board.b_seq %}';" class="left"><img src="{% static 'images/sub/delete_bts.png' %}" alt=""/></a>
+                {% endif %}
+                {% if not is_classic %}
+                <a href="{% url 'board:list' board_id=board_id %}"><img src="{% static 'images/sub/list_bts.png' %}" alt=""/></a>
+                {% endif %}
+            </div>
+            <br>
+
+            {% if not is_classic %}
+            <table summary="" class="notice_view">
+                <colgroup>
+                    <col width="120px"/>
+                    <col width="*"/>
+                </colgroup>
+                <tfoot>
+                    <tr>
+                        <td><b>이전글</b><img src="{% static 'images/sub/notice_ico.png' %}" alt=""/></td>
+                        <td>{% if prev_post %}<a href="{% url 'board:view' board_id=board_id b_seq=prev_post.b_seq %}">{{ prev_post.b_title }}</a>{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td><b>다음글</b><img src="{% static 'images/sub/notice_ico.png' %}" alt=""/></td>
+                        <td>{% if next_post %}<a href="{% url 'board:view' board_id=board_id b_seq=next_post.b_seq %}">{{ next_post.b_title }}</a>{% endif %}</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div class="reply_wrap">
+                <h3>댓글</h3>
+                <div class="reply_write">
+                    <form name="comment_form" method="post" action="{% url 'board:comment_add' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="b_seq" value="{{ board.b_seq }}">
+                        <input type="hidden" name="board_id" value="{{ board_id }}">
+                        <textarea name="comment_content" id="comment_content"></textarea>
+                        {% if user.is_authenticated %}
+                        <a href="javascript:if($('#comment_content').val()==''){alert('댓글을 입력하여 주세요');return;}if(confirm('댓글등록하시겠습니까?')){document.comment_form.submit();}"><span class="reply_add">등록</span></a>
+                        {% else %}
+                        <a href="javascript:alert('로그인정보가 없습니다.');location.href='{% url 'accounts:login' %}';"><span class="reply_add">등록</span></a>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+
+            <div class="reply_list">
+                {% for c in comments %}
+                <div>
+                    <h4><span class="name">{{ c.insert_name }} ({{ c.insert_id }})</span>|<span class="date">{{ c.insert_dt|date:"Y-m-d H:i" }}</span>
+                        {% if user.is_authenticated and user.username == c.insert_id %}
+                        <a href="javascript:if(confirm('삭제하시겠습니까?'))location.href='{% url 'board:comment_delete' bc_seq=c.id %}';"><img src="{% static 'images/sub/notice_del.jpg' %}" alt=""/></a>
+                        {% endif %}
+                    </h4>
+                    <p>{{ c.comment|linebreaksbr }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

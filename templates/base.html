@@ -67,18 +67,18 @@
                             <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
                         </ul>
                     </li>
-                    <li class="gnb_li"><a href="#">커뮤니티</a>
+                    <li class="gnb_li"><a href="{% url 'board:list' board_id='Y' %}">커뮤니티</a>
                         <ul class="gnb_menu">
-                            <li><a href="#">공지사항</a></li>
-                            <li><a href="#">학부모다이어리</a></li>
-                            <li><a href="#">포토갤러리</a></li>
-                            <li><a href="#">공부하는 AAFC</a></li>
+                            <li><a href="{% url 'board:list' board_id='Y' %}">공지사항</a></li>
+                            <li><a href="{% url 'board:list' board_id='PR' %}">학부모다이어리</a></li>
+                            <li><a href="{% url 'board:list' board_id='P' %}">포토갤러리</a></li>
+                            <li><a href="{% url 'board:list' board_id='ST' %}">공부하는 AAFC</a></li>
                         </ul>
                     </li>
-                    <li class="gnb_li"><a href="#">상담신청</a>
+                    <li class="gnb_li"><a href="{% url 'consult:consult' %}">상담신청</a>
                         <ul class="gnb_menu">
-                            <li><a href="#">상담신청</a></li>
-                            <li><a href="#">무료수업체험 신청</a></li>
+                            <li><a href="{% url 'consult:consult' %}">상담신청</a></li>
+                            <li><a href="{% url 'consult:free' %}">무료수업체험 신청</a></li>
                         </ul>
                     </li>
                     <li class="gnb_li"><a href="#">쇼핑몰</a>
@@ -141,18 +141,18 @@
                     </ul>
                 </li>
                 <li><a href="{% url 'enrollment:apply_step1' %}">입단신청</a></li>
-                <li><a href="#">커뮤니티</a>
+                <li><a href="{% url 'board:list' board_id='Y' %}">커뮤니티</a>
                     <ul>
-                        <li><a href="#">공지사항</a></li>
-                        <li><a href="#">학부모다이어리</a></li>
-                        <li><a href="#">포토갤러리</a></li>
-                        <li><a href="#">공부하는 AAFC</a></li>
+                        <li><a href="{% url 'board:list' board_id='Y' %}">공지사항</a></li>
+                        <li><a href="{% url 'board:list' board_id='PR' %}">학부모다이어리</a></li>
+                        <li><a href="{% url 'board:list' board_id='P' %}">포토갤러리</a></li>
+                        <li><a href="{% url 'board:list' board_id='ST' %}">공부하는 AAFC</a></li>
                     </ul>
                 </li>
-                <li><a href="#">상담신청</a>
+                <li><a href="{% url 'consult:consult' %}">상담신청</a>
                     <ul>
-                        <li><a href="#">상담신청</a></li>
-                        <li><a href="#">무료수업체험 신청</a></li>
+                        <li><a href="{% url 'consult:consult' %}">상담신청</a></li>
+                        <li><a href="{% url 'consult:free' %}">무료수업체험 신청</a></li>
                     </ul>
                 </li>
                 <li><a href="#">쇼핑몰</a>
@@ -179,7 +179,7 @@
     <div class="sub_quick_menu">
         <div>QUICK<br/>MENU</div>
         <ul>
-            <li><a href="#"><img src="{% static 'images/sub/sub_quick_img_01.png' %}" alt=""/></a><p>상담신청</p></li>
+            <li><a href="{% url 'consult:consult' %}"><img src="{% static 'images/sub/sub_quick_img_01.png' %}" alt=""/></a><p>상담신청</p></li>
             <li><a href="{% url 'enrollment:apply_step1' %}"><img src="{% static 'images/sub/sub_quick_img_02.png' %}" alt=""/></a><p>입단신청</p></li>
             <li><a href="{% url 'courses:stadium_list' %}"><img src="{% static 'images/sub/sub_quick_img_03.png' %}" alt=""/></a><p>구장안내</p></li>
             <li><a href="#"><img src="{% static 'images/sub/sub_quick_img_04.png' %}" alt=""/></a><p>쇼핑몰</p></li>

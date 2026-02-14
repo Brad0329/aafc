@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}무료수업체험 신청 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top consult"><img src="{% static 'images/sub/sub_top_m_consult.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li><a href="{% url 'consult:consult' %}">상담신청</a></li>
+                <li class="present"><a href="{% url 'consult:free' %}">무료수업체험 신청</a></li>
+            </ul>
+        </div>
+
+        <div class="sub_contents">
+            <h2 class="sub_tit">무료수업체험 신청<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;<b>무료수업체험 신청</b></span></h2>
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_06.png' %}" alt=""/>개인정보 수집/이용 동의 [필수]</h3>
+
+            <form name="consult_form" method="post" action="{% url 'consult:free' %}">
+                {% csrf_token %}
+                <input type="hidden" name="consult_gbn" value="B1">
+
+            <div class="join_info">
+                <table summary="">
+                    <tbody>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>목적</th>
+                            <td>무료수업체험 신청을 위한 신청자 식별 정보</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>항목</th>
+                            <td>지역,신청자명,연락처</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>보유기간</th>
+                            <td>상담 신청자의 요청이 있을때까지 보관</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>개인정보 수집</th>
+                            <td><label><input type="checkbox" name="qchk_box" id="qchk_box" value="Y"/> 동의</label></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="info_txt">※ 원활한 상담 진행을 위해서 필요한 최소한의 개인정보이므로 동의를 해주셔야 상담 접수가 가능합니다.</p>
+            </div>
+
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_06.png' %}" alt=""/>상담 입력</h3>
+            <div class="join_info">
+                <table summary="">
+                    <tbody>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>신청자명</th>
+                            <td><input type="text" name="jname" id="jname" maxlength="30" class="w_normal"/></td>
+                        </tr>
+                        <tr class="contact">
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>연락처</th>
+                            <td>
+                                <select name="jphone1" id="jphone1">
+                                    <option value="010">010</option>
+                                    <option value="011">011</option>
+                                    <option value="016">016</option>
+                                    <option value="017">017</option>
+                                    <option value="018">018</option>
+                                    <option value="019">019</option>
+                                </select><span>-</span><input type="text" name="jphone2" id="jphone2" maxlength="4"/><span>-</span><input type="text" name="jphone3" id="jphone3" maxlength="4"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>지역선택</th>
+                            <td>
+                                <select name="jlocal" id="jlocal" class="w_normal">
+                                    {% for region in regions %}
+                                    <option value="{{ region.reg_name }}">{{ region.reg_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">궁금하신 점은 상담 예약을 해주시면 전화로 자세한 상담을 도와드리겠습니다.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            </form>
+
+            <div class="join_btn">
+                <a href="javascript:free_join();"><img src="{% static 'images/sub/counseling_btn.png' %}" alt=""/></a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript">
+    function free_join() {
+        if ($("#qchk_box").is(":checked") == false) {
+            alert("개인정보 수집에 동의해주세요");
+            $("#qchk_box").focus();
+            return;
+        }
+        if ($("#jname").val() == "") { alert("이름을 입력하여 주세요."); return; }
+        if ($("#jphone2").val() == "") { alert("연락처를 입력하여 주세요."); return; }
+        if ($("#jphone3").val() == "") { alert("연락처를 입력하여 주세요."); return; }
+
+        var con = confirm("상담을 신청하시겠습니까?");
+        if (con) {
+            consult_form.submit();
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}접수완료 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top consult"><img src="{% static 'images/sub/sub_top_m_consult.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                <li><a href="{% url 'consult:consult' %}">상담신청</a></li>
+                <li><a href="{% url 'consult:free' %}">무료수업체험 신청</a></li>
+            </ul>
+        </div>
+
+        <div class="sub_contents">
+            <h2 class="sub_tit">접수완료<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;<b>접수완료</b></span></h2>
+
+            <div class="join_info" style="text-align:center; padding:50px 0;">
+                <p style="font-size:18px; color:#333;">{{ message }}</p>
+                <br><br>
+                <a href="/" style="display:inline-block; padding:10px 30px; background:#333; color:#fff; text-decoration:none;">홈으로 이동</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}

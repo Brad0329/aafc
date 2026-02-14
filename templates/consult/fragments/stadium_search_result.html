@@ -1,0 +1,7 @@
+{% if stadiums %}
+    {% for s in stadiums %}
+    <li><label><input type="radio" name="sta_code" value="{{ s.sta_code }}"/>{{ s.sta_name }} ({{ s.sta_address }})</label></li>
+    {% endfor %}
+{% else %}
+    <li>검색 결과가 없습니다.</li>
+{% endif %}

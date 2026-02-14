@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}글쓰기 - {{ config.title }} - AAFC{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/41.4.2/ckeditor5.css">
+{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top {{ config.sub_top }}"><img src="{% static 'images/sub/sub_top_m_community.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                {% for menu in community_menu %}
+                <li {% if menu.id == board_id %}class="present"{% endif %}><a href="{% url 'board:list' board_id=menu.id %}">{{ menu.title }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">{{ config.title }}<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;<b>{{ config.title }}</b></span></h2>
+
+            <form name="reg_form" method="post" action="{% url 'board:write' board_id=board_id %}">
+                {% csrf_token %}
+                <table summary="" class="notice_view">
+                    <colgroup>
+                        <col width="110px"/>
+                        <col width="*"/>
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th colspan="2"><input type="text" name="b_title" id="b_title" maxlength="100" placeholder="제목을 입력하세요" value="{{ request.POST.b_title|default:'' }}"/></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="tit">
+                            <td>{{ user.name|default:user.username }}</td>
+                            <td></td>
+                        </tr>
+                        <tr class="write_txt">
+                            <td colspan="2">
+                                <textarea name="b_content" id="b_content">{{ request.POST.b_content|default:'' }}</textarea>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                {% if error %}
+                <p style="color:red; margin:10px 0;">{{ error }}</p>
+                {% endif %}
+
+                <div class="notice_btn">
+                    <a href="javascript:if($('#b_title').val()==''){alert('제목을 입력하세요');return;}if(confirm('등록하시겠습니까?')){reg_form.submit();}"><img src="{% static 'images/sub/notice_write.png' %}" alt=""/></a>
+                    <a href="javascript:history.back();"><img src="{% static 'images/sub/cancel_bts.png' %}" alt=""/></a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="importmap">
+    {
+        "imports": {
+            "ckeditor5": "https://cdn.ckeditor.com/ckeditor5/41.4.2/ckeditor5.js",
+            "ckeditor5/": "https://cdn.ckeditor.com/ckeditor5/41.4.2/"
+        }
+    }
+</script>
+<script type="module">
+    import {
+        ClassicEditor,
+        Essentials,
+        Bold,
+        Italic,
+        Underline,
+        Strikethrough,
+        Font,
+        Paragraph,
+        Heading,
+        Link,
+        List,
+        Image,
+        ImageToolbar,
+        ImageCaption,
+        ImageStyle,
+        ImageResize,
+        ImageUpload,
+        SimpleUploadAdapter,
+        MediaEmbed,
+        BlockQuote,
+        Table,
+        TableToolbar,
+        Undo
+    } from 'ckeditor5';
+
+    ClassicEditor
+        .create(document.querySelector('#b_content'), {
+            plugins: [
+                Essentials, Bold, Italic, Underline, Strikethrough,
+                Font, Paragraph, Heading, Link, List,
+                Image, ImageToolbar, ImageCaption, ImageStyle, ImageResize,
+                MediaEmbed, BlockQuote, Table, TableToolbar, Undo
+            ],
+            toolbar: {
+                items: [
+                    'heading', '|',
+                    'bold', 'italic', 'underline', 'strikethrough', '|',
+                    'fontSize', 'fontColor', '|',
+                    'bulletedList', 'numberedList', '|',
+                    'link', 'mediaEmbed', '|',
+                    'blockQuote', 'insertTable', '|',
+                    'undo', 'redo'
+                ]
+            },
+            image: {
+                toolbar: ['imageTextAlternative', 'imageStyle:inline', 'imageStyle:block', 'imageStyle:side']
+            },
+            table: {
+                contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
+            },
+            language: 'ko'
+        })
+        .catch(error => {
+            console.error(error);
+        });
+</script>
+{% endblock %}

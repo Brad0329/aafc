@@ -5,7 +5,7 @@
 cd c:\Users\user\Documents\aafc
 python manage.py runserver
 ```
-브라우저에서 `http://127.0.0.1:8000` 접속
+브라우저에서 `http://127.0.0.1:8080` 접속
 
 **필수 조건**: 로그인 + 자녀 1명 이상 등록 상태
 
@@ -51,7 +51,7 @@ print(f'#{e.id} 회원:{e.member_id} 자녀:{e.child_id} 결제:{e.pay_price}원
 ## 2. 네비게이션 확인
 
 ### 2-1. PC 헤더 GNB
-- [ ] `http://127.0.0.1:8000/` 접속
+- [ ] `http://127.0.0.1:8080/` 접속
 - [ ] "입단신청" 메뉴 클릭 → `/enrollment/apply/` 이동
 - [ ] "마이아카데미" 마우스 오버 → 드롭다운 (마이페이지, 결제내역, 비밀번호 변경)
 - [ ] "결제내역" 클릭 → `/enrollment/payment-history/` 이동
@@ -74,7 +74,7 @@ print(f'#{e.id} 회원:{e.member_id} 자녀:{e.child_id} 결제:{e.pay_price}원
 ## 3. 수강신청 Step 1 (자녀선택 → 강좌선택)
 
 ### 3-1. 페이지 접근
-- [ ] `http://127.0.0.1:8000/enrollment/apply/` 접속
+- [ ] `http://127.0.0.1:8080/enrollment/apply/` 접속
 - [ ] 페이지 디자인: sub_top 이미지, sub_menu, sub_tit 정상 표시
 - [ ] 자녀 목록이 표시되는지 (라디오 버튼)
 
@@ -186,7 +186,7 @@ print(f'#{e.id} 회원:{e.member_id} 자녀:{e.child_id} 결제:{e.pay_price}원
 ## 8. 결제내역 페이지
 
 ### 8-1. 목록 표시
-- [ ] `http://127.0.0.1:8000/enrollment/payment-history/` 접속
+- [ ] `http://127.0.0.1:8080/enrollment/payment-history/` 접속
 - [ ] 테이블 컬럼: 번호, 자녀, 결제방법, 결제금액, 시작월, 종료월, 결제상태, 수강상태
 - [ ] 결제상태: "결제완료" (파란색) / "미결제" (빨간색)
 
@@ -206,7 +206,7 @@ print(f'#{e.id} 회원:{e.member_id} 자녀:{e.child_id} 결제:{e.pay_price}원
 ## 9. Django Admin 확인
 
 ### 9-1. 입단신청 관리
-- [ ] `http://127.0.0.1:8000/admin/enrollment/enrollment/` 접속
+- [ ] `http://127.0.0.1:8080/admin/enrollment/enrollment/` 접속
 - [ ] 목록: 번호, 회원, 자녀, 결제상태, 결제금액, 수강상태, 등록일
 - [ ] 검색 (회원ID, 자녀ID)
 - [ ] 필터 (결제상태, 수강상태, 신청구분)
@@ -216,20 +216,20 @@ print(f'#{e.id} 회원:{e.member_id} 자녀:{e.child_id} 결제:{e.pay_price}원
 - [ ] 입단 상세 페이지 → 수강과정(EnrollmentCourse) 인라인 표시
 
 ### 9-3. 대기자 관리
-- [ ] `http://127.0.0.1:8000/admin/enrollment/waitstudent/` 접속
+- [ ] `http://127.0.0.1:8080/admin/enrollment/waitstudent/` 접속
 - [ ] 목록 표시 + 검색/필터 동작
 
 ### 9-4. KCP 결제 로그
-- [ ] `http://127.0.0.1:8000/admin/payments/paymentkcp/` 접속
+- [ ] `http://127.0.0.1:8080/admin/payments/paymentkcp/` 접속
 - [ ] 주문번호, 금액, 응답코드, 구매자, 등록일 표시
 - [ ] 검색 (주문번호, 구매자) 동작
 
 ### 9-5. 결제 실패 로그
-- [ ] `http://127.0.0.1:8000/admin/payments/paymentfail/` 접속
+- [ ] `http://127.0.0.1:8080/admin/payments/paymentfail/` 접속
 - [ ] 실패 기록 목록 표시
 
 ### 9-6. 수업일 스케줄
-- [ ] `http://127.0.0.1:8000/admin/courses/lectureselday/` 접속
+- [ ] `http://127.0.0.1:8080/admin/courses/lectureselday/` 접속
 - [ ] 강좌별 년/월/일 스케줄 데이터 표시
 
 ---

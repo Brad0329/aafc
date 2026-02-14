@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ config.title }} - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top {{ config.sub_top }}"><img src="{% static 'images/sub/sub_top_m_community.jpg' %}" alt=""/></div>
+        <div class="sub_menu">
+            <ul>
+                {% for menu in community_menu %}
+                <li {% if menu.id == board_id %}class="present"{% endif %}><a href="{% url 'board:list' board_id=menu.id %}">{{ menu.title }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="sub_contents">
+            <h2 class="sub_tit">{{ config.title }}<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;<b>{{ config.title }}</b></span></h2>
+
+            <div class="notice_search">
+                <form name="Frm" method="get" action="{% url 'board:list' board_id=board_id %}">
+                    <input type="text" name="sword" id="sword" value="{{ sword }}" onkeydown="if (event.keyCode == 13){ this.form.submit();return false;}"/><a href="javascript:document.Frm.submit();"><img src="{% static 'images/sub/notice_search.jpg' %}" alt=""/></a>
+                </form>
+            </div>
+
+{% if board_id == 'P' %}
+            <div class="notice_photo">
+                {% if not page_obj.object_list %}
+                <div class="none_data">등록 Data가 없습니다.</div>
+                {% else %}
+                    {% for post in page_obj %}
+                    <div class="box">
+                        <div class="img"><a href="{% url 'board:view' board_id=board_id b_seq=post.b_seq %}">
+                            {% if post.first_image %}<img src="{{ post.first_image }}">{% endif %}
+                        </a></div>
+                        <div class="txt">
+                            <h3><a href="{% url 'board:view' board_id=board_id b_seq=post.b_seq %}">{{ post.b_title }}{% if post.comment_count %} <font color='green'>[{{ post.comment_count }}]</font>{% endif %}</a></h3>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+{% else %}
+            <div class="notice_normal">
+                <table summary="">
+                    <thead>
+                        <tr>
+                            <th>번호</th>
+                            <th>제목</th>
+                            <th>등록일자</th>
+                            <th>조회</th>
+                            <th>작성자</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for notice in notices %}
+                        <tr>
+                            <td>[공지]</td>
+                            <td class="tit"><a href="{% url 'board:view' board_id=board_id b_seq=notice.b_seq %}">{{ notice.b_title }}</a></td>
+                            <td>{{ notice.insert_dt }}</td>
+                            <td>{{ notice.b_hit }}</td>
+                            <td>{{ notice.insert_name }}</td>
+                        </tr>
+                    {% endfor %}
+
+                    {% if not page_obj.object_list and not notices %}
+                        <tr><td align="center" colspan="5">등록 Data가 없습니다.</td></tr>
+                    {% endif %}
+
+                    {% for post in page_obj %}
+                        <tr>
+                            <td>{{ page_obj.paginator.count|add:"-"|add:page_obj.start_index|add:"1"|add:"-"|add:forloop.counter0 }}</td>
+                            <td class="tit"><a href="{% url 'board:view' board_id=board_id b_seq=post.b_seq %}">
+                                {% if post.b_gbn == 'Y' %}<font color='green'>[공지]</font>{% endif %}
+                                {% if post.b_gbn == 'N' %}<font color='blue'>[소식]</font>{% endif %}
+                                {% if post.b_gbn == 'E' %}<font color='purple'>[이벤트]</font>{% endif %}
+                                &nbsp;{{ post.b_title }}&nbsp;{% if post.comment_count %}<font color='green'>[{{ post.comment_count }}]</font>{% endif %}</a></td>
+                            <td>{{ post.insert_dt }}</td>
+                            <td>{{ post.b_hit }}</td>
+                            <td>{{ post.insert_name }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+{% endif %}
+
+            {% if config.user_write %}
+            <div class="notice_btn">
+                {% if user.is_authenticated %}
+                <a href="{% url 'board:write' board_id=board_id %}"><img src="{% static 'images/sub/notice_write.png' %}" alt=""/></a>
+                {% else %}
+                <a href="javascript:alert('로그인하셔야 글쓰기가 가능합니다.');location.href='{% url 'accounts:login' %}';"><img src="{% static 'images/sub/notice_write.png' %}" alt=""/></a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if page_obj.paginator.num_pages > 1 %}
+            <ul class="paging">
+                {% if page_obj.has_previous %}
+                <li><a href="?page=1{% if sword %}&sword={{ sword }}{% endif %}">&laquo;</a></li>
+                <li><a href="?page={{ page_obj.previous_page_number }}{% if sword %}&sword={{ sword }}{% endif %}">&lt;</a></li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="active"><a href="?page={{ num }}{% if sword %}&sword={{ sword }}{% endif %}"><b>{{ num }}</b></a></li>
+                    {% elif num > page_obj.number|add:"-5" and num < page_obj.number|add:"5" %}
+                    <li><a href="?page={{ num }}{% if sword %}&sword={{ sword }}{% endif %}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li><a href="?page={{ page_obj.next_page_number }}{% if sword %}&sword={{ sword }}{% endif %}">&gt;</a></li>
+                <li><a href="?page={{ page_obj.paginator.num_pages }}{% if sword %}&sword={{ sword }}{% endif %}">&raquo;</a></li>
+                {% endif %}
+            </ul>
+            {% endif %}
+
+        </div>
+    </div>
+{% endblock %}
