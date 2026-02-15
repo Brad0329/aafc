@@ -1,6 +1,7 @@
 {% extends "ba_office/base_office.html" %}
 {% load static %}
 {% load office_tags %}
+{% load humanize %}
 
 {% block left_menu %}
 {% include "ba_office/includes/lfstudent_left.html" %}
@@ -43,18 +44,20 @@
 <div class="scroll">
 <table class="tb_scroll" border="0" cellpadding="0" cellspacing="0">
     <colgroup>
-        <col width="5%" /><col width="10%" /><col width="10%" /><col width="10%" />
-        <col width="10%" /><col width="15%" /><col width="25%" /><col width="8%" /><col width="7%" />
+        <col width="5%" /><col width="8%" /><col width="8%" />
+        <col width="8%" /><col width="*" /><col width="12%" />
+        <col width="8%" /><col width="12%" /><col width="10%" /><col width="6%" />
     </colgroup>
     <thead>
     <tr>
         <th>No</th>
-        <th>회원ID</th>
         <th>회원명</th>
-        <th>자녀ID</th>
         <th>자녀명</th>
-        <th>변경구분</th>
-        <th>변경설명</th>
+        <th>취소구분</th>
+        <th>취소사유</th>
+        <th>결제금액</th>
+        <th>개월</th>
+        <th>수강기간</th>
         <th>등록일</th>
         <th>상세</th>
     </tr>
@@ -63,17 +66,28 @@
     {% for h in histories %}
     <tr>
         <td>{{ forloop.counter|page_index:histories.start_index }}</td>
-        <td>{{ h.member_id }}</td>
         <td>{{ h.member_name }}</td>
-        <td>{{ h.child_id }}</td>
         <td>{{ h.child_name }}</td>
         <td>{{ h.chg_gbn }}</td>
         <td class="left">{{ h.chg_desc }}</td>
+        <td style="text-align:right;">
+            {{ h.src_pay_price|intcomma }}<br/>
+            <b style="color:blue;">{{ h.cur_pay_price|intcomma }}</b><br/>
+            {% if h.price_diff != 0 %}<span style="color:red;">{{ h.price_diff|intcomma }}</span>{% endif %}
+        </td>
+        <td>
+            {{ h.src_lec_period }}<br/>
+            <b style="color:blue;">{{ h.cur_lec_period }}</b>
+        </td>
+        <td>
+            {% if h.src_start_dt %}{{ h.src_start_dt|slice:":4" }}-{{ h.src_start_dt|slice:"4:6" }}~{{ h.src_end_dt|slice:":4" }}-{{ h.src_end_dt|slice:"4:6" }}{% endif %}<br/>
+            {% if h.cur_start_dt %}<b style="color:blue;">{{ h.cur_start_dt|slice:":4" }}-{{ h.cur_start_dt|slice:"4:6" }}~{{ h.cur_end_dt|slice:":4" }}-{{ h.cur_end_dt|slice:"4:6" }}</b>{% endif %}
+        </td>
         <td>{% if h.reg_dt %}{{ h.reg_dt|date:"Y-m-d" }}{% endif %}</td>
         <td><a href="{% url 'office_chghis_detail' h.id %}"><img src="{% static 'ba_office/images/btn_detail.gif' %}" alt="상세" /></a></td>
     </tr>
     {% empty %}
-    <tr><td colspan="9">변경이력이 없습니다.</td></tr>
+    <tr><td colspan="10">변경이력이 없습니다.</td></tr>
     {% endfor %}
     </tbody>
 </table>

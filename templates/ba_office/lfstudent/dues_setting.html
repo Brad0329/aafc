@@ -6,6 +6,22 @@
 {% include "ba_office/includes/lfstudent_left.html" %}
 {% endblock %}
 
+{% block extra_js %}
+<script>
+function snd_chk() {
+    var jp = document.frmSetting.join_price.value;
+    var pp = document.frmSetting.pk_price.value;
+    if (jp == '' || pp == '') {
+        alert('필수정보가 부족합니다.');
+        return;
+    }
+    if (confirm('기본금액을 설정하시겠습니까?')) {
+        document.frmSetting.submit();
+    }
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="navi">HOME  &gt;  수강생관리  &gt;  기본금액관리</div>
 <div class="h_55"></div>
@@ -21,13 +37,13 @@
         <tr>
             <th scope="col">교육용품비</th>
             <td class="left">
-                <input type="text" name="join_price" value="{{ setting.join_price }}" class="input" style="width:150px; text-align:right;" /> 원
+                <input type="text" name="join_price" value="{{ setting.join_price }}" class="input" style="width:200px; text-align:right;" /> 원
             </td>
         </tr>
         <tr>
             <th scope="col">패키지금액</th>
             <td class="left">
-                <input type="text" name="pk_price" value="{{ setting.pk_price }}" class="input" style="width:150px; text-align:right;" /> 원
+                <input type="text" name="pk_price" value="{{ setting.pk_price }}" class="input" style="width:200px; text-align:right;" /> 원
             </td>
         </tr>
     </tbody>
@@ -35,7 +51,7 @@
 </div>
 
 <div class="btn_right" style="margin-top:10px;">
-    <a href="javascript:document.frmSetting.submit();"><img src="{% static 'ba_office/images/btn_modify.gif' %}" alt="수정" /></a>
+    <a href="javascript:snd_chk();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
 </div>
 </form>
 {% endblock %}

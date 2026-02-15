@@ -8,8 +8,8 @@
 
 {% block extra_js %}
 <script>
-function sel_stadium(local_code) {
-    $.getJSON("{% url 'office_ajax_student_stadium' %}", {local_code: local_code}, function(data) {
+function sel_stadium(code_desc) {
+    $.getJSON("{% url 'office_ajax_student_stadium' %}", {grplocal_code: code_desc}, function(data) {
         var sel = document.schform.sch_sta_code;
         sel.options.length = 1;
         for (var i = 0; i < data.length; i++) {
@@ -32,9 +32,13 @@ function toggleMode() {
     if (mode == '1') {
         document.getElementById('date_single').style.display = '';
         document.getElementById('date_range').style.display = 'none';
+        document.schform.sch_att_gbn.disabled = true;
+        document.schform.sch_suc_gbn.disabled = true;
     } else {
         document.getElementById('date_single').style.display = 'none';
         document.getElementById('date_range').style.display = '';
+        document.schform.sch_att_gbn.disabled = false;
+        document.schform.sch_suc_gbn.disabled = false;
     }
 }
 function fn_search() {
@@ -52,10 +56,35 @@ function fn_search() {
 function batchSubmit() {
     var gbn = document.getElementById('batch_gbn').value;
     if (!gbn) { alert('출결구분을 선택하세요.'); return; }
+    if (gbn == 'N') {
+        var desc = document.getElementById('batch_desc').value;
+        if (!desc) { alert('결석 시 비고를 입력하세요.'); return; }
+    }
     document.getElementById('att_mode').value = '1';
+    document.getElementById('batch_gbn_hidden').value = gbn;
+    document.getElementById('batch_desc_hidden').value = document.getElementById('batch_desc').value;
     document.frmAtt.submit();
 }
 function individualSubmit() {
+    // 모든 학생 출결 선택 확인
+    var children = document.querySelectorAll('input[name="child_ids"]');
+    for (var i = 0; i < children.length; i++) {
+        var cid = children[i].value;
+        var gbn = document.querySelector('[name="gbn_' + cid + '"]').value;
+        if (!gbn) {
+            alert('모든 학생의 출결 상태를 선택해주세요.');
+            return;
+        }
+        // 결석 시 비고 필수
+        if (gbn == 'N') {
+            var desc = document.querySelector('[name="desc_' + cid + '"]').value;
+            if (!desc.trim()) {
+                var name = children[i].closest('tr').querySelectorAll('td')[2].textContent;
+                alert(name + ': 결석 시 비고를 입력해주세요.');
+                return;
+            }
+        }
+    }
     document.getElementById('att_mode').value = '2';
     document.frmAtt.submit();
 }
@@ -76,10 +105,10 @@ function individualSubmit() {
         <tr>
             <th scope="col">필드명</th>
             <td class="left">
-                <select name="sch_local_code" class="select" style="width:120px;" onchange="sel_stadium(this.value);">
+                <select name="sch_code_desc" class="select" style="width:120px;" onchange="sel_stadium(this.value);">
                     <option value="">==선택==</option>
                     {% for cd in code_descs %}
-                    <option value="" data-desc="{{ cd }}" {% if sch_local_code == cd %}selected{% endif %}>{{ cd }}</option>
+                    <option value="{{ cd }}" {% if sch_code_desc == cd %}selected{% endif %}>{{ cd }}</option>
                     {% endfor %}
                 </select>
             </td>
@@ -123,6 +152,29 @@ function individualSubmit() {
                 <a href="javascript:fn_search();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
             </td>
         </tr>
+        <tr>
+            <th scope="col">출결</th>
+            <td class="left">
+                <select name="sch_att_gbn" class="select" style="width:120px;" {% if sch_mode != "2" %}disabled{% endif %}>
+                    <option value="">==전체==</option>
+                    <option value="Y" {% if sch_att_gbn == "Y" %}selected{% endif %}>출석</option>
+                    <option value="N" {% if sch_att_gbn == "N" %}selected{% endif %}>결석</option>
+                    <option value="A" {% if sch_att_gbn == "A" %}selected{% endif %}>보강</option>
+                    <option value="R" {% if sch_att_gbn == "R" %}selected{% endif %}>우천취소</option>
+                    <option value="D" {% if sch_att_gbn == "D" %}selected{% endif %}>수업연기</option>
+                    <option value="E" {% if sch_att_gbn == "E" %}selected{% endif %}>출결제외</option>
+                </select>
+            </td>
+            <th scope="col">완료</th>
+            <td class="left">
+                <select name="sch_suc_gbn" class="select" style="width:120px;" {% if sch_mode != "2" %}disabled{% endif %}>
+                    <option value="">==전체==</option>
+                    <option value="Y" {% if sch_suc_gbn == "Y" %}selected{% endif %}>완료</option>
+                    <option value="N" {% if sch_suc_gbn == "N" %}selected{% endif %}>미완료</option>
+                </select>
+            </td>
+            <td colspan="2"></td>
+        </tr>
     </tbody>
 </table>
 </div>
@@ -139,10 +191,7 @@ function individualSubmit() {
         <option value="">선택</option>
         <option value="Y">출석</option>
         <option value="N">결석</option>
-        <option value="A">보강</option>
         <option value="R">우천취소</option>
-        <option value="D">수업연기</option>
-        <option value="E">출결제외</option>
     </select>
     <input type="text" id="batch_desc" class="input" style="width:150px;" placeholder="비고" />
     <a href="javascript:batchSubmit();"><img src="{% static 'ba_office/images/btn_check.gif' %}" alt="일괄처리" /></a>
@@ -155,7 +204,9 @@ function individualSubmit() {
 <input type="hidden" name="lecture_code" value="{{ sch_lecture_code }}" />
 <input type="hidden" name="att_date" value="{{ sch_date }}" />
 <input type="hidden" name="att_mode" id="att_mode" value="2" />
-<input type="hidden" name="sch_local_code" value="{{ sch_local_code }}" />
+<input type="hidden" name="batch_gbn" id="batch_gbn_hidden" value="" />
+<input type="hidden" name="batch_desc" id="batch_desc_hidden" value="" />
+<input type="hidden" name="sch_code_desc" value="{{ sch_code_desc }}" />
 <input type="hidden" name="sch_sta_code" value="{{ sch_sta_code }}" />
 
 <div class="scroll">
@@ -196,7 +247,7 @@ function individualSubmit() {
         </td>
         <td><input type="text" name="desc_{{ s.child_id }}" value="{{ s.attendance_desc }}" class="input" style="width:100%;" /></td>
         <td>
-            <select name="mata_{{ s.child_id }}" class="select" style="width:80px;">
+            <select name="mata_{{ s.child_id }}" class="select" style="width:80px;" disabled>
                 <option value="">선택</option>
                 <option value="1" {% if s.mata == "1" %}selected{% endif %}>보강</option>
                 <option value="2" {% if s.mata == "2" %}selected{% endif %}>수업료이월</option>
@@ -204,9 +255,9 @@ function individualSubmit() {
                 <option value="4" {% if s.mata == "4" %}selected{% endif %}>티켓신청</option>
             </select>
         </td>
-        <td><input type="text" name="app_month_{{ s.child_id }}" value="{{ s.app_month }}" class="input" style="width:80px;" placeholder="YYYYMM" /></td>
+        <td><input type="text" name="app_month_{{ s.child_id }}" value="{{ s.app_month }}" class="input" style="width:80px;" placeholder="YYYYMM" readonly /></td>
         <td>
-            <select name="complete_yn_{{ s.child_id }}" class="select" style="width:50px;">
+            <select name="complete_yn_{{ s.child_id }}" class="select" style="width:50px;" disabled>
                 <option value="N" {% if s.complete_yn == "N" %}selected{% endif %}>N</option>
                 <option value="Y" {% if s.complete_yn == "Y" %}selected{% endif %}>Y</option>
             </select>

@@ -12,8 +12,8 @@
 function fn_search() {
     document.schform.submit();
 }
-function sel_stadium(local_code) {
-    $.getJSON("{% url 'office_ajax_student_stadium' %}", {local_code: local_code}, function(data) {
+function sel_stadium(code_desc) {
+    $.getJSON("{% url 'office_ajax_student_stadium' %}", {grplocal_code: code_desc}, function(data) {
         var sel = document.schform.sch_sta_code;
         sel.options.length = 1;
         for (var i = 0; i < data.length; i++) {
@@ -38,10 +38,10 @@ function sel_stadium(local_code) {
         <tr>
             <th scope="col">권역</th>
             <td class="left">
-                <select name="sch_local_code" class="select" style="width:120px;" onchange="sel_stadium(this.value);">
+                <select name="sch_code_desc" class="select" style="width:120px;" onchange="sel_stadium(this.value);">
                     <option value="">==선택==</option>
                     {% for cd in code_descs %}
-                    <option value="" {% if sch_local_code == cd %}selected{% endif %}>{{ cd }}</option>
+                    <option value="{{ cd }}" {% if sch_code_desc == cd %}selected{% endif %}>{{ cd }}</option>
                     {% endfor %}
                 </select>
             </td>
@@ -73,6 +73,7 @@ function sel_stadium(local_code) {
                     <option value="LP" {% if sch_lecture_stats == "LP" %}selected{% endif %}>수강예정</option>
                     <option value="LN" {% if sch_lecture_stats == "LN" %}selected{% endif %}>퇴단</option>
                     <option value="PN" {% if sch_lecture_stats == "PN" %}selected{% endif %}>일시중지</option>
+                    <option value="LS" {% if sch_lecture_stats == "LS" %}selected{% endif %}>중도취소</option>
                 </select>
             </td>
             <th scope="col">결제방법</th>
@@ -92,6 +93,7 @@ function sel_stadium(local_code) {
                     <option value="">==전체==</option>
                     <option value="PP" {% if sch_pay_stats == "PP" %}selected{% endif %}>결제대기</option>
                     <option value="PY" {% if sch_pay_stats == "PY" %}selected{% endif %}>결제완료</option>
+                    <option value="PN" {% if sch_pay_stats == "PN" %}selected{% endif %}>결제취소</option>
                     <option value="PZ" {% if sch_pay_stats == "PZ" %}selected{% endif %}>취소</option>
                     <option value="PQ" {% if sch_pay_stats == "PQ" %}selected{% endif %}>환불</option>
                 </select>
@@ -123,7 +125,7 @@ function sel_stadium(local_code) {
 
 <p style="margin:5px 0;">
     총 <b>{{ total_count }}</b>건
-    <a href="{% url 'office_master_list_excel' %}?sch_local_code={{ sch_local_code }}&sch_sta_code={{ sch_sta_code }}&sch_apply_gubun={{ sch_apply_gubun }}&sch_lecture_stats={{ sch_lecture_stats }}&sch_pay_method={{ sch_pay_method }}&sch_pay_stats={{ sch_pay_stats }}&sch_sdate={{ sch_sdate }}&sch_edate={{ sch_edate }}&sch_skey={{ sch_skey }}&sch_sword={{ sch_sword }}" style="margin-left:10px;">
+    <a href="{% url 'office_master_list_excel' %}?sch_code_desc={{ sch_code_desc }}&sch_sta_code={{ sch_sta_code }}&sch_apply_gubun={{ sch_apply_gubun }}&sch_lecture_stats={{ sch_lecture_stats }}&sch_pay_method={{ sch_pay_method }}&sch_pay_stats={{ sch_pay_stats }}&sch_sdate={{ sch_sdate }}&sch_edate={{ sch_edate }}&sch_skey={{ sch_skey }}&sch_sword={{ sch_sword }}" style="margin-left:10px;">
         <img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="Excel" />
     </a>
 </p>
@@ -131,22 +133,23 @@ function sel_stadium(local_code) {
 <div class="scroll">
 <table class="tb_scroll" border="0" cellpadding="0" cellspacing="0">
     <colgroup>
-        <col width="4%" /><col width="8%" /><col width="8%" /><col width="8%" />
-        <col width="8%" /><col width="8%" /><col width="8%" /><col width="8%" />
-        <col width="10%" /><col width="8%" /><col width="8%" /><col width="8%" /><col width="6%" />
+        <col width="4%" /><col width="7%" /><col width="8%" /><col width="8%" />
+        <col width="7%" /><col width="7%" /><col width="7%" /><col width="7%" />
+        <col width="7%" /><col width="9%" /><col width="7%" /><col width="8%" /><col width="8%" /><col width="6%" />
     </colgroup>
     <thead>
     <tr>
         <th>No</th>
-        <th>회원ID</th>
-        <th>회원명</th>
-        <th>자녀ID</th>
-        <th>자녀명</th>
         <th>신청구분</th>
+        <th>구장</th>
+        <th>부모명</th>
+        <th>자녀명</th>
         <th>수강상태</th>
         <th>결제방법</th>
-        <th>결제금액</th>
         <th>결제상태</th>
+        <th>주X회</th>
+        <th>결제금액</th>
+        <th>결제일</th>
         <th>시작월</th>
         <th>등록일</th>
         <th>상세</th>
@@ -156,21 +159,22 @@ function sel_stadium(local_code) {
     {% for e in masters %}
     <tr>
         <td>{{ forloop.counter|page_index:masters.start_index }}</td>
-        <td>{{ e.member_id }}</td>
-        <td>{{ e.member.name }}</td>
-        <td>{{ e.child_id }}</td>
-        <td>{{ e.child.name }}</td>
         <td>{{ e.get_apply_gubun_display }}</td>
+        <td>{{ e.sta_name }}</td>
+        <td>{{ e.member.name }}<br/><span style="font-size:11px;color:#999;">{{ e.member_id }}</span></td>
+        <td>{{ e.child.name }}<br/><span style="font-size:11px;color:#999;">{{ e.child_id }}</span></td>
         <td>{{ e.get_lecture_stats_display }}</td>
         <td>{{ e.get_pay_method_display }}</td>
-        <td style="text-align:right;">{{ e.pay_price|intcomma }}</td>
         <td>{{ e.get_pay_stats_display }}</td>
+        <td>주{{ e.lec_cycle }}회</td>
+        <td style="text-align:right;">{{ e.pay_price|intcomma }}</td>
+        <td>{% if e.pay_dt %}{{ e.pay_dt|date:"Y-m-d" }}{% endif %}</td>
         <td>{{ e.start_dt|slice:":4" }}-{{ e.start_dt|slice:"4:6" }}</td>
         <td>{{ e.insert_dt|date:"Y-m-d" }}</td>
         <td><a href="{% url 'office_master_detail' e.id %}"><img src="{% static 'ba_office/images/btn_detail.gif' %}" alt="상세" /></a></td>
     </tr>
     {% empty %}
-    <tr><td colspan="13">검색 결과가 없습니다.</td></tr>
+    <tr><td colspan="14">검색 결과가 없습니다.</td></tr>
     {% endfor %}
     </tbody>
 </table>
@@ -182,7 +186,7 @@ function sel_stadium(local_code) {
         {% if p == masters.number %}
         <b>[{{ p }}]</b>
         {% else %}
-        <a href="?page={{ p }}&sch_local_code={{ sch_local_code }}&sch_sta_code={{ sch_sta_code }}&sch_apply_gubun={{ sch_apply_gubun }}&sch_lecture_stats={{ sch_lecture_stats }}&sch_pay_method={{ sch_pay_method }}&sch_pay_stats={{ sch_pay_stats }}&sch_sdate={{ sch_sdate }}&sch_edate={{ sch_edate }}&sch_skey={{ sch_skey }}&sch_sword={{ sch_sword }}">[{{ p }}]</a>
+        <a href="?page={{ p }}&sch_code_desc={{ sch_code_desc }}&sch_sta_code={{ sch_sta_code }}&sch_apply_gubun={{ sch_apply_gubun }}&sch_lecture_stats={{ sch_lecture_stats }}&sch_pay_method={{ sch_pay_method }}&sch_pay_stats={{ sch_pay_stats }}&sch_sdate={{ sch_sdate }}&sch_edate={{ sch_edate }}&sch_skey={{ sch_skey }}&sch_sword={{ sch_sword }}">[{{ p }}]</a>
         {% endif %}
     {% endfor %}
 </div>

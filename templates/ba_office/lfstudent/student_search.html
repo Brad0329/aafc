@@ -40,44 +40,46 @@
 </form>
 
 {% if results %}
+{% if results|length > 0 %}
+<br/><span style="color:#FF00FF;font-weight:bold;">아래 목록 중 분홍색은 재수강 대상자 입니다.</span>
+{% endif %}
+
 <p style="margin:5px 0;">검색결과: <b>{{ results|length }}</b>건</p>
 
 <div class="scroll">
 <table class="tb_scroll" border="0" cellpadding="0" cellspacing="0">
     <colgroup>
-        <col width="5%" /><col width="10%" /><col width="10%" /><col width="10%" />
-        <col width="10%" /><col width="10%" /><col width="12%" /><col width="12%" />
-        <col width="10%" /><col width="11%" />
+        <col width="4%" /><col width="7%" /><col /><col width="8%" />
+        <col width="13%" /><col width="7%" /><col width="7%" />
+        <col width="8%" /><col width="8%" /><col width="8%" />
     </colgroup>
     <thead>
     <tr>
         <th>No</th>
-        <th>회원ID</th>
-        <th>자녀ID</th>
-        <th>자녀명</th>
         <th>신청구분</th>
-        <th>결제상태</th>
+        <th>과정명</th>
+        <th>부모ID</th>
+        <th>자녀ID(카드번호)</th>
         <th>시작월</th>
         <th>종료월</th>
-        <th>결제금액</th>
+        <th>수강상태</th>
+        <th>결제상태</th>
         <th>관리</th>
     </tr>
     </thead>
     <tbody>
     {% for e in results %}
-    <tr>
+    <tr{% if e.is_pink %} style="background-color:pink;"{% endif %}>
         <td>{{ forloop.counter }}</td>
-        <td>{{ e.member_id }}</td>
-        <td>{{ e.child_id }}</td>
-        <td>{{ e.child.name }}</td>
         <td>{{ e.get_apply_gubun_display }}</td>
-        <td>{{ e.get_pay_stats_display }}</td>
+        <td class="left">{{ e.lecture_title_display|safe }}</td>
+        <td>{{ e.member_id }}<br/>({{ e.member.name }})</td>
+        <td><font color="#422">{{ e.child_id }}<br/>({{ e.child.name }}) / ({{ e.card_num }})</font></td>
         <td>{{ e.start_dt|slice:":4" }}-{{ e.start_dt|slice:"4:6" }}</td>
         <td>{{ e.end_dt|slice:":4" }}-{{ e.end_dt|slice:"4:6" }}</td>
-        <td style="text-align:right;">{{ e.pay_price|intcomma }}</td>
-        <td>
-            <a href="{% url 'office_student_detail' e.id %}"><img src="{% static 'ba_office/images/btn_detail.gif' %}" alt="상세" /></a>
-        </td>
+        <td>{{ e.lecture_stats_text }}</td>
+        <td>{{ e.pay_stats_text }}<br/>({{ e.pay_method_text }})</td>
+        <td><a href="{% url 'office_student_detail' e.id %}" target="_blank"><img src="{% static 'ba_office/images/btn_detail.gif' %}" alt="상세" /></a></td>
     </tr>
     {% endfor %}
     </tbody>

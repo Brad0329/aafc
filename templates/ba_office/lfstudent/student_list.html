@@ -1,7 +1,6 @@
 {% extends "ba_office/base_office.html" %}
 {% load static %}
 {% load office_tags %}
-{% load humanize %}
 
 {% block left_menu %}
 {% include "ba_office/includes/lfstudent_left.html" %}
@@ -9,40 +8,27 @@
 
 {% block extra_js %}
 <script>
-function fn_search() {
-    document.schform.submit();
-}
-function sel_code_desc(val) {
-    // 필드명 선택 → 지역코드 로드
-    $.getJSON("{% url 'office_ajax_student_local' %}", {code_desc: val}, function(data) {
-        var sel = document.schform.sch_local_code;
-        sel.options.length = 1;
-        for (var i = 0; i < data.length; i++) {
-            sel.options[sel.options.length] = new Option(data[i].code_name, data[i].subcode);
-        }
-        // 구장/과정 초기화
-        document.schform.sch_sta_code.options.length = 1;
-        document.schform.sch_lecture_code.options.length = 1;
-    });
-}
-function sel_stadium(local_code) {
-    $.getJSON("{% url 'office_ajax_student_stadium' %}", {local_code: local_code}, function(data) {
-        var sel = document.schform.sch_sta_code;
+function sel_stadium(code_desc) {
+    $.getJSON("{% url 'office_ajax_student_stadium' %}", {grplocal_code: code_desc}, function(data) {
+        var sel = document.srch_form.sch_sta_code;
         sel.options.length = 1;
         for (var i = 0; i < data.length; i++) {
             sel.options[sel.options.length] = new Option(data[i].sta_name, data[i].sta_code);
         }
-        document.schform.sch_lecture_code.options.length = 1;
+        document.srch_form.sch_lecture_code.options.length = 1;
     });
 }
 function sel_course(sta_code) {
     $.getJSON("{% url 'office_ajax_student_course' %}", {sta_code: sta_code}, function(data) {
-        var sel = document.schform.sch_lecture_code;
+        var sel = document.srch_form.sch_lecture_code;
         sel.options.length = 1;
         for (var i = 0; i < data.length; i++) {
             sel.options[sel.options.length] = new Option(data[i].lecture_title, data[i].lecture_code);
         }
     });
+}
+function srch_snd() {
+    document.srch_form.submit();
 }
 </script>
 {% endblock %}
@@ -51,18 +37,18 @@ function sel_course(sta_code) {
 <div class="navi">HOME  &gt;  수강생관리  &gt;  수강생정보</div>
 <div class="h_55"></div>
 
-<p class="title">수강생정보(NEW)</p>
+<p class="title">수강생 - 리스트</p>
 
-<form name="schform" method="get" action="{% url 'office_student_list' %}">
-<div class="tb_basic" style="margin-bottom:5px;">
-<table summary="검색" border="0" cellpadding="0" cellspacing="0">
-    <colgroup><col width="10%" /><col width="23%" /><col width="10%" /><col width="23%" /><col width="10%" /><col width="24%" /></colgroup>
+<div class="tb_basic">
+<form name="srch_form" method="get" action="{% url 'office_student_list' %}">
+<table summary="수강생정보" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="11%" /><col width="23%" /><col width="10%" /><col width="23%" /><col width="10%" /><col width="23%" /></colgroup>
     <tbody>
         <tr>
             <th scope="col">필드명</th>
             <td class="left">
-                <select name="sch_code_desc" class="select" style="width:120px;" onchange="sel_code_desc(this.value);">
-                    <option value="">==선택==</option>
+                <select name="sch_code_desc" class="select" onchange="sel_stadium(this.value);">
+                    <option value="">=필드선택=</option>
                     {% for cd in code_descs %}
                     <option value="{{ cd }}" {% if sch_code_desc == cd %}selected{% endif %}>{{ cd }}</option>
                     {% endfor %}
@@ -70,7 +56,7 @@ function sel_course(sta_code) {
             </td>
             <th scope="col">구장명</th>
             <td class="left">
-                <select name="sch_sta_code" class="select" style="width:120px;" onchange="sel_course(this.value);">
+                <select name="sch_sta_code" class="select" onchange="sel_course(this.value);">
                     <option value="">==선택==</option>
                     {% for s in stadiums %}
                     <option value="{{ s.sta_code }}" {% if sch_sta_code == s.sta_code|stringformat:"d" %}selected{% endif %}>{{ s.sta_name }}</option>
@@ -79,7 +65,7 @@ function sel_course(sta_code) {
             </td>
             <th scope="col">과정명</th>
             <td class="left">
-                <select name="sch_lecture_code" class="select" style="width:120px;">
+                <select name="sch_lecture_code" class="select">
                     <option value="">==선택==</option>
                     {% for c in courses %}
                     <option value="{{ c.lecture_code }}" {% if sch_lecture_code == c.lecture_code|stringformat:"d" %}selected{% endif %}>{{ c.lecture_title }}</option>
@@ -90,90 +76,92 @@ function sel_course(sta_code) {
         <tr>
             <th scope="col">수강상태</th>
             <td class="left">
-                <select name="sch_lecture_stats" class="select" style="width:120px;">
-                    <option value="">==전체==</option>
+                <select name="sch_lecture_stats" class="select">
+                    <option value="">==선택==</option>
                     <option value="LY" {% if sch_lecture_stats == "LY" %}selected{% endif %}>수강확정</option>
                     <option value="LP" {% if sch_lecture_stats == "LP" %}selected{% endif %}>수강예정</option>
                     <option value="LN" {% if sch_lecture_stats == "LN" %}selected{% endif %}>퇴단</option>
                     <option value="PN" {% if sch_lecture_stats == "PN" %}selected{% endif %}>일시중지</option>
+                    <option value="LS" {% if sch_lecture_stats == "LS" %}selected{% endif %}>중도취소</option>
                 </select>
+            </td>
+            <th scope="col">기준월</th>
+            <td class="left">
+                <input type="text" name="sch_ym" maxlength="6" style="width:100px;" value="{{ sch_ym }}" />
             </td>
             <th scope="col">결제상태</th>
             <td class="left">
-                <select name="sch_pay_stats" class="select" style="width:120px;">
-                    <option value="">==전체==</option>
+                <select name="sch_pay_stats" class="select">
+                    <option value="">==선택==</option>
                     <option value="PP" {% if sch_pay_stats == "PP" %}selected{% endif %}>결제대기</option>
                     <option value="PQ" {% if sch_pay_stats == "PQ" %}selected{% endif %}>입금확인대기</option>
                     <option value="PY" {% if sch_pay_stats == "PY" %}selected{% endif %}>결제완료</option>
                 </select>
             </td>
-            <th scope="col">기준월</th>
-            <td class="left">
-                <select name="sch_ym" class="select" style="width:120px;">
-                    {% for ym in ym_choices %}
-                    <option value="{{ ym }}" {% if sch_ym == ym %}selected{% endif %}>{{ ym|slice:":4" }}-{{ ym|slice:"4:6" }}</option>
-                    {% endfor %}
-                </select>
-            </td>
         </tr>
         <tr>
-            <th scope="col">수강생명</th>
-            <td class="left" colspan="3">
-                <input type="text" name="sch_child_name" value="{{ sch_child_name }}" class="input" style="width:150px;" />
-            </td>
-            <td colspan="2" class="left">
-                <a href="javascript:fn_search();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+            <th scope="col">강좌명</th>
+            <td class="left" colspan="5">
+                <input type="text" name="sch_lecture_title" maxlength="100" style="width:400px;" value="{{ sch_lecture_title }}" />
             </td>
         </tr>
-        <input type="hidden" name="sch_local_code" value="{{ sch_local_code }}" />
     </tbody>
 </table>
-</div>
 </form>
+</div>
+<div class="btn_right"><a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></div>
 
-<p style="margin:5px 0;">총 <b>{{ total_count }}</b>건</p>
+<div class="h_20"></div>
 
-<div class="scroll">
-<table class="tb_scroll" border="0" cellpadding="0" cellspacing="0">
+{% if searched %}
+{% if total_count > 0 %}
+<br/><span style="color:#FF00FF;font-weight:bold;">아래 목록 중 분홍색은 재수강 대상자 입니다.</span>
+{% endif %}
+
+<div class="count">총 {{ total_count }} 건</div>
+
+<div class="tb_basic">
+<table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
     <colgroup>
-        <col width="4%" /><col width="8%" /><col width="8%" /><col width="8%" />
-        <col width="8%" /><col width="8%" /><col width="8%" /><col width="8%" />
-        <col width="8%" /><col width="8%" /><col width="8%" /><col width="6%" />
+        <col width="4%" />
+        <col width="7%" />
+        <col />
+        <col width="10%" />
+        <col width="15%" />
+        <col width="8%" />
+        <col width="8%" />
+        <col width="10%" />
+        <col width="10%" />
+        <col width="8%" />
     </colgroup>
-    <thead>
-    <tr>
-        <th>No</th>
-        <th>회원ID</th>
-        <th>자녀ID</th>
-        <th>자녀명</th>
-        <th>구장명</th>
-        <th>수강상태</th>
-        <th>결제상태</th>
-        <th>신청구분</th>
-        <th>시작월</th>
-        <th>종료월</th>
-        <th>결제방법</th>
-        <th>상세</th>
-    </tr>
-    </thead>
     <tbody>
-    {% for e in students %}
     <tr>
+        <th scope="col">순번</th>
+        <th scope="col">신청구분</th>
+        <th scope="col">과정명</th>
+        <th scope="col">부모ID</th>
+        <th scope="col">자녀ID(카드번호)</th>
+        <th scope="col">시작월</th>
+        <th scope="col">종료월</th>
+        <th scope="col">수강상태</th>
+        <th scope="col">결제상태</th>
+        <th scope="col">관리</th>
+    </tr>
+    {% for e in students %}
+    <tr{% if e.is_pink %} style="background-color:pink;"{% endif %}>
         <td>{{ forloop.counter|page_index:students.start_index }}</td>
-        <td>{{ e.member_id }}</td>
-        <td>{{ e.child_id }}</td>
-        <td>{{ e.child.name }}</td>
-        <td>{% with lec=enrollment_lecture_map|default_if_none:"" %}{% if lec %}{% with l=enrollment_lecture_map %}{% for eid, lecture in l.items %}{% if eid == e.id %}{{ lecture.stadium.sta_nickname }}{% endif %}{% endfor %}{% endwith %}{% endif %}{% endwith %}</td>
-        <td>{{ e.get_lecture_stats_display }}</td>
-        <td>{{ e.get_pay_stats_display }}</td>
-        <td>{{ e.get_apply_gubun_display }}</td>
-        <td>{{ e.start_dt|slice:":4" }}-{{ e.start_dt|slice:"4:6" }}</td>
-        <td>{{ e.end_dt|slice:":4" }}-{{ e.end_dt|slice:"4:6" }}</td>
-        <td>{{ e.get_pay_method_display }}</td>
-        <td><a href="{% url 'office_student_detail' e.id %}"><img src="{% static 'ba_office/images/btn_detail.gif' %}" alt="상세" /></a></td>
+        <td>{{ e.apply_gubun_text }}</td>
+        <td>{{ e.lecture_title_display|safe }}</td>
+        <td>{{ e.member_id }}<br/>({{ e.member.name }})</td>
+        <td><font color="#422">{{ e.child_id }}<br/>({{ e.child.name }}) / ({{ e.child.card_num }})</font></td>
+        <td>{{ e.start_dt }}</td>
+        <td>{{ e.end_dt }}</td>
+        <td>{{ e.lecture_stats_text }}</td>
+        <td>{{ e.pay_stats_text }}<br/>({{ e.pay_method_text }})</td>
+        <td><a href="{% url 'office_student_detail' e.id %}" target="_blank"><img src="{% static 'ba_office/images/btn_detail.gif' %}" alt="상세보기" /></a></td>
     </tr>
     {% empty %}
-    <tr><td colspan="12">검색 결과가 없습니다.</td></tr>
+    <tr><td colspan="10">검색 수강생 명단이 없습니다.</td></tr>
     {% endfor %}
     </tbody>
 </table>
@@ -185,41 +173,49 @@ function sel_course(sta_code) {
         {% if p == students.number %}
         <b>[{{ p }}]</b>
         {% else %}
-        <a href="?page={{ p }}&sch_ym={{ sch_ym }}&sch_code_desc={{ sch_code_desc }}&sch_local_code={{ sch_local_code }}&sch_sta_code={{ sch_sta_code }}&sch_lecture_code={{ sch_lecture_code }}&sch_lecture_stats={{ sch_lecture_stats }}&sch_pay_stats={{ sch_pay_stats }}&sch_child_name={{ sch_child_name }}">[{{ p }}]</a>
+        <a href="?page={{ p }}&sch_ym={{ sch_ym }}&sch_code_desc={{ sch_code_desc }}&sch_sta_code={{ sch_sta_code }}&sch_lecture_code={{ sch_lecture_code }}&sch_lecture_stats={{ sch_lecture_stats }}&sch_pay_stats={{ sch_pay_stats }}&sch_lecture_title={{ sch_lecture_title }}">[{{ p }}]</a>
         {% endif %}
     {% endfor %}
 </div>
 {% endif %}
 
 <!-- 대기등록자 -->
-{% if wait_students %}
 <div class="h_55"></div>
-<p class="title">대기등록자</p>
-<div class="scroll">
-<table class="tb_scroll" border="0" cellpadding="0" cellspacing="0">
-    <colgroup><col width="5%" /><col width="15%" /><col width="15%" /><col width="15%" /><col width="15%" /><col width="15%" /><col width="20%" /></colgroup>
-    <thead>
-    <tr>
-        <th>No</th>
-        <th>구장명</th>
-        <th>회원ID</th>
-        <th>회원명</th>
-        <th>자녀ID</th>
-        <th>자녀명</th>
-        <th>신청일</th>
-    </tr>
-    </thead>
+<div class="count">대기 등록자 : 총 {{ wait_count }} 건</div>
+
+<div class="tb_basic">
+<table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
+    <colgroup>
+        <col width="5%" />
+        <col width="18%" />
+        <col width="18%" />
+        <col width="15%" />
+        <col />
+        <col width="10%" />
+        <col width="10%" />
+    </colgroup>
     <tbody>
+    <tr>
+        <th scope="col">대기번호</th>
+        <th scope="col">부모명(부모ID)</th>
+        <th scope="col">자녀명(자녀ID)</th>
+        <th scope="col">전화번호</th>
+        <th scope="col">등록일자</th>
+        <th scope="col">처리여부</th>
+        <th scope="col">회원상태</th>
+    </tr>
     {% for w in wait_students %}
     <tr>
         <td>{{ forloop.counter }}</td>
-        <td>{{ w.sta_code }}</td>
-        <td>{{ w.member_id }}</td>
-        <td>{{ w.member_name }}</td>
-        <td>{{ w.child_id }}</td>
-        <td>{{ w.child_name }}</td>
+        <td>{{ w.member_name }}({{ w.member_id }})</td>
+        <td>{{ w.child_name }}({{ w.child_id }})</td>
+        <td>{{ w.phone }}</td>
         <td>{{ w.insert_dt|date:"Y-m-d" }}</td>
+        <td>{{ w.trans_gbn }}</td>
+        <td>{{ w.course_state_display }}</td>
     </tr>
+    {% empty %}
+    <tr><td colspan="7">검색된 대기자 명단이 없습니다.</td></tr>
     {% endfor %}
     </tbody>
 </table>

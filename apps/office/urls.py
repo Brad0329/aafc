@@ -103,6 +103,7 @@ urlpatterns = [
     # 수강생관리 > 수강생상세
     path('lfstudent/student/detail/<int:no_seq>/', views.student_detail, name='office_student_detail'),
     path('lfstudent/student/shuttle-proc/', views.student_shuttle_proc, name='office_student_shuttle_proc'),
+    path('lfstudent/student/alim-proc/', views.student_alim_proc, name='office_student_alim_proc'),
 
     # 수강생관리 > 입단신청내역
     path('lfstudent/master/', views.master_list, name='office_master_list'),
