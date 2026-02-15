@@ -117,4 +117,23 @@ urlpatterns = [
     # 수강생관리 > 출결관리
     path('lfstudent/attendance/', views.attendance_view, name='office_attendance'),
     path('lfstudent/attendance/proc/', views.attendance_proc, name='office_attendance_proc'),
+
+    # 수강생관리 > 대기정보관리
+    path('lfstudent/wait/', views.wait_list, name='office_wait_list'),
+    path('lfstudent/wait/write/', views.wait_write, name='office_wait_write'),
+    path('lfstudent/wait/modify/<int:pk>/', views.wait_modify, name='office_wait_modify'),
+    path('lfstudent/wait/delete/', views.wait_delete_proc, name='office_wait_delete'),
+
+    # 수강생관리 > 수강생등록
+    path('lfstudent/student/add/', views.student_add, name='office_student_add'),
+    path('lfstudent/ajax/child-search/', views.ajax_child_search, name='office_ajax_child_search'),
+    path('lfstudent/ajax/course-list/', views.ajax_course_list, name='office_ajax_course_list'),
+    path('lfstudent/ajax/course-days/', views.ajax_course_days, name='office_ajax_course_days'),
+    path('lfstudent/ajax/promotions/', views.ajax_promotions, name='office_ajax_promotions'),
+
+    # 수강생관리 > 일괄처리
+    path('lfstudent/batch/next-month/', views.batch_next_month_proc, name='office_batch_next_month'),
+    path('lfstudent/batch/confirm/', views.batch_confirm_proc, name='office_batch_confirm'),
+    path('lfstudent/batch/confirm-pay/', views.batch_confirm_pay_proc, name='office_batch_confirm_pay'),
+    path('lfstudent/batch/lms/', views.batch_lms_proc, name='office_batch_lms'),
 ]

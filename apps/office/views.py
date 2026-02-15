@@ -12,7 +12,7 @@ from .decorators import office_login_required, office_permission_required
 from apps.notifications.models import OfficeNotification, Notification, SMSLog
 from apps.common.models import CodeGroup, CodeValue, Setting
 from apps.points.models import PointConfig, PointHistory
-from apps.courses.models import Coach, Stadium, Lecture
+from apps.courses.models import Coach, Stadium, Lecture, LectureSelDay, Promotion, PromotionMember
 from apps.accounts.models import Member, MemberChild, OutMember
 from apps.enrollment.models import (
     Enrollment, EnrollmentCourse, EnrollmentBill,
@@ -3154,3 +3154,961 @@ def attendance_proc(request):
     sch_code_desc = request.POST.get('sch_code_desc', '')
     sch_sta_code = request.POST.get('sch_sta_code', '')
     return redirect(f'/ba_office/lfstudent/attendance/?sch_mode=1&sch_lecture_code={lecture_code}&sch_date={att_date}&sch_code_desc={sch_code_desc}&sch_sta_code={sch_sta_code}')
+
+
+# ============================================================
+# 수강생관리 > 대기정보관리
+# ============================================================
+
+@office_login_required
+@office_permission_required('H')
+def wait_list(request):
+    """대기자정보 목록"""
+    # 개별 삭제 처리 (GET 파라미터)
+    del_id = request.GET.get('del_id', '')
+    if del_id:
+        WaitStudent.objects.filter(id=int(del_id)).update(del_chk='Y')
+        return redirect('office_wait_list')
+
+    sch_locd_code = request.GET.get('sch_locd_code', '')
+    sch_sta_code = request.GET.get('sch_sta_code', '')
+    trans_gbn = request.GET.get('trans_gbn', '')
+
+    qs = WaitStudent.objects.filter(del_chk='N')
+    if sch_locd_code:
+        qs = qs.filter(local_code=int(sch_locd_code))
+    if sch_sta_code:
+        qs = qs.filter(sta_code=int(sch_sta_code))
+    if trans_gbn:
+        qs = qs.filter(trans_gbn=trans_gbn)
+    qs = qs.order_by('sta_code', 'lecture_code', 'insert_dt')
+
+    wait_data = list(qs)
+    sta_codes = set(w.sta_code for w in wait_data)
+    lec_codes = set(w.lecture_code for w in wait_data)
+    sta_map = {}
+    if sta_codes:
+        for s in Stadium.objects.filter(sta_code__in=sta_codes):
+            sta_map[s.sta_code] = s.sta_nickname or s.sta_name
+    lec_map = {}
+    if lec_codes:
+        for lec in Lecture.objects.filter(lecture_code__in=lec_codes):
+            lec_map[lec.lecture_code] = lec.lecture_title
+
+    member_ids = set(w.member_id for w in wait_data)
+    phone_map = dict(
+        Member.objects.filter(username__in=member_ids).values_list('username', 'phone')
+    ) if member_ids else {}
+
+    for w in wait_data:
+        w.sta_name = sta_map.get(w.sta_code, '')
+        w.lec_title = lec_map.get(w.lecture_code, '')
+        w.mhtel = phone_map.get(w.member_id, '')
+        w.trans_gbn_text = '처리완료' if w.trans_gbn == 'Y' else '미처리'
+
+    locd_list = CodeValue.objects.filter(
+        group__grpcode='LOCD', del_chk='N'
+    ).order_by('code_order')
+
+    stadiums = []
+    if sch_locd_code:
+        stadiums = Stadium.objects.filter(
+            use_gbn='Y', local_code=int(sch_locd_code)
+        ).order_by('sta_name')
+
+    return render(request, 'ba_office/lfstudent/wait_list.html', {
+        'wait_list': wait_data,
+        'locd_list': locd_list,
+        'stadiums': stadiums,
+        'sch_locd_code': sch_locd_code,
+        'sch_sta_code': sch_sta_code,
+        'trans_gbn': trans_gbn,
+    })
+
+
+@office_login_required
+@office_permission_required('H')
+def wait_write(request):
+    """대기자 등록"""
+    if request.method == 'POST':
+        member_id = request.POST.get('member_id', '').strip()
+        member_name = request.POST.get('member_name', '').strip()
+        child_id = request.POST.get('child_id', '').strip()
+        child_name = request.POST.get('child_name', '').strip()
+        locd_code = request.POST.get('locd_code', '').strip()
+        sta_code_str = request.POST.get('sta_code', '').strip()
+        lecture_code_str = request.POST.get('lecture_code', '').strip()
+        wait_seq_str = request.POST.get('wait_seq', '').strip()
+        bigo = request.POST.get('bigo', '').strip()
+        insert_id = request.session.get('office_user', {}).get('office_id', '')
+
+        # 서버측 필수값 검증
+        if not member_id or not child_id or not locd_code or not sta_code_str or not lecture_code_str or not wait_seq_str:
+            return render(request, 'ba_office/lfstudent/wait_write.html', {
+                'children': [],
+                'locd_list': CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order'),
+                'sch_field': 'member_id', 'sch_value': '',
+                'error_msg': '필수정보가 부족합니다.',
+            })
+
+        local_code = int(locd_code)
+        sta_code = int(sta_code_str)
+        lecture_code = int(lecture_code_str)
+        wait_seq = int(wait_seq_str)
+
+        # 중복체크: 미처리 대기자 중 동일 child_id
+        if WaitStudent.objects.filter(child_id=child_id, del_chk='N', trans_gbn='N').exists():
+            return render(request, 'ba_office/lfstudent/wait_write.html', {
+                'children': [],
+                'locd_list': CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order'),
+                'sch_field': 'member_id', 'sch_value': '',
+                'error_msg': f'{child_id} 은(는) 대기자 명단에 존재합니다. 등록할 수 없습니다.',
+            })
+
+        phone = ''
+        try:
+            member = Member.objects.get(username=member_id)
+            phone = member.phone or ''
+        except Member.DoesNotExist:
+            pass
+
+        WaitStudent.objects.create(
+            local_code=local_code,
+            sta_code=sta_code,
+            lecture_code=lecture_code,
+            member_id=member_id,
+            member_name=member_name,
+            child_id=child_id,
+            child_name=child_name,
+            wait_seq=wait_seq,
+            bigo=bigo,
+            phone=phone,
+            insert_id=insert_id,
+        )
+        return redirect('office_wait_list')
+
+    # GET
+    sch_field = request.GET.get('sch_field', 'member_id')
+    sch_value = request.GET.get('sch_value', '')
+    children = []
+    if sch_value:
+        qs = MemberChild.objects.filter(status='N')
+        if sch_field == 'member_id':
+            qs = qs.filter(parent__username__icontains=sch_value)
+        elif sch_field == 'child_id':
+            qs = qs.filter(child_id__icontains=sch_value)
+        elif sch_field == 'child_name':
+            qs = qs.filter(name__icontains=sch_value)
+        children = list(qs.select_related('parent').order_by('name'))
+
+    locd_list = CodeValue.objects.filter(
+        group__grpcode='LOCD', del_chk='N'
+    ).order_by('code_order')
+
+    return render(request, 'ba_office/lfstudent/wait_write.html', {
+        'children': children,
+        'locd_list': locd_list,
+        'sch_field': sch_field,
+        'sch_value': sch_value,
+    })
+
+
+@office_login_required
+@office_permission_required('H')
+def wait_modify(request, pk):
+    """대기자 수정"""
+    wait = get_object_or_404(WaitStudent, pk=pk)
+
+    if request.method == 'POST':
+        wait.local_code = int(request.POST.get('locd_code', '0') or '0')
+        wait.sta_code = int(request.POST.get('sta_code', '0') or '0')
+        wait.lecture_code = int(request.POST.get('lecture_code', '0') or '0')
+        wait.wait_seq = int(request.POST.get('wait_seq', '0') or '0')
+        wait.trans_gbn = request.POST.get('trans_gbn', 'N')
+        wait.bigo = request.POST.get('bigo', '')
+        wait.save()
+        return redirect('office_wait_list')
+
+    locd_list = CodeValue.objects.filter(
+        group__grpcode='LOCD', del_chk='N'
+    ).order_by('code_order')
+
+    stadiums = Stadium.objects.filter(
+        use_gbn='Y', local_code=wait.local_code
+    ).order_by('sta_name') if wait.local_code else []
+
+    courses = Lecture.objects.filter(
+        stadium__sta_code=wait.sta_code, use_gbn='Y'
+    ).order_by('lecture_day', 'lecture_time') if wait.sta_code else []
+
+    return render(request, 'ba_office/lfstudent/wait_modify.html', {
+        'wait': wait,
+        'locd_list': locd_list,
+        'stadiums': stadiums,
+        'courses': courses,
+    })
+
+
+@office_login_required
+@office_permission_required('H')
+def wait_delete_proc(request):
+    """대기자 삭제 (일괄)"""
+    if request.method == 'POST':
+        wait_ids = request.POST.getlist('wait_sel_chk')
+        if wait_ids:
+            WaitStudent.objects.filter(id__in=wait_ids).update(del_chk='Y')
+    return redirect(request.META.get('HTTP_REFERER', '/ba_office/lfstudent/wait/'))
+
+
+# ============================================================
+# 수강생관리 > 일괄처리
+# ============================================================
+
+@office_login_required
+@office_permission_required('H')
+def batch_confirm_proc(request):
+    """수강확정 일괄처리 (LP → LY)"""
+    if request.method == 'POST':
+        child_ids = request.POST.getlist('sel_chk')
+        sch_ym = request.POST.get('sch_ym', '')
+
+        if child_ids and sch_ym:
+            try:
+                course_ym_date = date(int(sch_ym[:4]), int(sch_ym[4:6]), 1)
+            except (ValueError, IndexError):
+                return redirect(request.META.get('HTTP_REFERER', '/ba_office/lfstudent/student/'))
+
+            for child_id in child_ids:
+                enrollments = Enrollment.objects.filter(
+                    child_id=child_id, lecture_stats='LP', del_chk='N',
+                )
+                for enrollment in enrollments:
+                    has_course = EnrollmentCourse.objects.filter(
+                        enrollment=enrollment, course_ym=course_ym_date, bill_code='1001',
+                    ).exists()
+                    if has_course:
+                        enrollment.lecture_stats = 'LY'
+                        enrollment.save()
+                        EnrollmentCourse.objects.filter(
+                            enrollment=enrollment
+                        ).update(course_stats='LY')
+                        MemberChild.objects.filter(
+                            child_id=child_id
+                        ).update(course_state='ING')
+
+    return redirect(request.META.get('HTTP_REFERER', '/ba_office/lfstudent/student/'))
+
+
+@office_login_required
+@office_permission_required('H')
+def batch_confirm_pay_proc(request):
+    """수강확정+결제완료 일괄처리 (LP→LY, PP→PY)"""
+    if request.method == 'POST':
+        child_ids = request.POST.getlist('sel_chk')
+        sch_ym = request.POST.get('sch_ym', '')
+
+        if child_ids and sch_ym:
+            try:
+                course_ym_date = date(int(sch_ym[:4]), int(sch_ym[4:6]), 1)
+            except (ValueError, IndexError):
+                return redirect(request.META.get('HTTP_REFERER', '/ba_office/lfstudent/student/'))
+
+            for child_id in child_ids:
+                enrollments = Enrollment.objects.filter(
+                    child_id=child_id, lecture_stats='LP', del_chk='N',
+                )
+                for enrollment in enrollments:
+                    has_course = EnrollmentCourse.objects.filter(
+                        enrollment=enrollment, course_ym=course_ym_date, bill_code='1001',
+                    ).exists()
+                    if has_course:
+                        enrollment.lecture_stats = 'LY'
+                        enrollment.pay_stats = 'PY'
+                        enrollment.pay_dt = timezone.now()
+                        enrollment.save()
+                        EnrollmentCourse.objects.filter(
+                            enrollment=enrollment
+                        ).update(course_stats='LY')
+                        EnrollmentBill.objects.filter(
+                            enrollment=enrollment
+                        ).update(pay_stats='PY')
+                        MemberChild.objects.filter(
+                            child_id=child_id
+                        ).update(course_state='ING')
+
+    return redirect(request.META.get('HTTP_REFERER', '/ba_office/lfstudent/student/'))
+
+
+@office_login_required
+@office_permission_required('H')
+@transaction.atomic
+def batch_next_month_proc(request):
+    """익월수강예정 일괄생성"""
+    if request.method != 'POST':
+        return redirect('/ba_office/lfstudent/student/')
+
+    child_ids = request.POST.getlist('sel_chk')
+    sch_ym = request.POST.get('sch_ym', '')
+    insert_id = request.session.get('office_user', {}).get('office_id', '')
+    # DN모드: 개월선택 (GET 파라미터)
+    sel_lec_period = int(request.GET.get('sel_lec_period', '0') or '0')
+
+    if not child_ids or not sch_ym:
+        return redirect('/ba_office/lfstudent/student/')
+
+    try:
+        cur_year = int(sch_ym[:4])
+        cur_month = int(sch_ym[4:6])
+    except (ValueError, IndexError):
+        return redirect('/ba_office/lfstudent/student/')
+
+    next_month = cur_month + 1
+    next_year = cur_year
+    if next_month > 12:
+        next_month = 1
+        next_year += 1
+    next_ym = f'{next_year}{next_month:02d}'
+    next_ym_date = date(next_year, next_month, 1)
+
+    for child_id in child_ids:
+        # 현재월 수강정보 조회
+        current_enrollments = Enrollment.objects.filter(
+            child_id=child_id,
+            end_dt=sch_ym,
+            lecture_stats__in=['LY', 'LP', 'PN'],
+            del_chk='N',
+        ).order_by('-id')
+
+        if not current_enrollments.exists():
+            continue
+
+        cur_enrollment = current_enrollments.first()
+
+        # 익월 중복 체크
+        if Enrollment.objects.filter(
+            child_id=child_id, start_dt=next_ym,
+            lecture_stats__in=['LY', 'LP', 'PN'], del_chk='N',
+        ).exists():
+            continue
+
+        # 현재 강좌 코드
+        cur_courses = EnrollmentCourse.objects.filter(
+            enrollment=cur_enrollment, bill_code='1001',
+        )
+        lecture_codes = list(set(c.lecture_code for c in cur_courses))
+        if not lecture_codes:
+            continue
+
+        lec_cycle = cur_enrollment.lec_cycle or 1
+        # DN모드(개월선택)이면 사용자 선택값 사용, 아니면 현재 enrollment에서 복사
+        lec_period = sel_lec_period if sel_lec_period > 0 else (cur_enrollment.lec_period or 1)
+
+        # 자동이체 여부 (ASP 원본과 동일)
+        auto_pay_methods = ['MUCU', 'MCDO', 'SDM', 'TA', 'CAU', 'YDP']
+        is_auto = cur_enrollment.pay_method in auto_pay_methods
+
+        # 시간표 유효성 검증: 모든 강좌에 대해 lec_period 개월분 스케줄 존재 확인
+        schedule_valid = True
+        for lec_code in lecture_codes:
+            for offset in range(lec_period):
+                m = next_month + offset
+                y = next_year
+                while m > 12:
+                    m -= 12
+                    y += 1
+                if not LectureSelDay.objects.filter(
+                    lecture_code=lec_code, syear=y, smonth=m,
+                ).exists():
+                    schedule_valid = False
+                    break
+            if not schedule_valid:
+                break
+        if not schedule_valid:
+            continue
+
+        # 종료년월 계산
+        end_m = next_month + lec_period - 1
+        end_y = next_year
+        while end_m > 12:
+            end_m -= 12
+            end_y += 1
+        end_ym = f'{end_y}{end_m:02d}'
+
+        new_enrollment = Enrollment.objects.create(
+            member_id=cur_enrollment.member_id,
+            child_id=child_id,
+            pay_stats='PY' if is_auto else 'PP',
+            pay_method=cur_enrollment.pay_method,
+            pay_price=0,
+            lecture_stats='LY' if is_auto else 'LP',
+            lec_cycle=lec_cycle,
+            lec_period=lec_period,
+            start_dt=next_ym,
+            end_dt=end_ym,
+            apply_gubun='AGAIN',
+            source_gubun='02',
+            shuttle_yn=cur_enrollment.shuttle_yn,
+            del_chk='N',
+            insert_id=insert_id,
+        )
+
+        # 강좌별 Course 생성 (lec_period 개월분)
+        total_lecture_price = 0
+        for lec_code in lecture_codes:
+            try:
+                lec = Lecture.objects.get(lecture_code=lec_code)
+            except Lecture.DoesNotExist:
+                continue
+
+            for offset in range(lec_period):
+                m = next_month + offset
+                y = next_year
+                while m > 12:
+                    m -= 12
+                    y += 1
+
+                day_count = LectureSelDay.objects.filter(
+                    lecture_code=lec_code, syear=y, smonth=m,
+                ).count()
+
+                course_amt = lec.lec_price * day_count
+                total_lecture_price += course_amt
+
+                EnrollmentCourse.objects.create(
+                    enrollment=new_enrollment,
+                    bill_code='1001',
+                    course_ym=date(y, m, 1),
+                    course_ym_amt=course_amt,
+                    lecture_code=lec_code,
+                    start_ymd=date(y, m, 1),
+                    course_stats='LY' if is_auto else 'LP',
+                )
+
+        # 다회할인 계산 (dc_X × lec_period, ASP 원본 동일)
+        multi_discount = 0
+        if lec_cycle >= 2:
+            for lec_code in lecture_codes:
+                try:
+                    lec = Lecture.objects.get(lecture_code=lec_code)
+                    if lec_cycle == 2:
+                        multi_discount += (lec.dc_2 or 0) * lec_period
+                    elif lec_cycle == 3:
+                        multi_discount += (lec.dc_3 or 0) * lec_period
+                    elif lec_cycle >= 4:
+                        multi_discount += (lec.dc_4 or 0) * lec_period
+                except Lecture.DoesNotExist:
+                    pass
+
+        # 프로모션 할인 (bill_code 1003)
+        promo_discount = 0
+        active_promos = Promotion.objects.filter(
+            start_date__lte=timezone.now(), end_date__gte=timezone.now(), is_use='T',
+        )
+        for promo in active_promos:
+            if promo.use_mode == 2:  # 수강료차감
+                is_member = PromotionMember.objects.filter(
+                    coupon_uid=promo.uid, child_id=child_id,
+                ).exists()
+                if is_member:
+                    promo_discount += promo.discount or 0
+
+        bill_stats = 'PY' if is_auto else 'PP'
+        EnrollmentBill.objects.create(
+            enrollment=new_enrollment,
+            bill_code='1001', bill_desc='수업료',
+            bill_amt=total_lecture_price,
+            pay_stats=bill_stats, insert_id=insert_id,
+        )
+
+        if multi_discount > 0:
+            EnrollmentBill.objects.create(
+                enrollment=new_enrollment,
+                bill_code='1007', bill_desc=f'주{lec_cycle}회 할인',
+                bill_amt=-multi_discount,
+                pay_stats=bill_stats, insert_id=insert_id,
+            )
+
+        if promo_discount > 0:
+            EnrollmentBill.objects.create(
+                enrollment=new_enrollment,
+                bill_code='1003', bill_desc='프로모션할인',
+                bill_amt=-promo_discount,
+                pay_stats=bill_stats, insert_id=insert_id,
+            )
+
+        pay_price = max(total_lecture_price - multi_discount - promo_discount, 0)
+        new_enrollment.pay_price = pay_price
+        new_enrollment.save()
+
+    referer = request.META.get('HTTP_REFERER', '/ba_office/lfstudent/student/')
+    return redirect(referer)
+
+
+@office_login_required
+@office_permission_required('H')
+def batch_lms_proc(request):
+    """결제안내 LMS 발송"""
+    if request.method != 'POST':
+        return redirect('/ba_office/lfstudent/student/')
+
+    child_ids = request.POST.getlist('sel_chk')
+    sch_ym = request.POST.get('sch_ym', '')
+    insert_id = request.session.get('office_user', {}).get('office_id', '')
+
+    if not child_ids or not sch_ym:
+        return redirect('/ba_office/lfstudent/student/')
+
+    try:
+        course_ym_date = date(int(sch_ym[:4]), int(sch_ym[4:6]), 1)
+    except (ValueError, IndexError):
+        return redirect('/ba_office/lfstudent/student/')
+
+    for child_id in child_ids:
+        enrollments = Enrollment.objects.filter(
+            child_id=child_id, pay_stats='PP', del_chk='N',
+        )
+        for enrollment in enrollments:
+            has_course = EnrollmentCourse.objects.filter(
+                enrollment=enrollment, course_ym=course_ym_date, bill_code='1001',
+            ).exists()
+            if not has_course:
+                continue
+
+            try:
+                member = Member.objects.get(username=enrollment.member_id)
+                phone = (member.phone or '').replace('-', '')
+            except Member.DoesNotExist:
+                continue
+            if not phone:
+                continue
+
+            # 교육용품비 (bill_code 2xxx 합산)
+            join_price = EnrollmentBill.objects.filter(
+                enrollment=enrollment, bill_code__startswith='2',
+            ).aggregate(total=Sum('bill_amt'))['total'] or 0
+
+            # 수강료 (bill_code 1xxx 합산)
+            lecture_price = EnrollmentBill.objects.filter(
+                enrollment=enrollment, bill_code__startswith='1',
+            ).aggregate(total=Sum('bill_amt'))['total'] or 0
+
+            courses = EnrollmentCourse.objects.filter(
+                enrollment=enrollment, bill_code='1001', course_ym=course_ym_date,
+            )
+            lec_codes = [c.lecture_code for c in courses]
+            lectures = Lecture.objects.filter(
+                lecture_code__in=lec_codes
+            ).select_related('stadium', 'coach')
+
+            # 첫 번째 강좌 기준 정보
+            sta_name = ''
+            lecture_title = ''
+            coach_name = ''
+            sta_phone = ''
+            for lec in lectures:
+                sta_name = lec.stadium.sta_name if lec.stadium else ''
+                sta_phone = lec.stadium.sta_phone if lec.stadium else ''
+                lecture_title = lec.lecture_title or ''
+                coach_name = lec.coach.coach_name if lec.coach else ''
+                break  # 첫 번째 강좌 정보만
+
+            start_dt = enrollment.start_dt or ''
+            end_dt = enrollment.end_dt or ''
+
+            msg = (
+                f'[AAFC]\n'
+                f'안녕하세요. AAFC입니다.\n'
+                f'수강료 금액 결제 요청 드립니다.\n\n'
+                f'1. 홈페이지 결제 http://www.aafc.co.kr\n'
+                f'[결제정보]\n'
+                f'  ＊ 교육용품비 = {join_price:,}원\n'
+                f'  ＊ 수강료 = {lecture_price:,}원\n'
+                f'  ＊ 총 결제금액 = {enrollment.pay_price:,}원\n\n'
+                f'[수업정보]\n'
+                f'  ＊ 구장 = {sta_name}\n'
+                f'  ＊ 클래스 = {lecture_title}\n'
+                f'  ＊ 수강월 = {start_dt}~{end_dt}\n'
+                f'  ＊ 담당 코치 = {coach_name}\n'
+                f'  ＊ 야드 연락처 = {sta_phone}'
+            )
+
+            SMSLog.objects.create(
+                service_type='3',
+                recipient_num=phone,
+                subject='수강료 결제 요청',
+                content=msg,
+                callback='18117909',
+                date_client_req=timezone.now(),
+                msg_status='1',
+            )
+
+    return redirect(request.META.get('HTTP_REFERER', '/ba_office/lfstudent/student/'))
+
+
+# ============================================================
+# 수강생관리 > AJAX (수강생등록/대기자용)
+# ============================================================
+
+@office_login_required
+def ajax_child_search(request):
+    """AJAX: 자녀 검색"""
+    sch_field = request.GET.get('sch_field', 'member_id')
+    sch_value = request.GET.get('sch_value', '')
+
+    if not sch_value:
+        return JsonResponse([], safe=False)
+
+    qs = MemberChild.objects.filter(status='N')
+    if sch_field == 'member_id':
+        qs = qs.filter(parent__username__icontains=sch_value)
+    elif sch_field == 'child_id':
+        qs = qs.filter(child_id__icontains=sch_value)
+    elif sch_field == 'child_name':
+        qs = qs.filter(name__icontains=sch_value)
+
+    qs = qs.select_related('parent').order_by('name')[:50]
+    data = []
+    for c in qs:
+        data.append({
+            'child_id': c.child_id,
+            'name': c.name,
+            'member_id': c.parent.username if c.parent else '',
+            'member_name': c.parent.name if c.parent else '',
+            'birth': c.birth or '',
+            'sch_name': c.school or '',
+            'sch_grade': c.grade or '',
+            'sex': c.gender or '',
+            'course_state': c.course_state or '',
+        })
+    return JsonResponse(data, safe=False)
+
+
+@office_login_required
+def ajax_course_list(request):
+    """AJAX: 구장+년월별 강좌목록"""
+    sta_code = request.GET.get('sta_code', '')
+    ym = request.GET.get('ym', '')
+
+    if not sta_code:
+        return JsonResponse([], safe=False)
+
+    qs = Lecture.objects.filter(
+        stadium__sta_code=int(sta_code), use_gbn='Y',
+    ).select_related('stadium', 'coach').order_by('lecture_day', 'class_gbn', 'lecture_time')
+
+    data = []
+    for lec in qs:
+        current_count = 0
+        if ym:
+            try:
+                ym_date = date(int(ym[:4]), int(ym[4:6]), 1)
+                current_count = EnrollmentCourse.objects.filter(
+                    lecture_code=lec.lecture_code, course_ym=ym_date,
+                    bill_code='1001', course_stats__in=['LY', 'LP'],
+                ).values('enrollment__child_id').distinct().count()
+            except (ValueError, IndexError):
+                pass
+
+        data.append({
+            'lecture_code': lec.lecture_code,
+            'lecture_title': lec.lecture_title,
+            'lec_price': lec.lec_price,
+            'lecture_day': lec.lecture_day or 0,
+            'lecture_time': lec.lecture_time or '',
+            'stu_cnt': lec.stu_cnt or 0,
+            'current_count': current_count,
+            'coach_name': lec.coach.coach_name if lec.coach else '',
+            'dc_2': lec.dc_2 or 0,
+            'dc_3': lec.dc_3 or 0,
+            'dc_4': lec.dc_4 or 0,
+        })
+    return JsonResponse(data, safe=False)
+
+
+@office_login_required
+def ajax_course_days(request):
+    """AJAX: 강좌별 수업시작일"""
+    lecture_code = request.GET.get('lecture_code', '')
+    syear = request.GET.get('syear', '')
+    smonth = request.GET.get('smonth', '')
+
+    if not lecture_code or not syear or not smonth:
+        return JsonResponse([], safe=False)
+
+    days = LectureSelDay.objects.filter(
+        lecture_code=int(lecture_code), syear=int(syear), smonth=int(smonth),
+    ).order_by('sday')
+
+    data = [{'sday': d.sday, 'sweek': d.sweek or ''} for d in days]
+    return JsonResponse(data, safe=False)
+
+
+@office_login_required
+def ajax_promotions(request):
+    """AJAX: 프로모션 할인 조회"""
+    child_id = request.GET.get('child_id', '')
+    now = timezone.now()
+
+    promotions = []
+    if child_id:
+        active_promos = Promotion.objects.filter(
+            start_date__lte=now, end_date__gte=now, is_use='T',
+        )
+        for promo in active_promos:
+            is_member = PromotionMember.objects.filter(
+                coupon_uid=promo.uid, child_id=child_id,
+            ).exists()
+            if is_member:
+                promotions.append({
+                    'uid': promo.uid,
+                    'title': promo.title,
+                    'discount': promo.discount or 0,
+                    'discount_unit': promo.discount_unit or '',
+                    'use_mode': promo.use_mode or 0,
+                })
+
+    return JsonResponse(promotions, safe=False)
+
+
+# ============================================================
+# 수강생관리 > 수강생등록
+# ============================================================
+
+@office_login_required
+@office_permission_required('H')
+def student_add(request):
+    """수강생등록 (관리자)"""
+    if request.method == 'POST':
+        return _student_add_proc(request)
+
+    locd_list = CodeValue.objects.filter(
+        group__grpcode='LOCD', del_chk='N'
+    ).order_by('code_order')
+
+    setting = Setting.objects.first()
+    join_price = setting.join_price if setting else 0
+
+    return render(request, 'ba_office/lfstudent/student_add.html', {
+        'locd_list': locd_list,
+        'join_price': join_price,
+    })
+
+
+@transaction.atomic
+def _student_add_proc(request):
+    """수강생등록 처리 (POST)"""
+    insert_id = request.session.get('office_user', {}).get('office_id', '')
+
+    member_id = request.POST.get('member_id', '').strip()
+    child_id = request.POST.get('child_id', '').strip()
+    if not member_id or not child_id:
+        return redirect('office_student_add')
+
+    local_code = int(request.POST.get('locd_code', '0') or '0')
+    sta_code = int(request.POST.get('sta_code', '0') or '0')
+    syear = int(request.POST.get('syear', '0') or '0')
+    smonth = int(request.POST.get('smonth', '0') or '0')
+    lec_cycle = int(request.POST.get('lec_cycle', '1') or '1')
+    lec_period = int(request.POST.get('lec_period', '1') or '1')
+
+    lecture_codes = request.POST.getlist('sel_lecture')
+    start_days = {}
+    for code in lecture_codes:
+        start_days[code] = int(request.POST.get(f'start_day_{code}', '1') or '1')
+
+    pay_method = request.POST.get('pay_method', 'ACCT')
+    pay_stats = request.POST.get('pay_stats', 'PP')
+    lecture_stats = request.POST.get('lecture_stats', 'LP')
+    join_price = int(request.POST.get('join_price', '0') or '0')
+    pay_price = int(request.POST.get('pay_price', '0') or '0')
+    shuttle_yn = request.POST.get('shuttle_yn', 'N')
+    shuttle_amt = int(request.POST.get('shuttle_amt', '0') or '0')
+    bigo = request.POST.get('bigo_content', '')
+    recommend_id = request.POST.get('recommend_id', '').strip()
+
+    eq_discount = int(request.POST.get('eq_discount', '0') or '0')
+    tu_discount = int(request.POST.get('tu_discount', '0') or '0')
+    py_discount = int(request.POST.get('py_discount', '0') or '0')
+    multi_discount = int(request.POST.get('multi_discount', '0') or '0')
+    recommend_discount = int(request.POST.get('recommend_discount', '0') or '0')
+
+    # 종료년월 계산
+    end_month = smonth + lec_period - 1
+    end_year = syear
+    while end_month > 12:
+        end_month -= 12
+        end_year += 1
+    start_dt = f'{syear}{smonth:02d}'
+    end_dt = f'{end_year}{end_month:02d}'
+
+    # 신청구분
+    try:
+        child = MemberChild.objects.get(child_id=child_id)
+        cs = child.course_state or 'CAN'
+        if cs == 'ING':
+            apply_gubun = 'AGAIN'
+        elif cs in ('END', 'PAU'):
+            apply_gubun = 'RENEW'
+        else:
+            apply_gubun = 'NEW'
+    except MemberChild.DoesNotExist:
+        apply_gubun = 'NEW'
+
+    enrollment = Enrollment.objects.create(
+        member_id=member_id,
+        child_id=child_id,
+        pay_stats=pay_stats,
+        pay_method=pay_method,
+        pay_price=pay_price,
+        pay_dt=timezone.now() if pay_stats == 'PY' else None,
+        lecture_stats=lecture_stats,
+        lec_cycle=lec_cycle,
+        lec_period=lec_period,
+        start_dt=start_dt,
+        end_dt=end_dt,
+        apply_gubun=apply_gubun,
+        source_gubun='02',
+        shuttle_yn=shuttle_yn,
+        recommend_id=recommend_id,
+        bigo_content=bigo,
+        del_chk='N',
+        insert_id=insert_id,
+    )
+
+    total_lecture_price = 0
+    first_month_price = 0  # 첫달 수업료 (1002 계산용)
+    full_month_price = 0   # 한달 전체 수업료 (시작일 무관)
+    bill_pay_stats = pay_stats
+
+    for code in lecture_codes:
+        try:
+            lec = Lecture.objects.get(lecture_code=int(code))
+        except Lecture.DoesNotExist:
+            continue
+
+        sday = start_days.get(code, 1)
+
+        for offset in range(lec_period):
+            m = smonth + offset
+            y = syear
+            while m > 12:
+                m -= 12
+                y += 1
+
+            if offset == 0:
+                count = LectureSelDay.objects.filter(
+                    lecture_code=int(code), syear=y, smonth=m, sday__gte=sday
+                ).count()
+                full_count = LectureSelDay.objects.filter(
+                    lecture_code=int(code), syear=y, smonth=m
+                ).count()
+                first_month_price += lec.lec_price * count
+                full_month_price += lec.lec_price * full_count
+            else:
+                count = LectureSelDay.objects.filter(
+                    lecture_code=int(code), syear=y, smonth=m
+                ).count()
+
+            course_amt = lec.lec_price * count
+            total_lecture_price += course_amt
+
+            start_ymd = date(y, m, sday if offset == 0 else 1)
+
+            EnrollmentCourse.objects.create(
+                enrollment=enrollment,
+                bill_code='1001',
+                course_ym=date(y, m, 1),
+                course_ym_amt=course_amt,
+                lecture_code=int(code),
+                start_ymd=start_ymd,
+                course_stats=lecture_stats,
+            )
+
+    # 수업료 (bill_code 1001)
+    EnrollmentBill.objects.create(
+        enrollment=enrollment,
+        bill_code='1001', bill_desc='수업료',
+        bill_amt=total_lecture_price,
+        pay_stats=bill_pay_stats, insert_id=insert_id,
+    )
+
+    # 첫달수업료차감 (bill_code 1002) - 첫달 시작일로 인한 차액
+    first_month_discount = full_month_price - first_month_price
+    if first_month_discount != 0:
+        EnrollmentBill.objects.create(
+            enrollment=enrollment,
+            bill_code='1002', bill_desc='첫달수업료차감',
+            bill_amt=-first_month_discount,
+            pay_stats=bill_pay_stats, insert_id=insert_id,
+        )
+
+    # 교육용품비 (bill_code 2001)
+    if join_price > 0:
+        EnrollmentBill.objects.create(
+            enrollment=enrollment,
+            bill_code='2001', bill_desc='교육용품비',
+            bill_amt=join_price,
+            pay_stats=bill_pay_stats, insert_id=insert_id,
+        )
+
+    # 교육용품할인 (bill_code 2002)
+    if eq_discount > 0:
+        EnrollmentBill.objects.create(
+            enrollment=enrollment,
+            bill_code='2002', bill_desc='교육용품할인',
+            bill_amt=-eq_discount,
+            pay_stats=bill_pay_stats, insert_id=insert_id,
+        )
+
+    # 수강료할인 (bill_code 1003)
+    if tu_discount > 0:
+        EnrollmentBill.objects.create(
+            enrollment=enrollment,
+            bill_code='1003', bill_desc='수강료할인',
+            bill_amt=-tu_discount,
+            pay_stats=bill_pay_stats, insert_id=insert_id,
+        )
+
+    # 결제금액할인 (bill_code 1003)
+    if py_discount > 0:
+        EnrollmentBill.objects.create(
+            enrollment=enrollment,
+            bill_code='1003', bill_desc='결제금액할인',
+            bill_amt=-py_discount,
+            pay_stats=bill_pay_stats, insert_id=insert_id,
+        )
+
+    # 피추천인할인 (bill_code 1006)
+    if recommend_discount > 0:
+        EnrollmentBill.objects.create(
+            enrollment=enrollment,
+            bill_code='1006', bill_desc='피추천인할인',
+            bill_amt=-recommend_discount,
+            pay_stats=bill_pay_stats, insert_id=insert_id,
+        )
+
+    # 다회할인 (bill_code 1007)
+    if multi_discount > 0:
+        EnrollmentBill.objects.create(
+            enrollment=enrollment,
+            bill_code='1007', bill_desc=f'주{lec_cycle}회 할인',
+            bill_amt=-multi_discount,
+            pay_stats=bill_pay_stats, insert_id=insert_id,
+        )
+
+    # 차량이용료 (bill_code 1009)
+    if shuttle_yn == 'Y' and shuttle_amt > 0:
+        EnrollmentBill.objects.create(
+            enrollment=enrollment,
+            bill_code='1009', bill_desc='차량이용료',
+            bill_amt=shuttle_amt,
+            pay_stats=bill_pay_stats, insert_id=insert_id,
+        )
+
+    MemberChild.objects.filter(child_id=child_id).update(course_state='ING')
+
+    WaitStudent.objects.filter(
+        child_id=child_id, trans_gbn='N', del_chk='N'
+    ).update(trans_gbn='Y')
+
+    return redirect('office_student_list')

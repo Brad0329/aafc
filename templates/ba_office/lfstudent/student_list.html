@@ -30,6 +30,66 @@ function sel_course(sta_code) {
 function srch_snd() {
     document.srch_form.submit();
 }
+function allchk() {
+    var chks = document.getElementsByName("sel_chk");
+    var total = document.getElementById("total_sel");
+    for (var i = 0; i < chks.length; i++) {
+        chks[i].checked = total.checked;
+    }
+}
+function wait_allchk() {
+    var chks = document.getElementsByName("wait_sel_chk");
+    var total = document.getElementById("wait_total_sel");
+    for (var i = 0; i < chks.length; i++) {
+        chks[i].checked = total.checked;
+    }
+}
+function proc_add() {
+    var chks = document.getElementsByName("sel_chk");
+    var cnt = 0;
+    for (var i = 0; i < chks.length; i++) {
+        if (chks[i].checked) cnt++;
+    }
+    if (cnt == 0) { alert("처리할 수강생을 선택하세요."); return; }
+
+    var procsel = document.getElementById("procsel").value;
+    var msg = "";
+    var url = "";
+    if (procsel == "D") {
+        msg = "선택한 " + cnt + "명에 대해 익월 수강예정을 생성하시겠습니까?";
+        url = "{% url 'office_batch_next_month' %}";
+    } else if (procsel == "DN") {
+        var lp = document.getElementById("sel_lec_period").value;
+        msg = "수강개월 = " + lp + "개월\n선택한 " + cnt + "명에 대해 재수강처리 하시겠습니까?";
+        url = "{% url 'office_batch_next_month' %}?sel_lec_period=" + lp;
+    } else if (procsel == "Y") {
+        msg = "선택한 " + cnt + "명을 수강확정 처리하시겠습니까?";
+        url = "{% url 'office_batch_confirm' %}";
+    } else if (procsel == "T") {
+        msg = "선택한 " + cnt + "명을 수강확정+결제완료 처리하시겠습니까?";
+        url = "{% url 'office_batch_confirm_pay' %}";
+    } else if (procsel == "L") {
+        msg = "선택한 " + cnt + "명에게 결제안내 LMS를 발송하시겠습니까?";
+        url = "{% url 'office_batch_lms' %}";
+    }
+
+    if (confirm(msg)) {
+        var form = document.getElementById("batch_form");
+        form.action = url;
+        form.submit();
+    }
+}
+function wait_Delete() {
+    var chks = document.getElementsByName("wait_sel_chk");
+    var cnt = 0;
+    for (var i = 0; i < chks.length; i++) {
+        if (chks[i].checked) cnt++;
+    }
+    if (cnt == 0) { alert("삭제할 대기자를 선택하세요."); return; }
+    if (confirm("선택한 " + cnt + "명의 대기정보를 삭제하시겠습니까?")) {
+        document.getElementById("wait_form").submit();
+    }
+}
 </script>
 {% endblock %}
 
@@ -120,22 +180,27 @@ function srch_snd() {
 
 <div class="count">총 {{ total_count }} 건</div>
 
+<form id="batch_form" method="post" action="">
+{% csrf_token %}
+<input type="hidden" name="sch_ym" value="{{ sch_ym }}" />
 <div class="tb_basic">
 <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
     <colgroup>
+        <col width="3%" />
         <col width="4%" />
-        <col width="7%" />
+        <col width="6%" />
         <col />
-        <col width="10%" />
-        <col width="15%" />
-        <col width="8%" />
-        <col width="8%" />
-        <col width="10%" />
-        <col width="10%" />
-        <col width="8%" />
+        <col width="9%" />
+        <col width="14%" />
+        <col width="7%" />
+        <col width="7%" />
+        <col width="9%" />
+        <col width="9%" />
+        <col width="7%" />
     </colgroup>
     <tbody>
     <tr>
+        <th scope="col"><input type="checkbox" id="total_sel" onclick="allchk();" /></th>
         <th scope="col">순번</th>
         <th scope="col">신청구분</th>
         <th scope="col">과정명</th>
@@ -149,6 +214,7 @@ function srch_snd() {
     </tr>
     {% for e in students %}
     <tr{% if e.is_pink %} style="background-color:pink;"{% endif %}>
+        <td><input type="checkbox" name="sel_chk" value="{{ e.child_id }}" /></td>
         <td>{{ forloop.counter|page_index:students.start_index }}</td>
         <td>{{ e.apply_gubun_text }}</td>
         <td>{{ e.lecture_title_display|safe }}</td>
@@ -161,11 +227,28 @@ function srch_snd() {
         <td><a href="{% url 'office_student_detail' e.id %}" target="_blank"><img src="{% static 'ba_office/images/btn_detail.gif' %}" alt="상세보기" /></a></td>
     </tr>
     {% empty %}
-    <tr><td colspan="10">검색 수강생 명단이 없습니다.</td></tr>
+    <tr><td colspan="11">검색 수강생 명단이 없습니다.</td></tr>
     {% endfor %}
     </tbody>
 </table>
 </div>
+
+<div class="btn_right">
+    <select id="procsel" class="select">
+        <option value="D">익월 수강예정 대상자(기존)</option>
+        <option value="DN">익월 수강예정 대상자(개월선택)</option>
+        <option value="Y">수강확정</option>
+        <option value="T">수강확정+결제완료</option>
+        <option value="L">결제안내 LMS 전송</option>
+    </select>
+    <select id="sel_lec_period" class="select" style="width:80px;">
+        <option value="1">1개월</option>
+        <option value="2">2개월</option>
+        <option value="3">3개월</option>
+    </select>
+    <a href="javascript:proc_add();"><img src="{% static 'ba_office/images/btn_check.gif' %}" alt="처리" /></a>
+</div>
+</form>
 
 {% if students.has_other_pages %}
 <div style="text-align:center; margin:10px 0;">
@@ -183,19 +266,23 @@ function srch_snd() {
 <div class="h_55"></div>
 <div class="count">대기 등록자 : 총 {{ wait_count }} 건</div>
 
+<form id="wait_form" method="post" action="{% url 'office_wait_delete' %}">
+{% csrf_token %}
 <div class="tb_basic">
 <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
     <colgroup>
+        <col width="3%" />
         <col width="5%" />
-        <col width="18%" />
-        <col width="18%" />
-        <col width="15%" />
+        <col width="17%" />
+        <col width="17%" />
+        <col width="14%" />
         <col />
         <col width="10%" />
         <col width="10%" />
     </colgroup>
     <tbody>
     <tr>
+        <th scope="col"><input type="checkbox" id="wait_total_sel" onclick="wait_allchk();" /></th>
         <th scope="col">대기번호</th>
         <th scope="col">부모명(부모ID)</th>
         <th scope="col">자녀명(자녀ID)</th>
@@ -206,6 +293,7 @@ function srch_snd() {
     </tr>
     {% for w in wait_students %}
     <tr>
+        <td><input type="checkbox" name="wait_sel_chk" value="{{ w.id }}" /></td>
         <td>{{ forloop.counter }}</td>
         <td>{{ w.member_name }}({{ w.member_id }})</td>
         <td>{{ w.child_name }}({{ w.child_id }})</td>
@@ -215,11 +303,13 @@ function srch_snd() {
         <td>{{ w.course_state_display }}</td>
     </tr>
     {% empty %}
-    <tr><td colspan="7">검색된 대기자 명단이 없습니다.</td></tr>
+    <tr><td colspan="8">검색된 대기자 명단이 없습니다.</td></tr>
     {% endfor %}
     </tbody>
 </table>
 </div>
+<div class="btn_right"><a href="javascript:wait_Delete();"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a></div>
+</form>
 {% endif %}
 
 {% endblock %}

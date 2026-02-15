@@ -1,0 +1,134 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfstudent_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function sel_stadium(code) {
+    $.getJSON("{% url 'office_ajax_student_stadium' %}", {grplocal_code: code}, function(data) {
+        var sel = document.reg_form.sta_code;
+        sel.options.length = 1;
+        for (var i = 0; i < data.length; i++) {
+            sel.options[sel.options.length] = new Option(data[i].sta_name, data[i].sta_code);
+        }
+        document.reg_form.lecture_code.options.length = 1;
+    });
+}
+function sel_course(sta_code) {
+    $.getJSON("{% url 'office_ajax_student_course' %}", {sta_code: sta_code}, function(data) {
+        var sel = document.reg_form.lecture_code;
+        sel.options.length = 1;
+        for (var i = 0; i < data.length; i++) {
+            sel.options[sel.options.length] = new Option(data[i].lecture_title, data[i].lecture_code);
+        }
+    });
+}
+function snd_chk() {
+    if (document.reg_form.locd_code.value == "") { alert("권역을 선택하세요."); return; }
+    if (document.reg_form.sta_code.value == "") { alert("구장을 선택하세요."); return; }
+    if (document.reg_form.lecture_code.value == "") { alert("과정을 선택하세요."); return; }
+    if (document.reg_form.wait_seq.value == "") { alert("대기순번을 입력하세요."); return; }
+
+    var con = confirm("수정 하시겠습니까?");
+    if (con) {
+        document.reg_form.submit();
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  수강생관리  &gt;  대기자정보관리</div>
+<div class="h_55"></div>
+
+<p class="title">대기자 정보 수정</p>
+<div class="tb_basic">
+<table summary="대기자정보" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="15%" /><col width="35%" /><col width="15%" /><col width="35%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">부모님ID</th>
+            <td class="left">{{ wait.member_id }}</td>
+            <th scope="col">부모님명</th>
+            <td class="left">{{ wait.member_name }}</td>
+        </tr>
+        <tr>
+            <th scope="col">자녀ID</th>
+            <td class="left">{{ wait.child_id }}</td>
+            <th scope="col">자녀명</th>
+            <td class="left">{{ wait.child_name }}</td>
+        </tr>
+    </tbody>
+</table>
+</div>
+
+<div class="tb_basic">
+<form name="reg_form" method="post" action="{% url 'office_wait_modify' wait.pk %}">
+{% csrf_token %}
+<table summary="대기자정보" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="15%" /><col width="35%" /><col width="15%" /><col width="35%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">필드명</th>
+            <td class="left">
+                <select name="locd_code" class="select" onchange="sel_stadium(this.value);">
+                    <option value="">==선택==</option>
+                    {% for cd in locd_list %}
+                    <option value="{{ cd.subcode }}" {% if wait.local_code == cd.subcode %}selected{% endif %}>{{ cd.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">구장명</th>
+            <td class="left">
+                <select name="sta_code" class="select" onchange="sel_course(this.value);">
+                    <option value="">==선택==</option>
+                    {% for s in stadiums %}
+                    <option value="{{ s.sta_code }}" {% if wait.sta_code == s.sta_code %}selected{% endif %}>{{ s.sta_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">과정명</th>
+            <td class="left">
+                <select name="lecture_code" class="select">
+                    <option value="">==선택==</option>
+                    {% for c in courses %}
+                    <option value="{{ c.lecture_code }}" {% if wait.lecture_code == c.lecture_code %}selected{% endif %}>{{ c.lecture_title }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">수강등록여부</th>
+            <td class="left">
+                <select name="trans_gbn" class="select">
+                    <option value="Y" {% if wait.trans_gbn == "Y" %}selected{% endif %}>처리완료</option>
+                    <option value="N" {% if wait.trans_gbn == "N" %}selected{% endif %}>미처리</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">대기순번</th>
+            <td class="left" colspan="3">
+                <input type="text" name="wait_seq" style="width:50px;" maxlength="2" value="{{ wait.wait_seq }}" />
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">비고<br>(특이사항 입력)</th>
+            <td class="left" colspan="3">
+                <textarea name="bigo" class="textarea" style="width:230px" rows="5">{{ wait.bigo }}</textarea>
+            </td>
+        </tr>
+    </tbody>
+</form>
+</table>
+</div>
+
+<div class="btn_right">
+    <a href="javascript:snd_chk();"><img src="{% static 'ba_office/images/btn_modify.gif' %}" alt="수정" /></a>
+    <a href="{% url 'office_wait_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+
+{% endblock %}

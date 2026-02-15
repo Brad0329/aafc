@@ -182,9 +182,11 @@ class WaitStudent(models.Model):
     child_name = models.CharField('자녀 이름', max_length=20, blank=True)
     wait_seq = models.IntegerField('대기순번', default=0)
     trans_gbn = models.CharField('전환여부', max_length=1, default='N')
+    bigo = models.CharField('비고', max_length=500, blank=True)
     del_chk = models.CharField('삭제여부', max_length=1, default='N')
     insert_id = models.CharField('등록자', max_length=30, blank=True)
     insert_dt = models.DateTimeField('등록일', auto_now_add=True)
+    phone = models.CharField('전화번호', max_length=30, blank=True)
 
     class Meta:
         db_table = 'enrollment_waitstudent'

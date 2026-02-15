@@ -1,0 +1,408 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfstudent_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var courseData = [];
+var selectedCourses = [];
+
+function srch_child() {
+    var field = document.getElementById("sch_field").value;
+    var value = document.getElementById("sch_value").value;
+    if (!value) { alert("검색어를 입력하세요."); return; }
+
+    $.getJSON("{% url 'office_ajax_child_search' %}", {sch_field: field, sch_value: value}, function(data) {
+        var tbody = document.getElementById("child_tbody");
+        tbody.innerHTML = "";
+        if (data.length == 0) {
+            tbody.innerHTML = "<tr><td colspan='8' align='center'>검색 결과가 없습니다.</td></tr>";
+            return;
+        }
+        for (var i = 0; i < data.length; i++) {
+            var d = data[i];
+            var sex = d.sex == 'M' ? '남' : (d.sex == 'F' ? '여' : '');
+            var tr = "<tr style='cursor:pointer;' onclick=\"selChild('" + d.member_id + "','" + d.member_name + "','" + d.child_id + "','" + d.name + "','" + d.course_state + "');\">" +
+                "<td>" + d.name + "</td>" +
+                "<td>" + d.child_id + "</td>" +
+                "<td>" + d.member_id + "</td>" +
+                "<td>" + d.member_name + "</td>" +
+                "<td>" + d.birth + "</td>" +
+                "<td>" + d.sch_name + "</td>" +
+                "<td>" + d.sch_grade + "</td>" +
+                "<td>" + sex + "</td></tr>";
+            tbody.innerHTML += tr;
+        }
+    });
+}
+function selChild(member_id, member_name, child_id, child_name, course_state) {
+    document.getElementById("member_id").value = member_id;
+    document.getElementById("member_name_disp").value = member_name;
+    document.getElementById("child_id").value = child_id;
+    document.getElementById("child_name_disp").value = child_name;
+    document.getElementById("course_state_disp").value = course_state;
+    // 재학생(ING)/종료(END)/일시중지(PAU)일 경우 교육용품비 0원 처리
+    if (course_state == 'ING' || course_state == 'END' || course_state == 'PAU') {
+        document.getElementById("join_price").value = 0;
+    } else {
+        document.getElementById("join_price").value = {{ join_price }};
+    }
+    calcPrice();
+}
+function sel_stadium(code) {
+    $.getJSON("{% url 'office_ajax_student_stadium' %}", {grplocal_code: code}, function(data) {
+        var sel = document.getElementById("sta_code");
+        sel.options.length = 1;
+        for (var i = 0; i < data.length; i++) {
+            sel.options[sel.options.length] = new Option(data[i].sta_name, data[i].sta_code);
+        }
+    });
+    document.getElementById("course_tbody").innerHTML = "";
+    selectedCourses = [];
+}
+function loadCourses() {
+    var sta_code = document.getElementById("sta_code").value;
+    var syear = document.getElementById("syear").value;
+    var smonth = document.getElementById("smonth").value;
+    if (!sta_code || !syear || !smonth) { return; }
+    var ym = syear + (smonth < 10 ? "0" + smonth : smonth);
+
+    $.getJSON("{% url 'office_ajax_course_list' %}", {sta_code: sta_code, ym: ym}, function(data) {
+        courseData = data;
+        var tbody = document.getElementById("course_tbody");
+        tbody.innerHTML = "";
+        for (var i = 0; i < data.length; i++) {
+            var d = data[i];
+            var days = ['','월','화','수','목','금','토','일'];
+            var dayText = days[d.lecture_day] || '';
+            var tr = "<tr>" +
+                "<td><input type='checkbox' name='sel_lecture' value='" + d.lecture_code + "' onchange='updateSelection();' /></td>" +
+                "<td>" + d.lecture_title + "</td>" +
+                "<td>" + dayText + " " + d.lecture_time + "</td>" +
+                "<td>" + d.lec_price.toLocaleString() + "원</td>" +
+                "<td>" + d.current_count + "/" + d.stu_cnt + "</td>" +
+                "<td>" + d.coach_name + "</td>" +
+                "<td id='sday_" + d.lecture_code + "'>-</td>" +
+                "</tr>";
+            tbody.innerHTML += tr;
+        }
+    });
+}
+function updateSelection() {
+    selectedCourses = [];
+    var chks = document.querySelectorAll("input[name='sel_lecture']:checked");
+    for (var i = 0; i < chks.length; i++) {
+        var code = chks[i].value;
+        selectedCourses.push(code);
+        loadStartDays(code);
+    }
+    calcPrice();
+}
+function loadStartDays(lecture_code) {
+    var syear = document.getElementById("syear").value;
+    var smonth = document.getElementById("smonth").value;
+    $.getJSON("{% url 'office_ajax_course_days' %}", {lecture_code: lecture_code, syear: syear, smonth: smonth}, function(data) {
+        var td = document.getElementById("sday_" + lecture_code);
+        if (!td) return;
+        if (data.length == 0) {
+            td.innerHTML = "수업일 없음";
+            return;
+        }
+        var html = "<select name='start_day_" + lecture_code + "'>";
+        for (var i = 0; i < data.length; i++) {
+            html += "<option value='" + data[i].sday + "'>" + data[i].sday + "일(" + data[i].sweek + ")</option>";
+        }
+        html += "</select> (" + data.length + "회)";
+        td.innerHTML = html;
+    });
+}
+function calcPrice() {
+    var lec_cycle = parseInt(document.getElementById("lec_cycle").value) || 1;
+    var lec_period = parseInt(document.getElementById("lec_period").value) || 1;
+    var join_price = parseInt(document.getElementById("join_price").value) || 0;
+    var eq_discount = parseInt(document.getElementById("eq_discount").value) || 0;
+    var tu_discount = parseInt(document.getElementById("tu_discount").value) || 0;
+    var py_discount = parseInt(document.getElementById("py_discount").value) || 0;
+
+    // 수강료 계산 (선택된 과정의 price 합산)
+    var lecture_price = 0;
+    var multi_discount = 0;
+    for (var i = 0; i < selectedCourses.length; i++) {
+        var code = selectedCourses[i];
+        for (var j = 0; j < courseData.length; j++) {
+            if (courseData[j].lecture_code == code) {
+                lecture_price += courseData[j].lec_price;
+                if (lec_cycle == 2) multi_discount += courseData[j].dc_2;
+                else if (lec_cycle == 3) multi_discount += courseData[j].dc_3;
+                else if (lec_cycle >= 4) multi_discount += courseData[j].dc_4;
+                break;
+            }
+        }
+    }
+
+    // 수업일수 기반 정확한 금액은 서버에서 계산하므로 여기서는 참고용으로만 표시
+    document.getElementById("multi_discount").value = multi_discount;
+
+    var shuttle_amt = parseInt(document.getElementById("shuttle_amt").value) || 0;
+    var recommend_discount = parseInt(document.getElementById("recommend_discount").value) || 0;
+
+    var total = join_price + (lecture_price * lec_period) + shuttle_amt - eq_discount - tu_discount - py_discount - multi_discount - recommend_discount;
+    if (total < 0) total = 0;
+    document.getElementById("pay_price").value = total;
+    document.getElementById("total_disp").innerHTML = total.toLocaleString() + "원";
+}
+function snd_chk() {
+    if (!document.getElementById("member_id").value) { alert("회원을 선택하세요."); return; }
+    if (!document.getElementById("child_id").value) { alert("자녀를 선택하세요."); return; }
+    if (!document.getElementById("locd_code").value) { alert("권역을 선택하세요."); return; }
+    if (!document.getElementById("sta_code").value) { alert("구장을 선택하세요."); return; }
+
+    var chks = document.querySelectorAll("input[name='sel_lecture']:checked");
+    if (chks.length == 0) { alert("강좌를 선택하세요."); return; }
+
+    if (confirm("수강생을 등록하시겠습니까?")) {
+        document.getElementById("reg_form").submit();
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  수강생관리  &gt;  수강생등록</div>
+<div class="h_55"></div>
+
+<!-- 자녀 검색 -->
+<p class="title">자녀 검색</p>
+<div class="tb_basic">
+<table summary="자녀검색" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="10%" /><col width="90%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">검색</th>
+            <td class="left">
+                <select id="sch_field" class="select">
+                    <option value="member_id">부모님ID</option>
+                    <option value="child_id">자녀ID</option>
+                    <option value="child_name">자녀명</option>
+                </select>
+                <input type="text" id="sch_value" style="width:200px;" onkeypress="if(event.keyCode==13){srch_child();return false;}" />
+                <a href="javascript:srch_child();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+
+<div class="tb_basic">
+<table summary="자녀목록" border="0" cellpadding="0" cellspacing="0">
+    <colgroup>
+        <col width="10%" /><col width="12%" /><col width="12%" /><col width="12%" />
+        <col width="10%" /><col /><col width="8%" /><col width="6%" />
+    </colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">이름</th><th scope="col">자녀ID</th>
+            <th scope="col">부모ID</th><th scope="col">부모명</th>
+            <th scope="col">생년월일</th><th scope="col">학교명</th>
+            <th scope="col">학년</th><th scope="col">성별</th>
+        </tr>
+    </tbody>
+    <tbody id="child_tbody">
+        <tr><td colspan="8" align="center">검색어를 입력해 주세요.</td></tr>
+    </tbody>
+</table>
+</div>
+
+<div class="h_20"></div>
+
+<!-- 등록 폼 -->
+<form id="reg_form" method="post" action="{% url 'office_student_add' %}">
+{% csrf_token %}
+<input type="hidden" id="member_id" name="member_id" value="" />
+<input type="hidden" id="child_id" name="child_id" value="" />
+
+<p class="title">선택된 회원정보</p>
+<div class="tb_basic">
+<table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="12%" /><col width="21%" /><col width="12%" /><col width="21%" /><col width="12%" /><col width="22%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">부모님ID</th>
+            <td class="left"><input type="text" id="member_name_disp" style="width:100px;" readonly /></td>
+            <th scope="col">자녀ID</th>
+            <td class="left"><input type="text" id="child_name_disp" style="width:100px;" readonly /></td>
+            <th scope="col">수강상태</th>
+            <td class="left"><input type="text" id="course_state_disp" style="width:60px;" readonly /></td>
+        </tr>
+    </tbody>
+</table>
+</div>
+
+<div class="h_20"></div>
+
+<p class="title">수강 정보</p>
+<div class="tb_basic">
+<table summary="수강정보" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="12%" /><col width="21%" /><col width="12%" /><col width="21%" /><col width="12%" /><col width="22%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">필드명</th>
+            <td class="left">
+                <select id="locd_code" name="locd_code" class="select" onchange="sel_stadium(this.value);">
+                    <option value="">==선택==</option>
+                    {% for cd in locd_list %}
+                    <option value="{{ cd.subcode }}">{{ cd.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">구장명</th>
+            <td class="left">
+                <select id="sta_code" name="sta_code" class="select" onchange="loadCourses();">
+                    <option value="">==선택==</option>
+                </select>
+            </td>
+            <th scope="col">셔틀이용</th>
+            <td class="left">
+                <select name="shuttle_yn" class="select" onchange="calcPrice();">
+                    <option value="N">미이용</option>
+                    <option value="Y">이용</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">수강년월</th>
+            <td class="left">
+                <input type="text" id="syear" name="syear" style="width:50px;" maxlength="4" />년
+                <input type="text" id="smonth" name="smonth" style="width:30px;" maxlength="2" onchange="loadCourses();" />월
+            </td>
+            <th scope="col">수업횟수</th>
+            <td class="left">
+                <select id="lec_cycle" name="lec_cycle" class="select" onchange="calcPrice();">
+                    <option value="1">주1회</option>
+                    <option value="2">주2회</option>
+                    <option value="3">주3회</option>
+                    <option value="4">주4회</option>
+                    <option value="5">주5회</option>
+                </select>
+            </td>
+            <th scope="col">수강기간</th>
+            <td class="left">
+                <select id="lec_period" name="lec_period" class="select" onchange="calcPrice();">
+                    <option value="1">1개월</option>
+                    <option value="2">2개월</option>
+                    <option value="3">3개월</option>
+                </select>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+
+<div class="h_20"></div>
+
+<p class="title">강좌 선택</p>
+<div class="tb_basic">
+<table summary="강좌목록" border="0" cellpadding="0" cellspacing="0">
+    <colgroup>
+        <col width="5%" /><col /><col width="15%" /><col width="12%" />
+        <col width="10%" /><col width="12%" /><col width="15%" />
+    </colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">선택</th><th scope="col">강좌명</th>
+            <th scope="col">요일/시간</th><th scope="col">수강료</th>
+            <th scope="col">정원</th><th scope="col">코치</th>
+            <th scope="col">수업시작일</th>
+        </tr>
+    </tbody>
+    <tbody id="course_tbody">
+        <tr><td colspan="7" align="center">구장과 수강년월을 선택하면 강좌 목록이 표시됩니다.</td></tr>
+    </tbody>
+</table>
+</div>
+
+<div class="h_20"></div>
+
+<p class="title">결제 정보</p>
+<div class="tb_basic">
+<table summary="결제정보" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="15%" /><col width="35%" /><col width="15%" /><col width="35%" /></colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">교육용품비</th>
+            <td class="left"><input type="text" id="join_price" name="join_price" style="width:100px;" value="{{ join_price }}" onchange="calcPrice();" />원</td>
+            <th scope="col">교육용품할인</th>
+            <td class="left"><input type="text" id="eq_discount" name="eq_discount" style="width:100px;" value="0" onchange="calcPrice();" />원</td>
+        </tr>
+        <tr>
+            <th scope="col">수강료할인</th>
+            <td class="left"><input type="text" id="tu_discount" name="tu_discount" style="width:100px;" value="0" onchange="calcPrice();" />원</td>
+            <th scope="col">결제금액할인</th>
+            <td class="left"><input type="text" id="py_discount" name="py_discount" style="width:100px;" value="0" onchange="calcPrice();" />원</td>
+        </tr>
+        <tr>
+            <th scope="col">다회할인</th>
+            <td class="left"><input type="text" id="multi_discount" name="multi_discount" style="width:100px;" value="0" readonly />원 (자동계산)</td>
+            <th scope="col">피추천인할인</th>
+            <td class="left"><input type="text" id="recommend_discount" name="recommend_discount" style="width:100px;" value="0" onchange="calcPrice();" />원
+                <input type="text" name="recommend_id" style="width:80px;" placeholder="추천인ID" />
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">차량이용료</th>
+            <td class="left"><input type="text" id="shuttle_amt" name="shuttle_amt" style="width:100px;" value="0" onchange="calcPrice();" />원</td>
+            <th scope="col">결제금액</th>
+            <td class="left">
+                <input type="hidden" id="pay_price" name="pay_price" value="0" />
+                <span id="total_disp" style="font-weight:bold; color:#FF0000;">0원</span>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">결제방법</th>
+            <td class="left">
+                <select name="pay_method" class="select">
+                    <option value="ACCT">무통장 입금</option>
+                    <option value="CARD">카드</option>
+                    <option value="BENEFIT">복지</option>
+                    <option value="ZEROPAY">제로페이</option>
+                    <option value="MUCU">문화상품권</option>
+                    <option value="LOTTE">롯데</option>
+                    <option value="EMART">이마트</option>
+                    <option value="GRPY">그룹페이</option>
+                    <option value="SPBA">SPBA</option>
+                </select>
+            </td>
+            <th scope="col">결제상태</th>
+            <td class="left">
+                <select name="pay_stats" class="select">
+                    <option value="PP">결제대기</option>
+                    <option value="PY">결제완료</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">수강상태</th>
+            <td class="left">
+                <select name="lecture_stats" class="select">
+                    <option value="LP">수강예정</option>
+                    <option value="LY">수강확정</option>
+                </select>
+            </td>
+            <th scope="col">비고</th>
+            <td class="left"><input type="text" name="bigo_content" style="width:200px;" /></td>
+        </tr>
+    </tbody>
+</table>
+</div>
+</form>
+
+<div class="btn_right">
+    <a href="javascript:snd_chk();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+    <a href="{% url 'office_student_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+
+{% endblock %}

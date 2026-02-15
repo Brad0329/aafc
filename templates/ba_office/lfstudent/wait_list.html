@@ -1,0 +1,127 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfstudent_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function sel_stadium(code) {
+    $.getJSON("{% url 'office_ajax_student_stadium' %}", {grplocal_code: code}, function(data) {
+        var sel = document.srch_form.sch_sta_code;
+        sel.options.length = 1;
+        for (var i = 0; i < data.length; i++) {
+            sel.options[sel.options.length] = new Option(data[i].sta_name, data[i].sta_code);
+        }
+    });
+}
+function srch_snd() {
+    document.srch_form.submit();
+}
+function lfwait_del(no_seq) {
+    var con = confirm("대기정보를 삭제하시겠습니까?");
+    if (con) {
+        location.href = "{% url 'office_wait_list' %}?del_id=" + no_seq;
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  수강생관리  &gt;  대기자정보관리</div>
+<div class="h_55"></div>
+
+<p class="title">대기자정보 - 리스트</p>
+<div class="tb_basic">
+<form name="srch_form" method="get" action="{% url 'office_wait_list' %}">
+<table summary="대기자정보" border="0" cellpadding="0" cellspacing="0">
+    <colgroup>
+        <col width="10%" /><col width="25%" /><col width="10%" /><col width="25%" /><col width="10%" /><col width="25%" />
+    </colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">필드명</th>
+            <td class="left">
+                <select name="sch_locd_code" class="select" onchange="sel_stadium(this.value);">
+                    <option value="">==선택==</option>
+                    {% for cd in locd_list %}
+                    <option value="{{ cd.subcode }}" {% if sch_locd_code == cd.subcode|stringformat:"d" %}selected{% endif %}>{{ cd.code_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">구장명</th>
+            <td class="left">
+                <select name="sch_sta_code" class="select">
+                    <option value="">==선택==</option>
+                    {% for s in stadiums %}
+                    <option value="{{ s.sta_code }}" {% if sch_sta_code == s.sta_code|stringformat:"d" %}selected{% endif %}>{{ s.sta_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <th scope="col">처리여부</th>
+            <td class="left">
+                <select name="trans_gbn" class="select">
+                    <option value="">선택</option>
+                    <option value="Y" {% if trans_gbn == "Y" %}selected{% endif %}>처리완료</option>
+                    <option value="N" {% if trans_gbn == "N" %}selected{% endif %}>미처리</option>
+                </select>
+            </td>
+        </tr>
+    </tbody>
+</form>
+</table>
+</div>
+<div class="btn_right"><a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></div>
+
+<div class="h_20"></div>
+
+<div class="tb_basic">
+<table summary="대기자목록" border="0" cellpadding="0" cellspacing="0">
+    <colgroup>
+        <col width="15%" />
+        <col />
+        <col width="10%" />
+        <col width="7%" />
+        <col width="10%" />
+        <col width="5%" />
+        <col width="10%" />
+        <col width="10%" />
+        <col width="15%" />
+    </colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">구장명</th>
+            <th scope="col">과정명</th>
+            <th scope="col">회원ID<br>(회원명)</th>
+            <th scope="col">자녀ID<br>(자녀명)</th>
+            <th scope="col">전화번호</th>
+            <th scope="col">순번</th>
+            <th scope="col">신청일</th>
+            <th scope="col">처리여부</th>
+            <th scope="col">관리</th>
+        </tr>
+        {% for w in wait_list %}
+        <tr>
+            <td>{{ w.sta_name }}</td>
+            <td class="left">{{ w.lec_title }}</td>
+            <td>{{ w.member_id }}<br>({{ w.member_name }})</td>
+            <td>{{ w.child_id }}<br>({{ w.child_name }})</td>
+            <td>{{ w.mhtel }}</td>
+            <td>{{ w.wait_seq }}</td>
+            <td>{{ w.insert_dt|date:"Y-m-d" }}</td>
+            <td>{{ w.trans_gbn_text }}</td>
+            <td>
+                <a href="{% url 'office_wait_modify' w.id %}"><img src="{% static 'ba_office/images/btn_edit.gif' %}" alt="수정" /></a>
+                <a href="javascript:lfwait_del({{ w.id }});"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9">검색 대기자명단이 없습니다.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+<div class="btn_right"><a href="{% url 'office_wait_write' %}"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a></div>
+
+{% endblock %}
