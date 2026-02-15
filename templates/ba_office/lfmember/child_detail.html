@@ -7,35 +7,23 @@
 {% endblock %}
 
 {% block content %}
-<div class="navi">HOME  &gt;  회원관리  &gt;  자녀정보  &gt;  상세보기</div>
+<div class="navi">HOME  &gt;  회원관리  &gt;  자녀정보</div>
 <div class="h_55"></div>
 
-<p class="title">자녀 상세보기</p>
+<p class="title">기본정보</p>
 
 <div class="tb_basic">
-<table summary="기본정보" border="0" cellpadding="0" cellspacing="0">
-    <colgroup><col width="12%" /><col width="38%" /><col width="12%" /><col width="38%" /></colgroup>
+<table summary="수강생정보" border="0" cellpadding="0" cellspacing="0">
+    <colgroup><col width="13%" /><col width="20%" /><col width="13%" /><col width="20%" /><col width="13%" /><col width="20%" /></colgroup>
     <tbody>
-        <tr><th scope="col" colspan="4" style="text-align:left; padding-left:10px; background:#e8e8e8;"><b>기본정보</b></th></tr>
         <tr>
-            <th>회원명/ID</th><td class="left">{{ child.parent.name }} / <font color="blue">{{ child.parent.username }}</font></td>
-            <th>연락처</th><td class="left">{{ child.parent.phone }}</td>
+            <th scope="col">회원명/ID</th><td class="left">{{ child.parent.name }}/{{ child.parent.username }}</td>
+            <th scope="col">연락처</th><td class="left" colspan="3">{{ child.parent.phone }}</td>
         </tr>
         <tr>
-            <th>수강생명/ID</th><td class="left">{{ child.name }} / <font color="blue">{{ child.child_id }}</font></td>
-            <th>학교명/학년</th><td class="left">{{ child.school }} {{ child.grade }}</td>
-        </tr>
-        <tr>
-            <th>생년월일</th><td class="left">{{ child.birth }}</td>
-            <th>성별</th><td class="left">{% if child.gender == 'M' %}남자{% elif child.gender == 'F' %}여자{% endif %}</td>
-        </tr>
-        <tr>
-            <th>신장/체중</th><td class="left">{{ child.height }}cm / {{ child.weight }}kg</td>
-            <th>사이즈</th><td class="left">{{ child.size }}</td>
-        </tr>
-        <tr>
-            <th>상태</th><td class="left">{% if child.course_state == 'CAN' %}미수강{% elif child.course_state == 'ING' %}<font color="blue">수강중</font>{% elif child.course_state == 'END' %}퇴단{% elif child.course_state == 'PAU' %}<font color="red">일시중지</font>{% endif %}</td>
-            <th>카드번호</th><td class="left">{{ child.card_num }}</td>
+            <th scope="col">수강생명/ID</th><td class="left">{{ child.name }}/{{ child.child_id }} ({% if child.gender == 'M' %}남자{% elif child.gender == 'F' %}여자{% endif %})</td>
+            <th scope="col">학교명/학년</th><td class="left">{{ child.school }}/{{ child.grade }}</td>
+            <th scope="col">신장/체중/사이즈</th><td class="left">{{ child.height }}Cm/{{ child.weight }}Kg/{{ child.size }}</td>
         </tr>
     </tbody>
 </table>
@@ -43,19 +31,19 @@
 
 <div class="h_55"></div>
 
-<p class="title">수강 이력</p>
+<p class="title">수강신청리스트</p>
 
 <div class="tb_basic">
-<table summary="수강이력" border="0" cellpadding="0" cellspacing="0">
+<table summary="수강생" border="0" cellpadding="0" cellspacing="0">
     <colgroup>
-        <col width="15%" />
-        <col width="15%" />
-        <col width="15%" />
+        <col width="9%" />
         <col width="10%" />
-        <col width="10%" />
+        <col />
+        <col width="7%" />
+        <col width="14%" />
+        <col width="9%" />
+        <col width="15%" />
         <col width="12%" />
-        <col width="10%" />
-        <col width="13%" />
     </colgroup>
     <tbody>
         <tr>
@@ -66,7 +54,7 @@
             <th scope="col">결제상태</th>
             <th scope="col">결제금액</th>
             <th scope="col">결제일</th>
-            <th scope="col">결제방법</th>
+            <th scope="col">비고</th>
         </tr>
         {% for item in enrollment_data %}
         <tr>
@@ -74,13 +62,13 @@
             <td>{% if item.stadium %}{{ item.stadium.sta_name }}{% endif %}</td>
             <td>{% if item.lecture %}{{ item.lecture.lecture_title }}{% endif %}</td>
             <td>{% if item.course.course_stats == 'LY' %}<font color="blue">수강확정</font>{% elif item.course.course_stats == 'LP' %}<font color="red">일시정지</font>{% elif item.course.course_stats == 'LN' %}취소{% elif item.course.course_stats == 'PN' %}대기{% else %}{{ item.course.course_stats }}{% endif %}</td>
-            <td>{% if item.enroll.pay_stats == 'PY' %}결제완료{% elif item.enroll.pay_stats == 'UN' %}미결제{% elif item.enroll.pay_stats == 'PP' %}부분결제{% elif item.enroll.pay_stats == 'PQ' %}환불{% elif item.enroll.pay_stats == 'PZ' %}취소{% else %}{{ item.enroll.pay_stats }}{% endif %}</td>
-            <td style="text-align:right;">{{ item.enroll.pay_price|intcomma }}원</td>
+            <td>{% if item.enroll.pay_stats == 'PY' %}결제완료{% elif item.enroll.pay_stats == 'UN' %}미결제{% elif item.enroll.pay_stats == 'PP' %}부분결제{% elif item.enroll.pay_stats == 'PQ' %}환불{% elif item.enroll.pay_stats == 'PZ' %}취소{% else %}{{ item.enroll.pay_stats }}{% endif %}({{ item.enroll.pay_method }})</td>
+            <td style="text-align:right;">{{ item.enroll.pay_price|intcomma }} 원</td>
             <td>{{ item.enroll.pay_dt|date:"Y-m-d" }}</td>
-            <td>{{ item.enroll.pay_method }}</td>
+            <td>{{ item.enroll.bigo_content }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="8" style="padding:20px;">수강 이력이 없습니다.</td></tr>
+        <tr><td colspan="8" style="padding:20px;">조회 수강정보가 없습니다.</td></tr>
         {% endfor %}
     </tbody>
 </table>

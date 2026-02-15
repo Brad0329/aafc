@@ -17,7 +17,12 @@ function fn_search() {
 <div class="navi">HOME  &gt;  회원관리  &gt;  회원통계</div>
 <div class="h_55"></div>
 
-<p class="title">회원 가입 통계 (일별)</p>
+<p>
+    <strong>|년/월/일별 가입현황|</strong>&nbsp;&nbsp;&nbsp;
+    <a href="{% url 'office_member_stat' %}?view=age">|연령별 가입현황|</a>&nbsp;&nbsp;&nbsp;
+    <a href="{% url 'office_member_stat' %}?view=local">|지역별 가입현황|</a>
+</p>
+<br>
 
 <form name="schform" method="get" action="{% url 'office_member_stat' %}">
 <table border="0" cellpadding="3" cellspacing="0" style="margin-bottom:5px;">
@@ -56,17 +61,17 @@ function fn_search() {
         <tr>
             <td><b>{{ row.day }}</b></td>
             {% for m in row.months %}
-            <td>{% if m.p or m.c %}{{ m.p }}명({{ m.c }}){% endif %}</td>
+            <td>{% if m.p or m.c %}{{ m.p }}({{ m.c }}) 명{% endif %}</td>
             {% endfor %}
-            <td>{% if row.total.p or row.total.c %}<b>{{ row.total.p }}명({{ row.total.c }})</b>{% endif %}</td>
+            <td>{% if row.total.p or row.total.c %}<b>{{ row.total.p }}({{ row.total.c }}) 명</b>{% endif %}</td>
         </tr>
         {% endfor %}
         <tr style="background:#f0f0f0; font-weight:bold;">
             <td><b>합계</b></td>
             {% for mt in month_totals %}
-            <td>{% if mt.p or mt.c %}{{ mt.p }}명({{ mt.c }}){% endif %}</td>
+            <td>{% if mt.p or mt.c %}{{ mt.p }}({{ mt.c }}) 명{% endif %}</td>
             {% endfor %}
-            <td>{% if grand_total.p or grand_total.c %}{{ grand_total.p }}명({{ grand_total.c }}){% endif %}</td>
+            <td>{% if grand_total.p or grand_total.c %}{{ grand_total.p }}({{ grand_total.c }}) 명{% endif %}</td>
         </tr>
     </tbody>
 </table>

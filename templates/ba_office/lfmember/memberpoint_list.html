@@ -52,33 +52,34 @@ function fn_search() {
                 <option value="쇼핑몰구매" {% if sch_desc_gbn == '쇼핑몰구매' %}selected{% endif %}>쇼핑몰구매</option>
                 <option value="쇼핑몰사용" {% if sch_desc_gbn == '쇼핑몰사용' %}selected{% endif %}>쇼핑몰사용</option>
                 <option value="수업료납부" {% if sch_desc_gbn == '수업료납부' %}selected{% endif %}>수업료납부</option>
-                <option value="친구추천" {% if sch_desc_gbn == '친구추천' %}selected{% endif %}>친구추천</option>
-                <option value="이벤트" {% if sch_desc_gbn == '이벤트' %}selected{% endif %}>이벤트참여</option>
+                <option value="친구추천 함" {% if sch_desc_gbn == '친구추천 함' %}selected{% endif %}>친구추천 함</option>
+                <option value="이벤트 참여" {% if sch_desc_gbn == '이벤트 참여' %}selected{% endif %}>이벤트 참여</option>
             </select>
         </td>
         <td>&nbsp;<a href="javascript:fn_search();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></td>
     </tr>
 </table>
 </form>
+<p>검색조건이(조회기간, 회원) 있어야 조회가 가능합니다.</p>
 
 <div class="tb_basic">
     <table summary="포인트내역" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
-            <col width="5%" />
-            <col width="9%" />
-            <col width="5%" />
             <col width="8%" />
-            <col width="10%" />
+            <col width="8%" />
+            <col width="8%" />
+            <col width="8%" />
+            <col width="8%" />
+            <col width="8%" />
+            <col width="8%" />
+            <col width="8%" />
+            <col width="8%" />
+            <col width="12%" />
             <col />
-            <col width="7%" />
-            <col width="8%" />
-            <col width="10%" />
-            <col width="9%" />
-            <col width="6%" />
         </colgroup>
         <tbody>
             <tr>
-                <th scope="col">순번</th>
+                <th scope="col">적립번호</th>
                 <th scope="col">적립일자</th>
                 <th scope="col">구분</th>
                 <th scope="col">회원명</th>
@@ -92,7 +93,7 @@ function fn_search() {
             </tr>
             {% for h in histories %}
             <tr>
-                <td>{{ forloop.counter|page_index:histories.start_index }}</td>
+                <td>{{ h.id }}</td>
                 <td>{{ h.point_dt }}</td>
                 <td>{% if h.app_gbn == 'S' %}<font color="blue">적립</font>{% else %}<font color="red">사용</font>{% endif %}</td>
                 <td>{{ h.member_name }}</td>
@@ -103,9 +104,15 @@ function fn_search() {
                 <td>{{ h.order_no }}</td>
                 <td>{{ h.insert_dt|date:"Y-m-d" }}</td>
                 <td>
-                    <a href="javascript:void(0);" onclick="if(confirm('삭제하시겠습니까?')){document.getElementById('del_form_{{ h.id }}').submit();}"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a>
+                    <a href="javascript:void(0);" onclick="if(confirm('삭제하시겠습니까? 삭제한 포인트 내역은 복구할 수 없습니다.')){document.getElementById('del_form_{{ h.id }}').submit();}"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a>
                     <form id="del_form_{{ h.id }}" method="post" action="{% url 'office_memberpoint_del' h.id %}" style="display:none;">{% csrf_token %}</form>
                 </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>비고 :</td>
+                <td colspan="8"><p align="left">{{ h.desc_detail }}</p></td>
+                <td></td>
             </tr>
             {% empty %}
             <tr><td colspan="11" style="padding:20px;">포인트 내역이 없습니다.</td></tr>

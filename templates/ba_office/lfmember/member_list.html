@@ -40,8 +40,8 @@ function fn_excel() {
                 <option value="O" {% if sch_member_status == 'O' %}selected{% endif %}>탈퇴</option>
             </select>
         </td>
-        <td>&nbsp;<a href="javascript:fn_search();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></td>
         <td>&nbsp;<a href="javascript:fn_excel();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a></td>
+        <td>&nbsp;<a href="javascript:fn_search();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></td>
     </tr>
 </table>
 </form>
@@ -49,17 +49,17 @@ function fn_excel() {
 <div class="tb_basic">
     <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
-            <col width="5%" />
             <col width="8%" />
-            <col width="10%" />
             <col width="8%" />
             <col width="13%" />
+            <col width="6%" />
+            <col width="15%" />
             <col width="8%" />
-            <col width="6%" />
-            <col width="6%" />
+            <col width="8%" />
+            <col width="8%" />
             <col width="10%" />
-            <col width="6%" />
-            <col width="20%" />
+            <col width="8%" />
+            <col width="22%" />
         </colgroup>
         <tbody>
             <tr>
@@ -80,9 +80,9 @@ function fn_excel() {
                 <td>{{ forloop.counter|page_index:members.start_index }}</td>
                 <td>{{ m.name }}</td>
                 <td><font color="blue">{{ m.username }}</font></td>
-                <td><a href="{% url 'office_memberpoint_list' %}?sch_txt=member_id&sch_val={{ m.username }}">{{ m.add_point|subtract:m.min_point }}</a></td>
+                <td><a href="{% url 'office_memberpoint_list' %}?sch_txt=member_id&sch_val={{ m.username }}"><font color="blue">{{ m.add_point|subtract:m.min_point }}p</font></a></td>
                 <td>{{ m.phone }}</td>
-                <td><a href="{% url 'office_child_list' %}?sch_member_id={{ m.username }}">{{ m.child_count }}명</a></td>
+                <td><a href="{% url 'office_child_list' %}?sch_member_id={{ m.username }}"><font color="blue">{{ m.child_count }} 명</font></a></td>
                 <td>{{ m.mail_consent }}</td>
                 <td>{{ m.sms_consent }}</td>
                 <td>{{ m.insert_dt|date:"Y-m-d" }}</td>

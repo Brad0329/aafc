@@ -34,8 +34,9 @@ function fn_search() {
     <table summary="탈퇴회원" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
             <col width="8%" />
-            <col width="12%" />
-            <col width="15%" />
+            <col width="10%" />
+            <col width="10%" />
+            <col width="10%" />
             <col />
             <col width="15%" />
         </colgroup>
@@ -44,6 +45,7 @@ function fn_search() {
                 <th scope="col">순번</th>
                 <th scope="col">이름</th>
                 <th scope="col">아이디</th>
+                <th scope="col">자녀수</th>
                 <th scope="col">사유</th>
                 <th scope="col">탈퇴일자</th>
             </tr>
@@ -52,11 +54,12 @@ function fn_search() {
                 <td>{{ forloop.counter|page_index:members.start_index }}</td>
                 <td>{{ m.member_name }}</td>
                 <td><font color="blue">{{ m.member_id }}</font></td>
+                <td>{{ m.child_count|default:"-" }}</td>
                 <td class="left">{{ m.out_desc|truncatewords:20 }}</td>
                 <td>{{ m.out_dt|date:"Y-m-d" }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="5" style="padding:20px;">탈퇴 회원이 없습니다.</td></tr>
+            <tr><td colspan="6" style="padding:20px;">탈퇴 회원이 없습니다.</td></tr>
             {% endfor %}
         </tbody>
     </table>

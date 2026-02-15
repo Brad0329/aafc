@@ -78,8 +78,8 @@ function fn_search() {
             {% for c in children %}
             <tr>
                 <td>{{ forloop.counter|page_index:children.start_index }}</td>
-                <td class="left">{{ c.parent.name }}<br /><font color="blue">{{ c.parent.username }}</font><br />{{ c.parent.phone }}</td>
-                <td class="left">{{ c.name }}<br /><font color="blue">{{ c.child_id }}</font>{% if c.card_num %}<br />카드:{{ c.card_num }}{% endif %}</td>
+                <td class="left">{{ c.parent.name }}<br />[{{ c.parent.username }}]<br />({{ c.parent.phone }})</td>
+                <td class="left">{{ c.name }}<br />[{{ c.child_id }}]<br />[{{ c.card_num }}]</td>
                 <td>{{ c.birth }}</td>
                 <td>{{ c.school }}</td>
                 <td>{{ c.grade }}</td>
