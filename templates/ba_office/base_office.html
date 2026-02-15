@@ -56,7 +56,7 @@
                             <li><a href="{% url 'office_ofuser_list' %}">시스템관리</a></li>
                             {% endif %}
                             {% if 'M' in office_user.power_level %}
-                            <li><a href="{% url 'office_member_list' %}">회원관리</a></li>
+                            <li><a href="{% url 'office_child_list' %}">회원관리</a></li>
                             {% endif %}
                             {% if 'C' in office_user.power_level %}
                             <li><a href="{% url 'office_consult_list' %}">상담관리</a></li>

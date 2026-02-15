@@ -38,7 +38,11 @@ def login_view(request):
                 user = OfficeUser.objects.get(office_id=login_id, del_chk='N')
                 # SHA256 해시 비교
                 hashed = hashlib.sha256(login_pwd.encode('utf-8')).hexdigest()
-                if user.office_pwd == hashed:
+                if user.office_pwd != hashed:
+                    error = '비밀번호가 일치하지 않습니다.'
+                elif user.use_auth != 'W':
+                    error = '허가된 사용자가 아닙니다.'
+                else:
                     # 세션에 관리자 정보 저장
                     request.session['office_user'] = {
                         'office_code': user.office_code,
@@ -53,11 +57,11 @@ def login_view(request):
                         ip = request.META.get('REMOTE_ADDR', '')
                     OfficeLoginHistory.objects.create(
                         office_id=user.office_id,
+                        action='로그인',
+                        memo='로그인 하였습니다.',
                         login_ip=ip,
                     )
                     return redirect('office_main')
-                else:
-                    error = '비밀번호가 일치하지 않습니다.'
             except OfficeUser.DoesNotExist:
                 error = '존재하지 않는 관리자 아이디입니다.'
 
@@ -66,7 +70,17 @@ def login_view(request):
 
 def logout_view(request):
     """관리자 로그아웃"""
-    if 'office_user' in request.session:
+    office_user = request.session.get('office_user')
+    if office_user:
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
+        if not ip:
+            ip = request.META.get('REMOTE_ADDR', '')
+        OfficeLoginHistory.objects.create(
+            office_id=office_user['office_id'],
+            action='로그아웃',
+            memo='로그아웃 하였습니다.',
+            login_ip=ip,
+        )
         del request.session['office_user']
     return redirect('office_login')
 

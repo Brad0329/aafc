@@ -38,9 +38,11 @@ class OfficeUser(models.Model):
 
 
 class OfficeLoginHistory(models.Model):
-    """관리자 로그인 이력"""
+    """관리자 로그인/로그아웃 이력"""
     office_id = models.CharField('관리자ID', max_length=12)
-    login_dt = models.DateTimeField('로그인일시', auto_now_add=True)
+    action = models.CharField('활동', max_length=20, default='로그인')
+    memo = models.CharField('메모', max_length=100, blank=True)
+    login_dt = models.DateTimeField('일시', auto_now_add=True)
     login_ip = models.CharField('접속IP', max_length=45, blank=True)
 
     class Meta:

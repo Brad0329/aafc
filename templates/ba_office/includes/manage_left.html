@@ -6,7 +6,12 @@
                 <li><a href="{% url 'office_ofuser_list' %}">관리자관리</a></li>
                 <li><a href="{% url 'office_code_list' %}">코드 관리</a></li>
                 <li><a href="{% url 'office_point_setup' %}">포인트 설정</a></li>
+                {% if office_user.office_id == 'hyunjun' or office_user.office_id == 'darkzic' %}
+                <li><a href="{% url 'office_main' %}">사용자 로그인 설정</a></li>
+                {% endif %}
+                {% if office_user.office_id == 'hyunjun' or office_user.office_id == 'darkzic' %}
                 <li><a href="{% url 'office_alim_list' %}">관리자알림</a></li>
+                {% endif %}
             </ul>
         </div>
     </div>
