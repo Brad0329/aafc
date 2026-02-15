@@ -15,7 +15,7 @@ function fn_search() {
 function goAdjust(pk) {
     var memo = document.getElementById('memo_' + pk).value.trim();
     if (!memo) { alert('메모를 입력해주세요.'); return; }
-    if (!confirm('확인 처리하시겠습니까?')) return;
+    if (!confirm('반영하시겠습니까?')) return;
 
     var f = document.createElement('form');
     f.method = 'POST';
@@ -76,7 +76,7 @@ function goAdjust(pk) {
             <col width="8%" />
             <col width="12%" />
             <col />
-            <col width="12%" />
+            <col width="17%" />
             <col width="6%" />
             <col width="8%" />
         </colgroup>
@@ -98,18 +98,18 @@ function goAdjust(pk) {
                 <td>{{ f.jlocal }}</td>
                 <td>{{ f.jphone1 }}-{{ f.jphone2 }}-{{ f.jphone3 }}</td>
                 <td class="left">
-                    {% if f.confirm_yn == 'Y' %}
-                    {{ f.confirm_memo }} <span style="color:#999;">({{ f.confirm_name }})</span>
-                    {% else %}
-                    <textarea id="memo_{{ f.id }}" rows="2" cols="40" style="width:95%;">{{ f.confirm_memo }}</textarea>
+                    {% if f.consult_gbn == 'A1' %}<p><font color="blue"><b>신규 입단문의</b></font></p>
+                    {% elif f.consult_gbn == 'B1' %}<p><font color="blue"><b>무료수업 체험</b></font></p>
+                    {% elif f.consult_gbn == 'C1' %}<p><font color="blue"><b>3회체험 수업권구입</b></font></p>
+                    {% elif f.consult_gbn == 'D1' %}<p><font color="blue"><b>기타(쇼핑몰 및 기타)</b></font></p>
                     {% endif %}
+                    {% if f.confirm_memo %}<p><font color="green">작성자 : </font>{{ f.confirm_name }} / {{ f.confirm_id }}</p>{% endif %}
+                    <p><textarea id="memo_{{ f.id }}" rows="2" cols="40" style="width:100%;height:70px;">{{ f.confirm_memo }}</textarea></p>
                 </td>
                 <td>{{ f.j_date|date:"Y-m-d H:i" }}</td>
                 <td>{% if f.confirm_yn == 'Y' %}<font color="blue">완료</font>{% else %}<font color="red">미완료</font>{% endif %}</td>
                 <td>
-                    {% if f.confirm_yn != 'Y' %}
-                    <a href="javascript:goAdjust({{ f.id }});"><img src="{% static 'ba_office/images/btn_check.gif' %}" alt="반영" /></a>
-                    {% endif %}
+                    <a href="javascript:goAdjust({{ f.id }});"><img src="{% static 'ba_office/images/btn_apply.gif' %}" alt="반영" /></a>
                 </td>
             </tr>
             {% empty %}

@@ -67,7 +67,8 @@ function answer_delete(url) {
             <th scope="col">구분</th>
             <td class="left">
                 <select name="consult_gbn" class="select">
-                    <option value="guest" {% if consult.consult_gbn == 'guest' %}selected{% endif %}>신규회원</option>
+                    <option value="">==선택==</option>
+                    <option value="new" {% if consult.consult_gbn == 'new' %}selected{% endif %}>신규회원</option>
                     <option value="old" {% if consult.consult_gbn == 'old' %}selected{% endif %}>기존회원</option>
                 </select>
             </td>
@@ -134,8 +135,12 @@ function answer_delete(url) {
                     {% endfor %}
                 </select>
             </td>
+            <th scope="col">이름(접수자)</th>
+            <td class="left">{{ consult.manage_name }}</td>
+        </tr>
+        <tr>
             <th scope="col">접수시간</th>
-            <td class="left">{{ consult.consult_dt|date:"Y-m-d H:i" }}</td>
+            <td class="left" colspan="3">{{ consult.consult_dt|date:"Y-m-d H:i" }}</td>
         </tr>
         <tr>
             <th scope="col">제목</th>
@@ -211,6 +216,12 @@ function answer_delete(url) {
             <th scope="col">답변시각</th>
             <td class="left" colspan="3">{{ ans.con_answer_dt|date:"Y-m-d H:i" }}</td>
         </tr>
+        {% if consult.line_code == '33' or consult.line_code == 33 %}
+        <tr>
+            <th scope="col">유의사항</th>
+            <td class="left" colspan="3"><b>접수경로가 홈페이지인 경우 [홈페이지]-[입단상담실] 내에 답변이 등록되어서 회원이 직접 확인가능합니다. 정중한 어투로 글 남겨주시기 바랍니다.</b></td>
+        </tr>
+        {% endif %}
         <tr>
             <th scope="col">답변내용</th>
             <td class="left" colspan="3"><textarea name="consult_answer" rows="4" cols="60" style="width:80%;">{{ ans.consult_answer }}</textarea></td>
@@ -277,6 +288,12 @@ function answer_delete(url) {
                 </select>
             </td>
         </tr>
+        {% if consult.line_code == '33' or consult.line_code == 33 %}
+        <tr>
+            <th scope="col">유의사항</th>
+            <td class="left" colspan="3"><b>접수경로가 홈페이지인 경우 [홈페이지]-[입단상담실] 내에 답변이 등록되어서 회원이 직접 확인가능합니다. 정중한 어투로 글 남겨주시기 바랍니다.</b></td>
+        </tr>
+        {% endif %}
         <tr>
             <th scope="col">답변내용</th>
             <td class="left" colspan="3"><textarea name="consult_answer" rows="4" cols="60" style="width:80%;"></textarea></td>

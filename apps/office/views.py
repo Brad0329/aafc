@@ -1421,7 +1421,7 @@ def consult_list(request):
         if sch_member_gbn == '1':
             qs = qs.filter(consult_gbn='old')
         elif sch_member_gbn == '2':
-            qs = qs.filter(Q(consult_gbn='guest') | Q(consult_gbn=''))
+            qs = qs.filter(Q(consult_gbn='new') | Q(consult_gbn='guest') | Q(consult_gbn=''))
     if sch_txt and sch_val:
         if sch_txt == 'member_id':
             qs = qs.filter(member_id__icontains=sch_val)
@@ -1478,7 +1478,7 @@ def consult_list(request):
         con.line_name = line_dict.get(con.line_code, '')
         con.sta_name = sta_dict.get(int(con.sta_code), '') if con.sta_code and con.sta_code.isdigit() else ''
         con.manage_name = manage_dict.get(con.manage_id, '')
-        con.member_gbn_name = '기존회원' if con.consult_gbn == 'old' else ('신규회원' if con.consult_gbn == 'guest' else '미가입자')
+        con.member_gbn_name = '기존회원' if con.consult_gbn == 'old' else ('신규회원' if con.consult_gbn in ('new', 'guest') else '미가입자')
 
     # 구장 목록 (선택된 권역에 따라)
     stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
@@ -1633,7 +1633,7 @@ def consult_input(request):
 
     if request.method == 'POST':
         consult = Consult.objects.create(
-            consult_gbn=request.POST.get('consult_gbn', 'guest'),
+            consult_gbn=request.POST.get('consult_gbn', 'new'),
             member_id=request.POST.get('member_id', ''),
             member_name=request.POST.get('member_name', ''),
             child_id=request.POST.get('child_id', ''),
