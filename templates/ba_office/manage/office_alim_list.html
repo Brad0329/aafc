@@ -30,7 +30,7 @@
             </tr>
             {% for notice in notices %}
             <tr>
-                <td>{{ forloop.counter }}</td>
+                <td>{{ notice.no_seq }}</td>
                 <td>{{ notice.atitle }}</td>
                 <td class="left">{{ notice.acontent|truncatewords:20 }}</td>
                 <td>{{ notice.reg_dt|date:"Y-m-d" }}</td>

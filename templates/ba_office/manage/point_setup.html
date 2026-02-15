@@ -8,7 +8,7 @@
 {% block extra_js %}
 <script>
 function snd_Chk() {
-    if (confirm('포인트 설정을 저장하시겠습니까?')) {
+    if (confirm('포인트 설정을 하시겠습니까?')) {
         document.regform.submit();
     }
 }
@@ -67,11 +67,16 @@ function snd_Chk() {
         {% empty %}
         <tr><td colspan="4" style="padding:20px;">포인트 설정이 없습니다.</td></tr>
         {% endfor %}
+        <tr>
+            <td colspan="4">포인트번호 601,602에 대한 적립 기준 금액을 동일하게 설정해주세요</td>
+        </tr>
     </tbody>
 </table>
 </form>
 </div>
+{% if office_user.office_id == 'darkzic' or office_user.office_id == 'seongjun93' or office_user.office_id == 'khi1303' or office_user.office_id == 'a87702' or office_user.office_id == 'junior2019' or office_user.office_id == 'hyunjun' or office_user.office_id == 'aafc1220' or office_user.office_id == 'knsu08' or office_user.office_id == 'kgy5127' %}
 <div class="btn_right">
     <a href="javascript:snd_Chk();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="저장" /></a>
 </div>
+{% endif %}
 {% endblock %}

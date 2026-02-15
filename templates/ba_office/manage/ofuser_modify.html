@@ -19,6 +19,7 @@ function ofuser_modify() {
     if (!f.office_hp.value.trim()) { alert('연락처를 입력해주세요.'); f.office_hp.focus(); return; }
     var chk = document.querySelectorAll('input[name=office_auth]:checked');
     if (chk.length == 0) { alert('메뉴 권한을 1개 이상 선택해주세요.'); return; }
+    if (!confirm('관리자를 수정 하시겠습니까?')) return;
     f.submit();
 }
 </script>

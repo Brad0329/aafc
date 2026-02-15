@@ -35,6 +35,7 @@ function fn_idcheck() {
 
 function ofuser_write() {
     var f = document.regform;
+    if (f.id_dup_chk.value == 'F') { alert('ID 중복 체크를 실행해 주세요'); return; }
     if (!f.office_name.value.trim()) { alert('표시명을 입력해주세요.'); f.office_name.focus(); return; }
     if (f.office_id.value.trim().length < 6) { alert('아이디는 6자 이상 입력해주세요.'); f.office_id.focus(); return; }
     var pattern = /^[a-z0-9_-]+$/;
@@ -46,6 +47,7 @@ function ofuser_write() {
     if (!f.office_hp.value.trim()) { alert('연락처를 입력해주세요.'); f.office_hp.focus(); return; }
     var chk = document.querySelectorAll('input[name=office_auth]:checked');
     if (chk.length == 0) { alert('메뉴 권한을 1개 이상 선택해주세요.'); return; }
+    if (!confirm('관리자를 등록 하시겠습니까?')) return;
     f.submit();
 }
 </script>

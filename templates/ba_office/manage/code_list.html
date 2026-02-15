@@ -11,7 +11,7 @@ var sel_idx = -1;
 function selRow(el, idx) {
     var rows = document.querySelectorAll('.tb_scroll table tbody tr');
     for (var i = 0; i < rows.length; i++) { rows[i].style.backgroundColor = ''; }
-    el.style.backgroundColor = '#e8f0fe';
+    el.style.backgroundColor = '#F5F2E8';
     sel_idx = idx;
     var grpcode = document.getElementsByName('list_grpcode')[idx].value;
     var grpcode_name = document.getElementsByName('list_grpcode_name')[idx].value;
