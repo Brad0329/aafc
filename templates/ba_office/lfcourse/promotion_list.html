@@ -1,0 +1,126 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfclass_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function srch_snd() {
+    document.srch_form.submit();
+}
+$(document).ready(function() {
+    $("#sword:text").keydown(function(e) {
+        if (e.keyCode == 13) {
+            e.preventDefault();
+            $("form").submit();
+        }
+    });
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  과정관리  &gt;  프로모션관리</div>
+<div class="h_55"></div>
+
+<p class="title">프로모션관리 - 리스트</p>
+
+<div class="tb_basic">
+    <form name="srch_form" method="get" action="{% url 'office_promotion_list' %}">
+    <table summary="교육용품비내역" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="*" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">종류</th>
+                <td class="left">
+                    <input type="radio" name="useMode" value="0" {% if useMode == "0" or useMode == "" %}checked{% endif %}> 전체
+                    <input type="radio" name="useMode" value="1" {% if useMode == "1" %}checked{% endif %}> 교육용품비
+                    <input type="radio" name="useMode" value="2" {% if useMode == "2" %}checked{% endif %}> 수강료
+                    <input type="radio" name="useMode" value="3" {% if useMode == "3" %}checked{% endif %}> 결제금액
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">검색</th>
+                <td class="left" colspan="3">
+                    <select name="stype" id="stype">
+                        <option value="1" {% if stype == "1" %}selected{% endif %}>프로모션명</option>
+                        <option value="2" {% if stype == "2" %}selected{% endif %}>부모아이디</option>
+                        <option value="3" {% if stype == "3" %}selected{% endif %}>부모명</option>
+                        <option value="4" {% if stype == "4" %}selected{% endif %}>자녀아이디</option>
+                        <option value="5" {% if stype == "5" %}selected{% endif %}>자녀명</option>
+                    </select>
+                    <input type="text" name="sword" id="sword" value="{{ sword }}" maxlength="50" style="width:70%;">
+                </td>
+            </tr>
+        </tbody>
+    </form>
+    </table>
+</div>
+<div class="btn_right"><a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></div>
+
+<div class="tb_basic">
+    <div class="count">총 {{ total_count }} 건</div>
+    <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="10%" />
+            <col width="10%" />
+            <col />
+            <col width="15%" />
+            <col width="10%" />
+            <col width="10%" />
+            <col width="13%" />
+            <col width="13%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">종류</th>
+                <th scope="col">대상</th>
+                <th scope="col">프로모션명</th>
+                <th scope="col">할인금액(률)</th>
+                <th scope="col">행사기간</th>
+                <th scope="col">사용/발행</th>
+                <th scope="col">등록일자</th>
+                <th scope="col">관리</th>
+            </tr>
+            {% for p in promotions %}
+            <tr>
+                <td>{{ p.strUseMode }}</td>
+                <td>{{ p.strIssueMode }}</td>
+                <td>{{ p.title }}</td>
+                <td>{{ p.discount }}{% if p.discount_unit == "2" %}%{% else %}원{% endif %}</td>
+                <td>{% if p.start_date and p.end_date %}{{ p.start_date|date:"Y/m/d" }}~<br>{{ p.end_date|date:"Y/m/d" }}{% else %}-{% endif %}</td>
+                <td>{% if p.is_use == "T" %}사용{% else %}사용안함{% endif %}</td>
+                <td>{{ p.reg_date|date:"Y-m-d H:i:s" }}</td>
+                <td>
+                    <a href="{% url 'office_promotion_input' %}?uid={{ p.uid }}"><img src="{% static 'ba_office/images/btn_edit.gif' %}" alt="수정" /></a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td align="center" colspan="8">등록 Data가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="btn_right"><a href="{% url 'office_promotion_input' %}"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a></div>
+
+{% if promotions.has_other_pages %}
+<div class="paging" style="text-align:center; margin:10px 0;">
+    {% for p in promotions.paginator.page_range %}
+        {% if p == promotions.number %}
+        <b>[{{ p }}]</b>
+        {% else %}
+        <a href="?page={{ p }}&useMode={{ useMode }}&stype={{ stype }}&sword={{ sword }}">[{{ p }}]</a>
+        {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

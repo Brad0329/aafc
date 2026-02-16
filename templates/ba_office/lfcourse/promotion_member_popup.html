@@ -1,0 +1,106 @@
+{% load static %}
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>프로모션 회원선택</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link href="{% static 'ba_office/css/style.css' %}" rel="stylesheet" type="text/css">
+<script src="{% static 'ba_office/js/jquery-1.12.4.min.js' %}"></script>
+<script>
+function searchMember() {
+    var sword = document.getElementById('sword').value;
+    if (sword == '') { alert('검색어를 입력하세요.'); return; }
+    location.href = "{% url 'office_promotion_member_popup' %}?uid={{ uid }}&sword=" + encodeURIComponent(sword);
+}
+function checkAll(obj) {
+    var chks = document.getElementsByName('sel_member');
+    for (var i = 0; i < chks.length; i++) {
+        chks[i].checked = obj.checked;
+    }
+}
+function addMember() {
+    var chks = document.getElementsByName('sel_member');
+    var cnt = 0;
+    for (var i = 0; i < chks.length; i++) {
+        if (chks[i].checked) cnt++;
+    }
+    if (cnt == 0) { alert('회원을 선택하세요.'); return; }
+    document.reg_form.submit();
+}
+$(document).ready(function() {
+    $("#sword").keydown(function(e) {
+        if (e.keyCode == 13) { e.preventDefault(); searchMember(); }
+    });
+});
+</script>
+</head>
+<body style="padding:10px;">
+<p class="title">프로모션 회원선택</p>
+
+{% if saved %}
+<script>
+alert('등록 되었습니다.');
+opener.location.reload();
+</script>
+{% endif %}
+
+<div class="tb_basic">
+    <table summary="회원검색" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="20%" />
+            <col width="*" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">회원검색</th>
+                <td class="left">
+                    <input type="text" name="sword" id="sword" value="{{ sword }}" style="width:200px;">
+                    <a href="javascript:searchMember();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{% if members %}
+<form name="reg_form" method="post" action="{% url 'office_promotion_member_popup' %}?uid={{ uid }}">
+{% csrf_token %}
+<div class="tb_basic" style="margin-top:10px;">
+    <table summary="회원목록" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="5%" />
+            <col width="20%" />
+            <col width="20%" />
+            <col width="25%" />
+            <col width="30%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col"><input type="checkbox" onclick="checkAll(this)"></th>
+                <th scope="col">부모아이디</th>
+                <th scope="col">부모명</th>
+                <th scope="col">자녀아이디</th>
+                <th scope="col">자녀명</th>
+            </tr>
+            {% for m in members %}
+            <tr>
+                <td><input type="checkbox" name="sel_member" value="{{ m.member_id }}|{{ m.child_id }}"></td>
+                <td>{{ m.member_id }}</td>
+                <td>{{ m.member_name }}</td>
+                <td>{{ m.child_id }}</td>
+                <td>{{ m.child_name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div class="btn_right" style="margin-top:5px;">
+    <a href="javascript:addMember();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+</div>
+</form>
+{% elif sword %}
+<div style="margin-top:10px; text-align:center;">검색 결과가 없습니다.</div>
+{% endif %}
+
+</body>
+</html>

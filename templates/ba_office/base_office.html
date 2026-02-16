@@ -65,7 +65,7 @@
                             <li><a href="{% url 'office_student_list' %}">수강생관리</a></li>
                             {% endif %}
                             {% if 'L' in office_user.power_level %}
-                            <li><a href="{% url 'office_main' %}">과정관리</a></li>
+                            <li><a href="{% url 'office_stadium_list' %}">과정관리</a></li>
                             {% endif %}
                             {% if 'N' in office_user.power_level %}
                             <li><a href="{% url 'office_main' %}">출고관리</a></li>

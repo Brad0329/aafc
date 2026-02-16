@@ -1,0 +1,129 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfclass_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function sendChk() {
+    if (chec_fun(reg_form.sta_year, "기준년도") == false) { return; }
+    if (chec_num(reg_form.sta_year, "기준년도") == false) { return; }
+    if (chec_fun(reg_form.sta_month, "기준월") == false) { return; }
+    if (chec_num(reg_form.sta_month, "기준월") == false) { return; }
+    if (chec_fun(reg_form.sta_goal, "목표치") == false) { return; }
+    if (chec_num(reg_form.sta_goal, "목표치") == false) { return; }
+
+    var con = confirm("등록 하시겠습니까?");
+    if (con == true) {
+        reg_form.submit();
+    }
+}
+function goal_del(sta_code, no_seq) {
+    var con = confirm("삭제하시겠습니까?");
+    if (con) {
+        location.href = "{% url 'office_stadium_goal_delete' stadium.sta_code %}?no_seq=" + no_seq;
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  과정관리  &gt;  구장정보</div>
+<div class="h_55"></div>
+
+<p class="title">구장정보 - 수정</p>
+
+<div class="tb_basic">
+    <table summary="구장수정" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="35%" />
+            <col width="15%" />
+            <col width="35%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">구장명</th>
+                <td class="left">{{ stadium.sta_name }}</td>
+                <th scope="col">구장_닉네임명</th>
+                <td class="left">{{ stadium.sta_nickname }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{% if error %}<p class="txt_er" style="color:red;">{{ error }}</p>{% endif %}
+<p class="title">구장목표등록</p>
+
+<div class="tb_basic">
+    <form name="reg_form" method="post" action="{% url 'office_stadium_goal' stadium.sta_code %}">
+    {% csrf_token %}
+    <input type="hidden" name="sta_code" value="{{ stadium.sta_code }}">
+    <table summary="구장수정" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="35%" />
+            <col width="15%" />
+            <col width="35%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">목표월</th>
+                <td class="left">
+                    <input type="text" name="sta_year" value="{{ current_year }}" style="width:50px;" maxlength="4"> 년&nbsp;
+                    <select name="sta_month" class="select">
+                        <option value="01">01</option>
+                        <option value="02">02</option>
+                        <option value="03">03</option>
+                        <option value="04">04</option>
+                        <option value="05">05</option>
+                        <option value="06">06</option>
+                        <option value="07">07</option>
+                        <option value="08">08</option>
+                        <option value="09">09</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                    </select> 월
+                </td>
+                <th scope="col">목표치</th>
+                <td class="left"><input type="text" name="sta_goal" style="width:50px;" maxlength="5"> 명</td>
+            </tr>
+        </tbody>
+    </table>
+    </form>
+</div>
+
+<div class="btn_right">
+    <a href="javascript:sendChk();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+    <a href="{% url 'office_stadium_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+
+<p class="title">구장목표</p>
+
+<div class="tb_basic">
+    <table summary="목표년/월" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="35%" />
+            <col width="35%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">목표년/월</th>
+                <th scope="col">목표치</th>
+            </tr>
+            {% for g in goals %}
+            <tr>
+                <td>{{ g.sta_year }} 년 {{ g.sta_month }} 월</td>
+                <td>{{ g.sta_goal }} 명&nbsp;&nbsp;<a href="javascript:goal_del({{ stadium.sta_code }}, {{ g.pk }});"><img src="{% static 'ba_office/images/ico_x.gif' %}"></a></td>
+            </tr>
+            {% empty %}
+            <tr><td align="center" colspan="2">등록 Data가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

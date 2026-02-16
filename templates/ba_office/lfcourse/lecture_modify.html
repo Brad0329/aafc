@@ -1,0 +1,175 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfclass_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function sendChk() {
+    if (chec_fun(reg_form.local_code, "권역선택") == false) { return; }
+    if (chec_fun(reg_form.sta_code, "구장선택") == false) { return; }
+    if (chec_fun(reg_form.lec_age, "연령") == false) { return; }
+    if (chec_fun(reg_form.lecture_day, "수업요일") == false) { return; }
+    if (chec_fun(reg_form.lecture_time, "수업시간") == false) { return; }
+    if (chec_fun(reg_form.class_gbn, "클래스구분") == false) { return; }
+    if (chec_fun(reg_form.class_gbn2, "클래스유형") == false) { return; }
+    if (chec_fun(reg_form.lec_price, "강좌금액") == false) { return; }
+    if (chec_fun(reg_form.stu_cnt, "정원") == false) { return; }
+    if (chec_fun(reg_form.coach_code, "담당코치") == false) { return; }
+
+    var con = confirm("수정하시겠습니까?");
+    if (con == true) {
+        reg_form.submit();
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  과정관리  &gt;  과정관리</div>
+<div class="h_55"></div>
+
+<p class="title">과정관리 - 수정</p>
+
+<div class="tb_basic">
+    <form name="reg_form" method="post" action="{% url 'office_lecture_modify' lecture.lecture_code %}">
+    {% csrf_token %}
+    <select name="hi_sta_code" class="select" style="display:none;">
+        {% for s in all_stadiums %}
+        <option value="{{ s.sta_code }}" title="{{ s.local_code }}">{{ s.sta_name }}</option>
+        {% endfor %}
+    </select>
+    <input type="hidden" name="lecture_code" value="{{ lecture.lecture_code }}">
+    <table summary="과정수정" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="100px" />
+            <col />
+            <col width="100px" />
+            <col />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">필드선택<font color="red">*</font></th>
+                <td class="left">
+                    <select name="local_code" class="select" onchange="setSelect('reg_form.hi_sta_code', 'reg_form.sta_code', this.value)">
+                        <option value="">==선택==</option>
+                        {% for cd in locd_list %}
+                        <option value="{{ cd.subcode }}" {% if lecture.local_code == cd.subcode %}selected{% endif %}>{{ cd.code_name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <th scope="col">구장선택<font color="red">*</font></th>
+                <td class="left">
+                    <select name="sta_code" class="select">
+                        {% for s in filtered_stadiums %}
+                        <option value="{{ s.sta_code }}" {% if lecture.sta_code == s.sta_code %}selected{% endif %}>{{ s.sta_name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">연령<font color="red">*</font></th>
+                <td class="left"><input type="text" name="lec_age" style="width:50px;" maxlength="10" value="{{ lecture.lec_age }}"></td>
+                <th scope="col">수업요일<font color="red">*</font></th>
+                <td class="left">
+                    <select name="lecture_day" class="select">
+                        <option value="1" {% if lecture.lecture_day == 1 %}selected{% endif %}>월요일</option>
+                        <option value="2" {% if lecture.lecture_day == 2 %}selected{% endif %}>화요일</option>
+                        <option value="3" {% if lecture.lecture_day == 3 %}selected{% endif %}>수요일</option>
+                        <option value="4" {% if lecture.lecture_day == 4 %}selected{% endif %}>목요일</option>
+                        <option value="5" {% if lecture.lecture_day == 5 %}selected{% endif %}>금요일</option>
+                        <option value="6" {% if lecture.lecture_day == 6 %}selected{% endif %}>토요일</option>
+                        <option value="7" {% if lecture.lecture_day == 7 %}selected{% endif %}>일요일</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">수업시간<font color="red">*</font></th>
+                <td class="left">
+                    <input type="text" name="lecture_time" style="width:100px;" maxlength="10" value="{{ lecture.lecture_time }}">ex)15:00
+                </td>
+                <th scope="col">클래스구분<font color="red">*</font></th>
+                <td class="left">
+                    <select name="class_gbn" class="select">
+                        <option value="" {% if lecture.class_gbn == "" %}selected{% endif %}>클래스선택</option>
+                        <option value="A" {% if lecture.class_gbn == "A" %}selected{% endif %}>A반</option>
+                        <option value="B" {% if lecture.class_gbn == "B" %}selected{% endif %}>B반</option>
+                        <option value="C" {% if lecture.class_gbn == "C" %}selected{% endif %}>C반</option>
+                        <option value="D" {% if lecture.class_gbn == "D" %}selected{% endif %}>D반</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">정원<font color="red">*</font></th>
+                <td class="left">
+                    <input type="text" name="stu_cnt" style="width:100px;" maxlength="3" value="{{ lecture.stu_cnt }}">명
+                </td>
+                <th scope="col">관리코치선택<font color="red">*</font></th>
+                <td class="left">
+                    <select name="coach_code" class="select">
+                        {% for c in coaches %}
+                        <option value="{{ c.coach_code }}" {% if lecture.coach_code == c.coach_code %}selected{% endif %}>{{ c.coach_name }}</option>
+                        {% endfor %}
+                    </select>(해당클래스관리주체코치(알바코치제외)
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">강좌금액<font color="red">*</font></th>
+                <td class="left">
+                    <input type="text" name="lec_price" style="width:100px;" maxlength="10" value="{{ lecture.lec_price }}">원
+                </td>
+                <th scope="col">수업코치선택<font color="red">*</font></th>
+                <td class="left">
+                    <select name="t_coach_code" class="select">
+                        <option value="">선택</option>
+                        {% for c in coaches %}
+                        <option value="{{ c.coach_code }}" {% if lecture.t_coach_code == c.coach_code %}selected{% endif %}>{{ c.coach_name }}</option>
+                        {% endfor %}
+                    </select>(실제수업을 가르치는 코치등록(기간제,알바포함)
+                </td>
+            </tr>
+            <tr>
+                <th scope="col"></th>
+                <td class="left"></td>
+                <th scope="col">보조코치</th>
+                <td class="left">
+                    <input type="text" name="sub_coach" value="{{ lecture.sub_coach }}" style="width:100px;" maxlength="20">
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">주2회할인금액<font color="red">*</font></th>
+                <td class="left">
+                    <input type="text" name="dc_2" style="width:100px;" maxlength="10" value="{{ lecture.dc_2 }}">원
+                </td>
+                <th scope="col">주3회할인금액<font color="red">*</font></th>
+                <td class="left">
+                    <input type="text" name="dc_3" style="width:100px;" maxlength="10" value="{{ lecture.dc_3 }}">원
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">주4회할인금액<font color="red">*</font></th>
+                <td class="left">
+                    <input type="text" name="dc_4" style="width:100px;" maxlength="10" value="{{ lecture.dc_4 }}">원
+                </td>
+                <th scope="col">클래스유형<font color="red">*</font></th>
+                <td class="left">
+                    <select name="class_gbn2" class="select">
+                        <option value="" {% if lecture.class_gbn2 == "" %}selected{% endif %}>클래스유형선택</option>
+                        <option value="N" {% if lecture.class_gbn2 == "N" %}selected{% endif %}>취미반</option>
+                        <option value="P" {% if lecture.class_gbn2 == "P" %}selected{% endif %}>프로반</option>
+                    </select>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    </form>
+</div>
+
+<div class="btn_right">
+    <a href="javascript:sendChk();"><img src="{% static 'ba_office/images/btn_modify.gif' %}" alt="수정" /></a>
+    <a href="{% url 'office_lecture_list' %}?local_code={{ lecture.local_code }}&sel_sta_code={{ lecture.sta_code }}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+
+{% endblock %}

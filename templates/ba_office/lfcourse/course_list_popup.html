@@ -1,0 +1,77 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>수업시간표</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link href="{% static 'ba_office/css/style.css' %}" rel="stylesheet" type="text/css">
+<style type="text/css">
+    #program { width:100%; position:relative; }
+    .course_list table { width:100%; border-collapse:collapse; }
+    .course_list th, .course_list td { border:1px solid #d9d9d9; padding:3px 5px; font-size:12px; text-align:center; }
+    .course_list th { background-color:#f5f5f5; }
+</style>
+</head>
+<body>
+<div id="program">
+    <p class="title">구장정보 - 리스트</p>
+    <div style="margin-bottom:8px;">
+        <form name="form1" method="get" action="{% url 'office_course_list_popup' %}">
+            <input type="hidden" name="sta_code" value="{{ sta_code }}">
+            <select name="lecture_dt" onchange="form1.submit()">
+                {% for dt in date_options %}
+                <option value="{{ dt }}" {% if lecture_dt == dt %}selected{% endif %}>{{ dt }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+    <div class="stadium_box" style="width:100%; overflow-x:scroll">
+        <div style="width:1200px; overflow:hidden;">
+            {% if class_list %}
+            {% for cls in class_list %}
+            <div style="width:300px; float:left;">
+                <div class="course_list" style="width:100%;">
+                    <table summary="과정리스트" style="width:100%;">
+                        <colgroup>
+                            <col width="16%" />
+                            <col width="14%" />
+                            <col width="42%" />
+                            <col width="28%" />
+                        </colgroup>
+                        <tbody>
+                            <tr>
+                                <th scope="col" colspan="2"></th>
+                                <th scope="col" colspan="2">{{ cls.class_gbn }}클래스</th>
+                            </tr>
+                            <tr>
+                                <th scope="col">요일</th>
+                                <th scope="col">시간</th>
+                                <th scope="col">대상</th>
+                                <th>인원(현재원)</th>
+                            </tr>
+                            {% for row in cls.rows %}
+                            <tr>
+                                {% if row.is_first %}
+                                <th scope="col" rowspan="{{ row.rowspan }}">{{ row.day_name }}요일</th>
+                                <th scope="col" rowspan="{{ row.rowspan }}">{{ row.lecture_time }}</th>
+                                {% endif %}
+                                <td style="text-align:left; padding-left:5px;">{{ row.lec_age }}</td>
+                                <td style="text-align:left; padding-left:5px;">{{ row.stu_cnt }}명 <span class="fcolor">({{ row.cur_cnt }})</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4">-</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            수업정보가 없습니다.
+            {% endif %}
+        </div>
+    </div>
+</div>
+</body>
+</html>

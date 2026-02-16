@@ -1,0 +1,146 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfclass_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function addDay(smonth) {
+    var sday = $("#sday" + smonth).val();
+    if (!sday) { alert("날짜를 입력하세요."); return; }
+
+    $.post("{% url 'office_lecture_timetable' lecture.lecture_code %}", {
+        mode: 'add',
+        smonth: smonth,
+        sday: sday,
+        syear: $("select[name=syear]").val(),
+        csrfmiddlewaretoken: '{{ csrf_token }}'
+    }, function(data) {
+        if (data.status == 'ok') {
+            $("#tdDay" + smonth).html(data.html);
+            $("#sday" + smonth).val("");
+        } else {
+            alert(data.message);
+        }
+    }, 'json');
+}
+
+function delDay(uid, smonth) {
+    if (confirm("삭제하시겠습니까?")) {
+        $.post("{% url 'office_lecture_timetable' lecture.lecture_code %}", {
+            mode: 'del',
+            uid: uid,
+            smonth: smonth,
+            syear: $("select[name=syear]").val(),
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        }, function(data) {
+            if (data.status == 'ok') {
+                $("#tdDay" + smonth).html(data.html);
+            } else {
+                alert(data.message);
+            }
+        }, 'json');
+    }
+}
+
+function srch_snd() {
+    if (confirm("해당과정의 년도만 변경되어 검색됩니다. 다른과정 선택 시 목록보기 클릭 후 해당과정 선택 후 조회 하십시요")) {
+        document.reg_form.submit();
+    }
+}
+
+function add2() {
+    var con = confirm("선택된 년도의 월별 수업일자가 일괄 등록됩니다. 기존일자는 삭제되고 새로이 생성됩니다 진행하시겠습니까?");
+    if (con == true) {
+        $.post("{% url 'office_lecture_timetable' lecture.lecture_code %}", {
+            mode: 'bulk',
+            syear: $("select[name=syear]").val(),
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        }, function(data) {
+            if (data.status == 'ok') {
+                location.href = "{% url 'office_lecture_timetable' lecture.lecture_code %}?syear=" + $("select[name=syear]").val();
+            } else {
+                alert(data.message || '오류가 발생했습니다.');
+            }
+        }, 'json');
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  과정관리  &gt;  과정관리</div>
+<div class="h_55"></div>
+
+<p class="title">과정관리 - 시간표</p>
+
+<div class="tb_basic">
+    <form name="reg_form" method="get" action="{% url 'office_lecture_timetable' lecture.lecture_code %}">
+    <table summary="과정수정" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="100px" />
+            <col />
+            <col width="100px" />
+            <col />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">권역</th>
+                <td class="left">{{ lecture.local_code_name }}</td>
+                <th scope="col">구장</th>
+                <td class="left">{{ lecture.sta_code_name }}</td>
+            </tr>
+            <tr>
+                <th scope="col">과정명</th>
+                <td class="left">{{ lecture.lecture_title }}</td>
+                <th scope="col">년도</th>
+                <td class="left">
+                    <select name="syear" class="select">
+                        {% for y in year_list %}
+                        <option value="{{ y }}" {% if syear == y %}selected{% endif %}>{{ y }}년</option>
+                        {% endfor %}
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">유의사항</th>
+                <td class="left"><b>해당월에 수업이 없는 경우 해당월에 숫자 0을 반드시 입력해 주십시요</b></td>
+                <th scope="col">년간수업일자<br>일괄등록</th>
+                <td class="btn_right"><a href="javascript:add2();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="일괄등록" /></a></td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="btn_right"><a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></div>
+
+    <table summary="시간표" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="100px" />
+            <col />
+            <col width="150px" />
+        </colgroup>
+        <tbody>
+            {% for month_data in timetable_data %}
+            <tr>
+                <th scope="col">{{ month_data.month }}월</th>
+                <td class="left" id="tdDay{{ month_data.month }}">
+                    {% for day in month_data.days %}
+                    <span style="padding:5px 3px 5px 3px;width:50px;height:30px;border:1px solid #d9d9d9;">{{ day.sday }}일 <img src="{% static 'ba_office/images/ico_x.gif' %}" onclick="delDay({{ day.uid }},{{ month_data.month }});" style="cursor:pointer;" /></span>&nbsp;&nbsp;&nbsp;
+                    {% endfor %}
+                </td>
+                <th scope="col">
+                    <input type="text" id="sday{{ month_data.month }}" style="width:50px;" maxlength="10"> <img src="{% static 'ba_office/images/btn_add.gif' %}" alt="추가" onclick="addDay({{ month_data.month }});" style="cursor:pointer;" />
+                </th>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </form>
+</div>
+
+<div class="btn_right">
+    <a href="{% url 'office_lecture_list' %}?local_code={{ lecture.local_code }}&sel_sta_code={% if lecture.stadium %}{{ lecture.stadium.sta_code }}{% endif %}"><img src="{% static 'ba_office/images/btn_list.gif' %}" alt="목록" /></a>
+</div>
+
+{% endblock %}

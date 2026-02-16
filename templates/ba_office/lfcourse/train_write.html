@@ -1,0 +1,110 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfclass_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $("#train_date").datepicker({
+        changeMonth: true,
+        changeYear: true,
+        dateFormat: 'yy-mm-dd',
+        dayNames: ['월요일','화요일','수요일','목요일','금요일','토요일','일요일'],
+        monthNamesShort: ['1','2','3','4','5','6','7','8','9','10','11','12'],
+        yearRange: '2007:2030'
+    });
+});
+
+function jQueryGetDate(objName) {
+    $("#" + objName).trigger("focus");
+}
+
+function sendChk() {
+    if (chec_fun(reg_form.sch_locd_code, "권역명") == false) { return; }
+    if (chec_fun(reg_form.sch_sta_code, "구장명") == false) { return; }
+    if (chec_fun(reg_form.train_content, "훈련내용") == false) { return; }
+
+    var con = confirm("등록 하시겠습니까?");
+    if (con == true) {
+        reg_form.submit();
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  과정관리  &gt;  훈련일정관리</div>
+<div class="h_55"></div>
+
+<p class="title">훈련일정관리 - {% if mode == 'edit' %}수정{% else %}등록{% endif %}</p>
+
+<div class="tb_basic">
+    <form name="reg_form" method="post" action="{% if mode == 'edit' %}{% url 'office_train_modify' train.pk %}{% else %}{% url 'office_train_write' %}{% endif %}">
+    {% csrf_token %}
+    {% if mode == 'edit' %}
+    <input type="hidden" name="seq" value="{{ train.pk }}">
+    {% endif %}
+    <select name="hi_sta_code" class="select" style="display:none;">
+        {% for s in all_stadiums %}
+        <option value="{{ s.sta_code }}" title="{{ s.local_code }}">{{ s.sta_name }}</option>
+        {% endfor %}
+    </select>
+    <table summary="훈련일정등록" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="35%" />
+            <col width="15%" />
+            <col width="35%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">훈련일자<font color="red">*</font></th>
+                <td class="left" colspan="3">
+                    <input type="text" name="train_date" id="train_date" style="width:100px;" maxlength="10" value="{% if mode == 'edit' %}{{ train.training_dt|date:'Y-m-d' }}{% endif %}" onclick="jQueryGetDate('train_date')">
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">필드명</th>
+                <td class="left">
+                    <select name="sch_locd_code" class="select" onchange="setSelect('reg_form.hi_sta_code', 'reg_form.sch_sta_code', this.value)">
+                        <option value="">==선택==</option>
+                        {% for cd in locd_list %}
+                        <option value="{{ cd.subcode }}" {% if mode == 'edit' and train.local_code == cd.subcode %}selected{% endif %}>{{ cd.code_name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <th scope="col">구장명</th>
+                <td class="left">
+                    <select name="sch_sta_code" class="select">
+                        {% if mode == 'edit' %}
+                        {% for s in filtered_stadiums %}
+                        <option value="{{ s.sta_code }}" {% if train.sta_code == s.sta_code %}selected{% endif %}>{{ s.sta_name }}</option>
+                        {% endfor %}
+                        {% endif %}
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">훈련내용</th>
+                <td class="left" colspan="3">
+                    <textarea name="train_content" class="textarea" style="width:450px" tabindex="" rows="15">{% if mode == 'edit' %}{{ train.training_desc }}{% endif %}</textarea>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    </form>
+</div>
+
+<div class="btn_right">
+    {% if mode == 'edit' %}
+    <a href="javascript:sendChk();"><img src="{% static 'ba_office/images/btn_modify.gif' %}" alt="수정" /></a>
+    {% else %}
+    <a href="javascript:sendChk();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+    {% endif %}
+    <a href="{% url 'office_train_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+
+{% endblock %}

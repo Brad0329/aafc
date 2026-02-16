@@ -1,0 +1,178 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfclass_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function sel_local(obj) {
+    var local_code = obj.value;
+    $.getJSON("{% url 'office_ajax_course_stadium' %}", {local_code: local_code}, function(data) {
+        var sel = $("#sta_code");
+        sel.empty().append('<option value="">==선택==</option>');
+        $.each(data, function(i, item) {
+            sel.append('<option value="' + item.sta_code + '">' + item.sta_name + '</option>');
+        });
+    });
+}
+function srch_snd() {
+    if ($("#local_code").val() == "") {
+        alert("권역명을(를) 입력하세요");
+        $("#local_code").focus();
+        return;
+    }
+    if ($("#sta_code").val() == "") {
+        alert("구장명을(를) 입력하세요");
+        $("#sta_code").focus();
+        return;
+    }
+    $("#sel_sta_code").val($("#sta_code").val());
+    document.srch_form.submit();
+}
+function lflecture_del(lecture_code) {
+    var con = confirm("해당 과정을 삭제하시겠습니까?");
+    if (con) {
+        document.getElementById('del_form_' + lecture_code).submit();
+    }
+}
+function go_stu(local_code, sta_code, lec_code, lec_month, lec_stats) {
+    location.href = "{% url 'office_student_list' %}?sch_code_desc=" + local_code + "&sch_sta_code=" + sta_code + "&sch_lecture_code=" + lec_code + "&sch_ym=" + lec_month + "&sch_lecture_stats=" + lec_stats;
+}
+function go_wait(local_code, sta_code, lec_code) {
+    location.href = "{% url 'office_wait_list' %}?sch_locd_code=" + local_code + "&sch_sta_code=" + sta_code + "&sch_lec_code=" + lec_code;
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  과정관리  &gt;  과정관리</div>
+<div class="h_55"></div>
+
+<p class="title">과정정보 - 리스트</p>
+<div class="tb_basic">
+    <form name="srch_form" method="get" action="{% url 'office_lecture_list' %}">
+    <input type="hidden" name="sel_sta_code" id="sel_sta_code" value="">
+    <table summary="과정정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="*" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">검색</th>
+                <td class="left">
+                    <select name="use_gbn" id="use_gbn">
+                        <option value="Y" {% if use_gbn == "Y" %}selected{% endif %}>활성</option>
+                        <option value="N" {% if use_gbn == "N" %}selected{% endif %}>종료</option>
+                    </select>
+                    <select name="local_code" id="local_code" onchange="sel_local(this);">
+                        <option value="">필드선택</option>
+                        {% for cd in locd_list %}
+                        <option value="{{ cd.subcode }}" {% if local_code == cd.subcode|stringformat:"s" %}selected{% endif %}>{{ cd.code_desc }}_{{ cd.code_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="sta_code_disp" id="sta_code" class="select">
+                        <option value="">==선택==</option>
+                        {% for s in stadiums %}
+                        <option value="{{ s.sta_code }}" {% if sel_sta_code == s.sta_code|stringformat:"d" %}selected{% endif %}>{{ s.sta_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="class_gbn">
+                        <option value="" {% if class_gbn == "" %}selected{% endif %}>반선택</option>
+                        <option value="A" {% if class_gbn == "A" %}selected{% endif %}>A반</option>
+                        <option value="B" {% if class_gbn == "B" %}selected{% endif %}>B반</option>
+                        <option value="C" {% if class_gbn == "C" %}selected{% endif %}>C반</option>
+                        <option value="D" {% if class_gbn == "D" %}selected{% endif %}>D반</option>
+                    </select>
+                    <select name="lecture_day">
+                        <option value="0" {% if lecture_day == "0" or lecture_day == "" %}selected{% endif %}>요일선택</option>
+                        <option value="1" {% if lecture_day == "1" %}selected{% endif %}>월요일</option>
+                        <option value="2" {% if lecture_day == "2" %}selected{% endif %}>화요일</option>
+                        <option value="3" {% if lecture_day == "3" %}selected{% endif %}>수요일</option>
+                        <option value="4" {% if lecture_day == "4" %}selected{% endif %}>목요일</option>
+                        <option value="5" {% if lecture_day == "5" %}selected{% endif %}>금요일</option>
+                        <option value="6" {% if lecture_day == "6" %}selected{% endif %}>토요일</option>
+                        <option value="7" {% if lecture_day == "7" %}selected{% endif %}>일요일</option>
+                    </select>
+                </td>
+            </tr>
+        </tbody>
+    </form>
+    </table>
+</div>
+<div class="btn_right"><a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></div>
+
+<p class="txt_er">수강인원은 {{ txt_dt }} 기준입니다.</p>
+<div class="count">총 {{ total_count }} 과정</div>
+<div class="tb_basic">
+    <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="6%" />
+            <col />
+            <col width="8%" />
+            <col width="8%" />
+            <col width="8%" />
+            <col width="9%" />
+            <col width="9%" />
+            <col width="9%" />
+            <col width="9%" />
+            <col width="9%" />
+            <col width="9%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">코드</th>
+                <th scope="col">강좌명</th>
+                <th scope="col">수강확정</th>
+                <th scope="col">확정누적</th>
+                <th scope="col">정원</th>
+                <th scope="col">금액</th>
+                <th scope="col">코치명</th>
+                <th scope="col">수업코치</th>
+                <th scope="col">보조코치</th>
+                <th scope="col">관리</th>
+                <th scope="col">시간표</th>
+            </tr>
+            {% if sel_sta_code %}
+            {% for lec in lectures %}
+            <tr>
+                <td>{{ lec.lecture_code }}</td>
+                <td>{% if lec.use_gbn == "N" %}[종료]{% endif %}{{ lec.lecture_title }}</td>
+                <td><a href="javascript:go_stu({{ lec.local_code }},{{ lec.stadium.sta_code }},{{ lec.lecture_code }},'{{ cur_dt }}','LY');"><font color="blue">{{ lec.c_student }}</font></a> 명</td>
+                <td><font color="blue">{{ lec.acc_c_student }}</font> 명</td>
+                <td>{{ lec.stu_cnt }} 명</td>
+                <td>{{ lec.lec_price|intcomma }}</td>
+                <td>{% if lec.coach %}{{ lec.coach.coach_name }}{% endif %}</td>
+                <td>{% if lec.t_coach %}{{ lec.t_coach.coach_name }}{% endif %}</td>
+                <td>{{ lec.sub_coach }}</td>
+                <td>
+                    <a href="{% url 'office_lecture_modify' lec.lecture_code %}"><img src="{% static 'ba_office/images/btn_edit.gif' %}" alt="수정" /></a>
+                    <a href="javascript:lflecture_del({{ lec.lecture_code }});"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a>
+                    <form id="del_form_{{ lec.lecture_code }}" method="post" action="{% url 'office_lecture_delete' lec.lecture_code %}" style="display:none;">
+                        {% csrf_token %}
+                    </form>
+                </td>
+                <td>
+                    {% if lec.next_timetable %}
+                    <a href="{% url 'office_lecture_timetable' lec.lecture_code %}"><img src="{% static 'ba_office/images/btn_edit.gif' %}" alt="수정" /></a>
+                    {% else %}
+                    <a href="{% url 'office_lecture_timetable' lec.lecture_code %}"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="11">검색 과정이 없습니다.</td></tr>
+            {% endfor %}
+            {% else %}
+            <tr><td colspan="11">구장을 선택하여 검색하세요.</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+<div class="btn_right"><a href="{% url 'office_lecture_write' %}"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a></div>
+
+{% endblock %}

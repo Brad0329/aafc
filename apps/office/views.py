@@ -1,18 +1,24 @@
 import hashlib
+import os
+import calendar
 from datetime import datetime, date
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
+from django.conf import settings
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q, Sum, Count, Value, IntegerField, F
+from django.db.models import Q, Sum, Count, Max, Value, IntegerField, F
 from django.db.models.functions import Coalesce
 from .models import OfficeUser, OfficeLoginHistory
 from .decorators import office_login_required, office_permission_required
 from apps.notifications.models import OfficeNotification, Notification, SMSLog
 from apps.common.models import CodeGroup, CodeValue, Setting
 from apps.points.models import PointConfig, PointHistory
-from apps.courses.models import Coach, Stadium, Lecture, LectureSelDay, Promotion, PromotionMember
+from apps.courses.models import (
+    Coach, Stadium, StadiumCoach, Lecture, LectureSelDay,
+    StadiumGoal, Promotion, PromotionMember, LectureTraining,
+)
 from apps.accounts.models import Member, MemberChild, OutMember
 from apps.enrollment.models import (
     Enrollment, EnrollmentCourse, EnrollmentBill,
@@ -4126,3 +4132,1318 @@ def _student_add_proc(request):
     ).update(trans_gbn='Y')
 
     return redirect('office_student_list')
+
+
+# ============================================================
+# 과정관리 > 구장관리
+# ============================================================
+
+def _save_stadium_image(f, filename_prefix):
+    """구장 이미지 업로드 헬퍼"""
+    upload_dir = os.path.join(settings.MEDIA_ROOT, 'fcdata', 'stadium')
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = filename_prefix + '_' + f.name
+    filepath = os.path.join(upload_dir, filename)
+    with open(filepath, 'wb+') as dest:
+        for chunk in f.chunks():
+            dest.write(chunk)
+    return filename
+
+
+@office_login_required
+@office_permission_required('L')
+def stadium_list(request):
+    """구장 목록"""
+    use_gbn = request.GET.get('use_gbn', 'Y')
+    stadiums = Stadium.objects.filter(use_gbn=use_gbn).order_by('sta_code')
+    return render(request, 'ba_office/lfcourse/stadium_list.html', {
+        'stadiums': stadiums,
+        'use_gbn': use_gbn,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def stadium_write(request):
+    """구장 등록"""
+    if request.method == 'POST':
+        # sta_code 자동채번
+        max_code = Stadium.objects.aggregate(m=Coalesce(Max('sta_code'), 0))['m']
+        sta_code = max_code + 1
+
+        stadium = Stadium.objects.create(
+            sta_code=sta_code,
+            sta_name=request.POST.get('sta_name', ''),
+            sta_nickname=request.POST.get('sta_nickname', ''),
+            sta_coach=request.POST.get('sta_coach', ''),
+            use_gbn=request.POST.get('use_gbn', 'Y'),
+            local_code=int(request.POST.get('local_code', '0') or '0'),
+            sta_phone=request.POST.get('sta_phone', ''),
+            three_lecyn=request.POST.get('three_lecyn', ''),
+            sta_address=request.POST.get('sta_address', ''),
+            sta_desc=request.POST.get('sta_desc', ''),
+            kapa_tot=int(request.POST.get('kapa_tot', '0') or '0'),
+            inve=request.POST.get('inve', ''),
+            grou=request.POST.get('grou', ''),
+            order_seq=int(request.POST.get('order_seq', '0') or '0'),
+            insert_dt=timezone.now(),
+        )
+
+        # 이미지 저장
+        prefix = str(sta_code)
+        if request.FILES.get('sta_s_img'):
+            stadium.sta_s_img = _save_stadium_image(request.FILES['sta_s_img'], prefix + '_s')
+        if request.FILES.get('sta_l_img'):
+            stadium.sta_l_img = _save_stadium_image(request.FILES['sta_l_img'], prefix + '_l')
+        if request.FILES.get('sta_p_img'):
+            stadium.sta_p_img = _save_stadium_image(request.FILES['sta_p_img'], prefix + '_p')
+        if request.FILES.get('sta_m_img'):
+            stadium.sta_m_img = _save_stadium_image(request.FILES['sta_m_img'], prefix + '_m')
+        stadium.save()
+
+        # StadiumCoach 일괄 생성
+        coach_codes = request.POST.getlist('chk_coach')
+        for cc in coach_codes:
+            try:
+                coach_obj = Coach.objects.get(coach_code=int(cc))
+                StadiumCoach.objects.create(stadium=stadium, coach=coach_obj)
+            except Coach.DoesNotExist:
+                pass
+
+        return redirect('office_stadium_list')
+
+    # GET
+    locd_list = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order')
+    inve_list = CodeValue.objects.filter(group__grpcode='INVE', del_chk='N').order_by('code_order')
+    grou_list = CodeValue.objects.filter(group__grpcode='GROU', del_chk='N').order_by('code_order')
+    coaches = Coach.objects.filter(use_gbn='Y').order_by('order_seq', 'coach_name')
+    return render(request, 'ba_office/lfcourse/stadium_write.html', {
+        'locd_list': locd_list,
+        'inve_list': inve_list,
+        'grou_list': grou_list,
+        'coaches': coaches,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def stadium_modify(request, pk):
+    """구장 수정"""
+    stadium = get_object_or_404(Stadium, pk=pk)
+
+    if request.method == 'POST':
+        stadium.sta_name = request.POST.get('sta_name', '')
+        stadium.sta_nickname = request.POST.get('sta_nickname', '')
+        stadium.sta_coach = request.POST.get('sta_coach', '')
+        stadium.use_gbn = request.POST.get('use_gbn', 'Y')
+        stadium.local_code = int(request.POST.get('local_code', '0') or '0')
+        stadium.sta_phone = request.POST.get('sta_phone', '')
+        stadium.three_lecyn = request.POST.get('three_lecyn', '')
+        stadium.sta_address = request.POST.get('sta_address', '')
+        stadium.sta_desc = request.POST.get('sta_desc', '')
+        stadium.kapa_tot = int(request.POST.get('kapa_tot', '0') or '0')
+        stadium.inve = request.POST.get('inve', '')
+        stadium.grou = request.POST.get('grou', '')
+        stadium.order_seq = int(request.POST.get('order_seq', '0') or '0')
+
+        # 이미지: 새 파일이 있으면 교체
+        prefix = str(stadium.sta_code)
+        if request.FILES.get('sta_s_img'):
+            stadium.sta_s_img = _save_stadium_image(request.FILES['sta_s_img'], prefix + '_s')
+        if request.FILES.get('sta_l_img'):
+            stadium.sta_l_img = _save_stadium_image(request.FILES['sta_l_img'], prefix + '_l')
+        if request.FILES.get('sta_p_img'):
+            stadium.sta_p_img = _save_stadium_image(request.FILES['sta_p_img'], prefix + '_p')
+        if request.FILES.get('sta_m_img'):
+            stadium.sta_m_img = _save_stadium_image(request.FILES['sta_m_img'], prefix + '_m')
+        stadium.save()
+
+        # StadiumCoach 재생성 (기존 삭제 후 새로 생성)
+        StadiumCoach.objects.filter(stadium=stadium).delete()
+        coach_codes = request.POST.getlist('chk_coach')
+        for cc in coach_codes:
+            try:
+                coach_obj = Coach.objects.get(coach_code=int(cc))
+                StadiumCoach.objects.create(stadium=stadium, coach=coach_obj)
+            except Coach.DoesNotExist:
+                pass
+
+        return redirect('office_stadium_list')
+
+    # GET
+    locd_list = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order')
+    inve_list = CodeValue.objects.filter(group__grpcode='INVE', del_chk='N').order_by('code_order')
+    grou_list = CodeValue.objects.filter(group__grpcode='GROU', del_chk='N').order_by('code_order')
+    coaches = Coach.objects.filter(use_gbn='Y').order_by('order_seq', 'coach_name')
+
+    # 기존 StadiumCoach 체크 상태
+    sta_coaches = list(
+        StadiumCoach.objects.filter(stadium=stadium).values_list('coach__coach_code', flat=True)
+    )
+
+    return render(request, 'ba_office/lfcourse/stadium_modify.html', {
+        'stadium': stadium,
+        'locd_list': locd_list,
+        'inve_list': inve_list,
+        'grou_list': grou_list,
+        'coaches': coaches,
+        'sta_coaches': sta_coaches,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def stadium_goal(request, sta_code):
+    """구장 목표 관리"""
+    stadium = get_object_or_404(Stadium, sta_code=sta_code)
+
+    if request.method == 'POST':
+        sta_year = int(request.POST.get('sta_year', '0') or '0')
+        sta_month = request.POST.get('sta_month', '')
+        sta_goal = int(request.POST.get('sta_goal', '0') or '0')
+
+        # 중복체크: 같은 구장 + 년도 + 월
+        exists = StadiumGoal.objects.filter(
+            stadium=stadium, sta_year=sta_year, sta_month=sta_month
+        ).exists()
+        if exists:
+            goals = StadiumGoal.objects.filter(stadium=stadium).order_by('-sta_year', '-sta_month')
+            return render(request, 'ba_office/lfcourse/stadium_goal.html', {
+                'stadium': stadium,
+                'goals': goals,
+                'current_year': datetime.now().year,
+                'error': '해당 년/월에 목표치가 존재합니다. 목표치를 삭제한 후 등록하여 주세요.',
+            })
+
+        StadiumGoal.objects.create(
+            stadium=stadium,
+            sta_year=sta_year,
+            sta_month=sta_month,
+            sta_goal=sta_goal,
+        )
+        return redirect('office_stadium_goal', sta_code=sta_code)
+
+    # GET
+    goals = StadiumGoal.objects.filter(stadium=stadium).order_by('-sta_year', '-sta_month')
+    return render(request, 'ba_office/lfcourse/stadium_goal.html', {
+        'stadium': stadium,
+        'goals': goals,
+        'current_year': datetime.now().year,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def stadium_goal_del(request, sta_code):
+    """구장 목표 삭제"""
+    no_seq = request.GET.get('no_seq') or request.POST.get('no_seq')
+    if no_seq:
+        StadiumGoal.objects.filter(pk=no_seq).delete()
+    return redirect('office_stadium_goal', sta_code=sta_code)
+
+
+# ============================================================
+# 과정관리 > 코치관리
+# ============================================================
+
+@office_login_required
+@office_permission_required('L')
+def coach_list(request):
+    """코치 목록"""
+    coaches = Coach.objects.filter(use_gbn='Y').order_by('order_seq', 'coach_name')
+
+    # LEVL 코드그룹 조회하여 coach_level → code_name/code_desc 매핑
+    levl_map = {}
+    for cv in CodeValue.objects.filter(group__grpcode='LEVL', del_chk='N'):
+        levl_map[str(cv.subcode)] = {
+            'code_name': cv.code_name,
+            'code_desc': cv.code_desc or '',
+        }
+
+    for c in coaches:
+        info = levl_map.get(c.coach_level, {})
+        c.level_name = info.get('code_name', '')
+        c.level_desc = info.get('code_desc', '')
+
+    return render(request, 'ba_office/lfcourse/coach_list.html', {
+        'coaches': coaches,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def coach_write(request):
+    """코치 등록"""
+    if request.method == 'POST':
+        max_code = Coach.objects.aggregate(m=Coalesce(Max('coach_code'), 0))['m']
+        coach_code = max_code + 1
+
+        # 연락처: mhtel1)mhtel2-mhtel3 형식
+        mhtel1 = request.POST.get('mhtel1', '')
+        mhtel2 = request.POST.get('mhtel2', '')
+        mhtel3 = request.POST.get('mhtel3', '')
+        phone = f'{mhtel1}){mhtel2}-{mhtel3}' if mhtel1 else ''
+
+        # 이미지 파일 업로드
+        coach_s_img = ''
+        if request.FILES.get('coach_s_img'):
+            f = request.FILES['coach_s_img']
+            upload_dir = os.path.join(settings.MEDIA_ROOT, 'fcdata', 'coach')
+            os.makedirs(upload_dir, exist_ok=True)
+            filename = f'{coach_code}_{f.name}'
+            filepath = os.path.join(upload_dir, filename)
+            with open(filepath, 'wb+') as dest:
+                for chunk in f.chunks():
+                    dest.write(chunk)
+            coach_s_img = filename
+
+        Coach.objects.create(
+            coach_code=coach_code,
+            coach_name=request.POST.get('coach_name', ''),
+            coach_level=request.POST.get('coach_level', ''),
+            phone=phone,
+            dpart=request.POST.get('dpart', ''),
+            order_seq=int(request.POST.get('order_seq', '0') or '0'),
+            coach_s_img=coach_s_img,
+            use_gbn='Y',
+            insert_dt=timezone.now(),
+        )
+        return redirect('office_coach_list')
+
+    # GET
+    levl_list = CodeValue.objects.filter(group__grpcode='LEVL', del_chk='N').order_by('code_order')
+    return render(request, 'ba_office/lfcourse/coach_write.html', {
+        'levl_list': levl_list,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def coach_modify(request, pk):
+    """코치 수정"""
+    coach = get_object_or_404(Coach, pk=pk)
+
+    if request.method == 'POST':
+        coach.coach_name = request.POST.get('coach_name', '')
+        coach.coach_level = request.POST.get('coach_level', '')
+
+        # 연락처: mhtel1)mhtel2-mhtel3 형식
+        mhtel1 = request.POST.get('mhtel1', '')
+        mhtel2 = request.POST.get('mhtel2', '')
+        mhtel3 = request.POST.get('mhtel3', '')
+        coach.phone = f'{mhtel1}){mhtel2}-{mhtel3}' if mhtel1 else ''
+
+        coach.dpart = request.POST.get('dpart', '')
+        coach.order_seq = int(request.POST.get('order_seq', '0') or '0')
+
+        # 이미지 파일 업로드 (새 파일이 있으면 교체)
+        if request.FILES.get('coach_s_img'):
+            f = request.FILES['coach_s_img']
+            upload_dir = os.path.join(settings.MEDIA_ROOT, 'fcdata', 'coach')
+            os.makedirs(upload_dir, exist_ok=True)
+            filename = f'{coach.coach_code}_{f.name}'
+            filepath = os.path.join(upload_dir, filename)
+            with open(filepath, 'wb+') as dest:
+                for chunk in f.chunks():
+                    dest.write(chunk)
+            coach.coach_s_img = filename
+
+        coach.save()
+        return redirect('office_coach_list')
+
+    # GET: phone → mhtel1/2/3 분리
+    mhtel1, mhtel2, mhtel3 = '', '', ''
+    if coach.phone and ')' in coach.phone:
+        parts = coach.phone.split(')')
+        mhtel1 = parts[0]
+        rest = parts[1] if len(parts) > 1 else ''
+        if '-' in rest:
+            mhtel2, mhtel3 = rest.split('-', 1)
+        else:
+            mhtel2 = rest
+
+    coach.mhtel1 = mhtel1
+    coach.mhtel2 = mhtel2
+    coach.mhtel3 = mhtel3
+
+    levl_list = CodeValue.objects.filter(group__grpcode='LEVL', del_chk='N').order_by('code_order')
+    return render(request, 'ba_office/lfcourse/coach_modify.html', {
+        'coach': coach,
+        'levl_list': levl_list,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def coach_del(request, pk):
+    """코치 삭제 (소프트)"""
+    if request.method == 'POST':
+        coach = get_object_or_404(Coach, pk=pk)
+        coach.use_gbn = 'N'
+        coach.save()
+    return redirect('office_coach_list')
+
+
+# ============================================================
+# 과정관리 > 강좌관리
+# ============================================================
+
+@office_login_required
+@office_permission_required('L')
+def lecture_list(request):
+    """강좌 목록"""
+    use_gbn = request.GET.get('use_gbn', 'Y')
+    local_code = request.GET.get('local_code', '')
+    sel_sta_code = request.GET.get('sel_sta_code', '')
+    class_gbn = request.GET.get('class_gbn', '')
+    lecture_day = request.GET.get('lecture_day', '')
+
+    # LOCD 코드그룹 로드 (검색 필터용)
+    locd_list = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order')
+
+    # 구장 목록 (hidden select 패턴용)
+    stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
+
+    lectures = []
+    total_count = 0
+    txt_dt = ''
+
+    # sta_code > 0 일 때만 목록 표시 (ASP 원본과 동일)
+    if sel_sta_code:
+        qs = Lecture.objects.filter(use_gbn=use_gbn)
+
+        if local_code:
+            qs = qs.filter(local_code=int(local_code))
+        if sel_sta_code:
+            qs = qs.filter(stadium__sta_code=int(sel_sta_code))
+        if class_gbn:
+            qs = qs.filter(class_gbn=class_gbn)
+        if lecture_day:
+            qs = qs.filter(lecture_day=int(lecture_day))
+
+        qs = qs.select_related('stadium', 'coach', 't_coach').order_by('lecture_day', 'class_gbn', 'lecture_time')
+
+        now = datetime.now()
+        try:
+            course_ym_dt = date(now.year, now.month, 1)
+        except ValueError:
+            course_ym_dt = date(now.year, 1, 1)
+
+        txt_dt = f'{now.year}년 {now.month:02d}월'
+
+        # 다음달 계산
+        if now.month == 12:
+            next_year = now.year + 1
+            next_month = 1
+        else:
+            next_year = now.year
+            next_month = now.month + 1
+
+        for lec in qs:
+            # 수강인원 통계
+            base_filter = dict(
+                lecture_code=lec.lecture_code,
+                course_ym=course_ym_dt,
+                bill_code='1001',
+            )
+            lec.c_student = EnrollmentCourse.objects.filter(
+                **base_filter, course_stats='LY'
+            ).count()
+            lec.e_student = EnrollmentCourse.objects.filter(
+                **base_filter, course_stats='LP'
+            ).count()
+            lec.f_student = EnrollmentCourse.objects.filter(
+                **base_filter, course_stats__in=['LN', 'PN', 'LS']
+            ).count()
+
+            # 누적 통계
+            acc_base_filter = dict(
+                lecture_code=lec.lecture_code,
+                bill_code='1001',
+            )
+            lec.acc_c_student = EnrollmentCourse.objects.filter(
+                **acc_base_filter, course_stats='LY'
+            ).count()
+            lec.acc_e_student = EnrollmentCourse.objects.filter(
+                **acc_base_filter, course_stats='LP'
+            ).count()
+
+            # 대기인원
+            lec.dae_student = WaitStudent.objects.filter(
+                lecture_code=lec.lecture_code, trans_gbn='N', del_chk='N'
+            ).count()
+
+            # 다음달 시간표 존재 여부
+            lec.next_timetable = LectureSelDay.objects.filter(
+                lecture_code=lec.lecture_code, syear=next_year, smonth=next_month
+            ).count()
+
+        lectures = list(qs)
+        total_count = len(lectures)
+
+    now_for_dt = datetime.now()
+    cur_dt = f'{now_for_dt.year}{now_for_dt.month:02d}'
+
+    return render(request, 'ba_office/lfcourse/lecture_list.html', {
+        'lectures': lectures,
+        'total_count': total_count,
+        'txt_dt': txt_dt,
+        'cur_dt': cur_dt,
+        'use_gbn': use_gbn,
+        'local_code': local_code,
+        'sel_sta_code': sel_sta_code,
+        'class_gbn': class_gbn,
+        'lecture_day': lecture_day,
+        'locd_list': locd_list,
+        'stadiums': stadiums,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def lecture_write(request):
+    """강좌 등록"""
+    if request.method == 'POST':
+        max_code = Lecture.objects.aggregate(m=Coalesce(Max('lecture_code'), 0))['m']
+        lecture_code = max_code + 1
+
+        sta_code = int(request.POST.get('sta_code', '0') or '0')
+        stadium_obj = Stadium.objects.filter(sta_code=sta_code).first()
+
+        coach_code = request.POST.get('coach_code', '')
+        coach_obj = Coach.objects.filter(coach_code=int(coach_code)).first() if coach_code else None
+
+        t_coach_code = request.POST.get('t_coach_code', '')
+        t_coach_obj = Coach.objects.filter(coach_code=int(t_coach_code)).first() if t_coach_code else None
+
+        lec_day = int(request.POST.get('lecture_day', '0') or '0')
+        lec_time = request.POST.get('lecture_time', '')
+        cls_gbn = request.POST.get('class_gbn', '')
+
+        # 강좌명 자동생성: "{구장닉네임}_{요일}_{시간}_{클래스}"
+        day_names = {1: '월', 2: '화', 3: '수', 4: '목', 5: '금', 6: '토', 7: '일'}
+        nickname = stadium_obj.sta_nickname if stadium_obj else ''
+        day_str = day_names.get(lec_day, '')
+        lecture_title = request.POST.get('lecture_title', '')
+        if not lecture_title and nickname:
+            lecture_title = f'{nickname}_{day_str}_{lec_time}_{cls_gbn}'
+
+        Lecture.objects.create(
+            lecture_code=lecture_code,
+            local_code=int(request.POST.get('local_code', '0') or '0'),
+            stadium=stadium_obj,
+            lecture_title=lecture_title,
+            lec_age=request.POST.get('lec_age', ''),
+            lecture_day=lec_day,
+            lecture_time=lec_time,
+            class_gbn=cls_gbn,
+            class_gbn2=request.POST.get('class_gbn2', ''),
+            lec_price=int(request.POST.get('lec_price', '0') or '0'),
+            stu_cnt=int(request.POST.get('stu_cnt', '0') or '0'),
+            coach=coach_obj,
+            t_coach=t_coach_obj,
+            sub_coach=request.POST.get('sub_coach', ''),
+            dc_2=int(request.POST.get('dc_2', '0') or '0'),
+            dc_3=int(request.POST.get('dc_3', '0') or '0'),
+            dc_4=int(request.POST.get('dc_4', '0') or '0'),
+            use_gbn='Y',
+            insert_dt=timezone.now(),
+        )
+        return redirect('office_lecture_list')
+
+    # GET
+    locd_list = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order')
+    stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
+    coaches = Coach.objects.filter(use_gbn='Y').order_by('order_seq', 'coach_name')
+    return render(request, 'ba_office/lfcourse/lecture_write.html', {
+        'locd_list': locd_list,
+        'stadiums': stadiums,
+        'coaches': coaches,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def lecture_modify(request, pk):
+    """강좌 수정"""
+    lecture = get_object_or_404(Lecture, pk=pk)
+
+    if request.method == 'POST':
+        sta_code = int(request.POST.get('sta_code', '0') or '0')
+        stadium_obj = Stadium.objects.filter(sta_code=sta_code).first()
+
+        coach_code = request.POST.get('coach_code', '')
+        coach_obj = Coach.objects.filter(coach_code=int(coach_code)).first() if coach_code else None
+
+        t_coach_code = request.POST.get('t_coach_code', '')
+        t_coach_obj = Coach.objects.filter(coach_code=int(t_coach_code)).first() if t_coach_code else None
+
+        lecture.local_code = int(request.POST.get('local_code', '0') or '0')
+        lecture.stadium = stadium_obj
+        lecture.lecture_title = request.POST.get('lecture_title', '')
+        lecture.lec_age = request.POST.get('lec_age', '')
+        lecture.lecture_day = int(request.POST.get('lecture_day', '0') or '0')
+        lecture.lecture_time = request.POST.get('lecture_time', '')
+        lecture.class_gbn = request.POST.get('class_gbn', '')
+        lecture.class_gbn2 = request.POST.get('class_gbn2', '')
+        lecture.lec_price = int(request.POST.get('lec_price', '0') or '0')
+        lecture.stu_cnt = int(request.POST.get('stu_cnt', '0') or '0')
+        lecture.coach = coach_obj
+        lecture.t_coach = t_coach_obj
+        lecture.sub_coach = request.POST.get('sub_coach', '')
+        lecture.dc_2 = int(request.POST.get('dc_2', '0') or '0')
+        lecture.dc_3 = int(request.POST.get('dc_3', '0') or '0')
+        lecture.dc_4 = int(request.POST.get('dc_4', '0') or '0')
+        lecture.save()
+        return redirect('office_lecture_list')
+
+    # GET
+    locd_list = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order')
+    all_stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
+    coaches = Coach.objects.filter(use_gbn='Y').order_by('order_seq', 'coach_name')
+
+    # 현재 강좌의 권역으로 필터된 구장 목록
+    filtered_stadiums = all_stadiums.filter(local_code=lecture.local_code) if lecture.local_code else all_stadiums
+
+    # FK 코드값을 템플릿에서 비교할 수 있도록 속성 추가
+    lecture.sta_code = lecture.stadium.sta_code if lecture.stadium else 0
+    lecture.coach_code = lecture.coach.coach_code if lecture.coach else 0
+    lecture.t_coach_code = lecture.t_coach.coach_code if lecture.t_coach else 0
+
+    return render(request, 'ba_office/lfcourse/lecture_modify.html', {
+        'lecture': lecture,
+        'locd_list': locd_list,
+        'all_stadiums': all_stadiums,
+        'filtered_stadiums': filtered_stadiums,
+        'coaches': coaches,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def lecture_del(request, pk):
+    """강좌 삭제 (소프트)"""
+    if request.method == 'POST':
+        lecture = get_object_or_404(Lecture, pk=pk)
+        lecture.use_gbn = 'N'
+        lecture.save()
+    return redirect('office_lecture_list')
+
+
+# ============================================================
+# 과정관리 > 시간표 관리
+# ============================================================
+
+@office_login_required
+@office_permission_required('L')
+def _build_timetable_html(lecture_code, syear, smonth):
+    """월별 시간표 HTML 문자열 생성 (AJAX 응답용)"""
+    days = LectureSelDay.objects.filter(
+        lecture_code=lecture_code, syear=syear, smonth=smonth
+    ).order_by('sday')
+    html = ''
+    for d in days:
+        html += (
+            f"<span style='padding:5px 3px 5px 3px;width:50px;height:30px;"
+            f"border:1px solid #d9d9d9;'>{d.sday}일 "
+            f"<img src='/static/ba_office/images/ico_x.gif' "
+            f"onclick=\"delDay({d.pk},{smonth});\" style='cursor:pointer;' />"
+            f"</span>&nbsp;&nbsp;&nbsp;"
+        )
+    return html
+
+
+def lecture_timetable(request, lecture_code):
+    """시간표 관리"""
+    lecture = get_object_or_404(Lecture, lecture_code=lecture_code)
+
+    now = datetime.now()
+    syear = int(request.GET.get('syear', str(now.year)))
+
+    if request.method == 'POST':
+        mode = request.POST.get('mode', '')
+        admin_id = request.session.get('office_user', {}).get('office_id', '')
+
+        if mode == 'add':
+            add_year = int(request.POST.get('syear', str(syear)))
+            add_month = int(request.POST.get('smonth', '1'))
+            add_day = int(request.POST.get('sday', '1'))
+            LectureSelDay.objects.get_or_create(
+                lecture_code=lecture_code,
+                syear=add_year,
+                smonth=add_month,
+                sday=add_day,
+                defaults={'admin_id': admin_id},
+            )
+            html = _build_timetable_html(lecture_code, add_year, add_month)
+            return JsonResponse({'status': 'ok', 'html': html})
+
+        elif mode == 'del':
+            uid = request.POST.get('uid', '')
+            del_year = int(request.POST.get('syear', str(syear)))
+            del_month = int(request.POST.get('smonth', '1'))
+            if uid:
+                LectureSelDay.objects.filter(pk=int(uid)).delete()
+            html = _build_timetable_html(lecture_code, del_year, del_month)
+            return JsonResponse({'status': 'ok', 'html': html})
+
+        elif mode == 'bulk':
+            post_year = int(request.POST.get('syear', str(syear)))
+            # 해당 년도 전체 삭제 후 요일 기반 자동 생성
+            LectureSelDay.objects.filter(
+                lecture_code=lecture_code, syear=post_year
+            ).delete()
+
+            lec_day = lecture.lecture_day  # 1~7 (월~일)
+            # Python weekday: 0=월, 6=일 → lec_day: 1=월, 7=일
+            py_weekday = lec_day - 1  # 0~6
+
+            for month in range(1, 13):
+                cal = calendar.monthcalendar(post_year, month)
+                for week in cal:
+                    day = week[py_weekday]
+                    if day != 0:
+                        LectureSelDay.objects.get_or_create(
+                            lecture_code=lecture_code,
+                            syear=post_year,
+                            smonth=month,
+                            sday=day,
+                            defaults={'admin_id': admin_id},
+                        )
+            return JsonResponse({'status': 'ok'})
+
+    # GET: 12개월 시간표 로드
+    seldays = LectureSelDay.objects.filter(
+        lecture_code=lecture_code, syear=syear
+    ).order_by('smonth', 'sday')
+
+    # 월별로 그룹핑
+    monthly_days = {}
+    for sd in seldays:
+        monthly_days.setdefault(sd.smonth, []).append(sd)
+
+    # timetable_data: 1~12월 각각 days 리스트 포함
+    timetable_data = []
+    for m in range(1, 13):
+        timetable_data.append({
+            'month': m,
+            'days': monthly_days.get(m, []),
+        })
+
+    # year_list 생성 (현재년도 ±2)
+    year_list = list(range(now.year - 2, now.year + 3))
+
+    # 권역명, 구장명 표시용
+    locd_map = {cv.subcode: cv.code_name for cv in CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N')}
+    lecture.local_code_name = locd_map.get(lecture.local_code, '')
+    lecture.sta_code_name = lecture.stadium.sta_name if lecture.stadium else ''
+
+    return render(request, 'ba_office/lfcourse/lecture_timetable.html', {
+        'lecture': lecture,
+        'syear': syear,
+        'timetable_data': timetable_data,
+        'year_list': year_list,
+    })
+
+
+# ============================================================
+# 과정관리 > 훈련일정관리
+# ============================================================
+
+@office_login_required
+@office_permission_required('L')
+def train_list(request):
+    """훈련일정 목록"""
+    sel_year_code = request.GET.get('sel_year_code', '')
+    sel_month_code = request.GET.get('sel_month_code', '')
+    sch_locd_code = request.GET.get('sch_locd_code', '')
+    sch_sta_code = request.GET.get('sch_sta_code', '')
+
+    locd_list = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order')
+    all_stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
+
+    # 필터링된 구장 (선택된 권역 기준)
+    filtered_stadiums = []
+    if sch_locd_code:
+        filtered_stadiums = all_stadiums.filter(local_code=int(sch_locd_code))
+
+    # 연도 목록
+    now = datetime.now()
+    year_list = list(range(now.year - 2, now.year + 3))
+
+    trains = []
+    searched = False
+
+    if sel_year_code and sel_month_code and sch_sta_code:
+        searched = True
+        try:
+            y = int(sel_year_code)
+            m = int(sel_month_code)
+            start_date = date(y, m, 1)
+            last_day = calendar.monthrange(y, m)[1]
+            end_date = date(y, m, last_day)
+
+            qs = LectureTraining.objects.filter(
+                sta_code=int(sch_sta_code),
+                training_dt__range=[start_date, end_date],
+            ).order_by('training_dt')
+
+            # 각 항목에 sta_name 추가
+            sta_map = {s.sta_code: s.sta_name for s in Stadium.objects.all()}
+            for t in qs:
+                t.sta_name = sta_map.get(t.sta_code, '')
+            trains = list(qs)
+        except (ValueError, TypeError):
+            pass
+
+    return render(request, 'ba_office/lfcourse/train_list.html', {
+        'trains': trains,
+        'searched': searched,
+        'sel_year_code': sel_year_code,
+        'sel_month_code': sel_month_code,
+        'sch_locd_code': sch_locd_code,
+        'sch_sta_code': sch_sta_code,
+        'locd_list': locd_list,
+        'all_stadiums': all_stadiums,
+        'filtered_stadiums': filtered_stadiums,
+        'year_list': year_list,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def train_write(request):
+    """훈련일정 등록"""
+    if request.method == 'POST':
+        sta_code = int(request.POST.get('sch_sta_code', '0') or '0')
+        local_code = int(request.POST.get('sch_locd_code', '0') or '0')
+        training_dt_str = request.POST.get('train_date', '')
+        training_desc = request.POST.get('train_content', '')
+        insert_id = request.session.get('office_user', {}).get('office_id', '')
+
+        try:
+            training_dt = datetime.strptime(training_dt_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            training_dt = None
+
+        if training_dt:
+            # 중복체크: 같은 sta_code + local_code + training_dt
+            exists = LectureTraining.objects.filter(
+                sta_code=sta_code, local_code=local_code, training_dt=training_dt
+            ).exists()
+            if exists:
+                locd_list = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order')
+                all_stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
+                return render(request, 'ba_office/lfcourse/train_write.html', {
+                    'error': '이미 동일한 날짜에 등록된 훈련일정이 있습니다.',
+                    'locd_list': locd_list,
+                    'all_stadiums': all_stadiums,
+                })
+
+            LectureTraining.objects.create(
+                sta_code=sta_code,
+                local_code=local_code,
+                training_dt=training_dt,
+                training_desc=training_desc,
+                insert_dt=timezone.now(),
+                insert_id=insert_id,
+            )
+        return redirect('office_train_list')
+
+    # GET
+    locd_list = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order')
+    all_stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
+    return render(request, 'ba_office/lfcourse/train_write.html', {
+        'locd_list': locd_list,
+        'all_stadiums': all_stadiums,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def train_modify(request, pk):
+    """훈련일정 수정"""
+    train = get_object_or_404(LectureTraining, pk=pk)
+
+    if request.method == 'POST':
+        train.sta_code = int(request.POST.get('sch_sta_code', '0') or '0')
+        train.local_code = int(request.POST.get('sch_locd_code', '0') or '0')
+        training_dt_str = request.POST.get('train_date', '')
+        try:
+            train.training_dt = datetime.strptime(training_dt_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            pass
+        train.training_desc = request.POST.get('train_content', '')
+        train.save()
+        return redirect('office_train_list')
+
+    # GET
+    locd_list = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order')
+    all_stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
+    filtered_stadiums = all_stadiums.filter(local_code=train.local_code) if train.local_code else []
+    return render(request, 'ba_office/lfcourse/train_write.html', {
+        'train': train,
+        'mode': 'edit',
+        'locd_list': locd_list,
+        'all_stadiums': all_stadiums,
+        'filtered_stadiums': filtered_stadiums,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def train_del(request, pk):
+    """훈련일정 삭제 (하드)"""
+    if request.method == 'POST':
+        training = get_object_or_404(LectureTraining, pk=pk)
+        training.delete()
+    return redirect('office_train_list')
+
+
+# ============================================================
+# 과정관리 > 프로모션관리
+# ============================================================
+
+@office_login_required
+@office_permission_required('L')
+def promotion_list(request):
+    """프로모션 목록"""
+    useMode = request.GET.get('useMode', '0')
+    stype = request.GET.get('stype', '')
+    sword = request.GET.get('sword', '').strip()
+    page = request.GET.get('page', '1')
+
+    qs = Promotion.objects.all().order_by('-uid')
+
+    # useMode 필터
+    if useMode and useMode != '0':
+        qs = qs.filter(use_mode=int(useMode))
+
+    # stype/sword 검색
+    if stype and sword:
+        if stype == '1':
+            # 제목 검색
+            qs = qs.filter(title__icontains=sword)
+        elif stype == '2':
+            # member_id로 PromotionMember 조회
+            coupon_uids = PromotionMember.objects.filter(
+                member_id__icontains=sword
+            ).values_list('coupon_uid', flat=True).distinct()
+            qs = qs.filter(uid__in=coupon_uids)
+        elif stype == '3':
+            # 회원명으로 Member → member_id → PromotionMember
+            member_ids = Member.objects.filter(
+                name__icontains=sword
+            ).values_list('username', flat=True)
+            coupon_uids = PromotionMember.objects.filter(
+                member_id__in=member_ids
+            ).values_list('coupon_uid', flat=True).distinct()
+            qs = qs.filter(uid__in=coupon_uids)
+        elif stype == '4':
+            # child_id로 PromotionMember 조회
+            coupon_uids = PromotionMember.objects.filter(
+                child_id__icontains=sword
+            ).values_list('coupon_uid', flat=True).distinct()
+            qs = qs.filter(uid__in=coupon_uids)
+        elif stype == '5':
+            # 자녀명으로 MemberChild → child_id → PromotionMember
+            child_ids = MemberChild.objects.filter(
+                name__icontains=sword
+            ).values_list('child_id', flat=True)
+            coupon_uids = PromotionMember.objects.filter(
+                child_id__in=child_ids
+            ).values_list('coupon_uid', flat=True).distinct()
+            qs = qs.filter(uid__in=coupon_uids)
+
+    # 표시용 문자열 추가
+    use_mode_map = {0: '전체', 1: '교육용품비', 2: '수강료', 3: '결제금액'}
+    issue_mode_map = {0: '-', 1: '회원별', 2: '야드별', 3: '구장별'}
+
+    for p in qs:
+        p.strUseMode = use_mode_map.get(p.use_mode, '')
+        p.strIssueMode = issue_mode_map.get(p.issue_mode, '')
+        p.strIsUse = '사용' if p.is_use == 'T' else '미사용'
+        start_str = p.start_date.strftime('%Y-%m-%d') if p.start_date else ''
+        end_str = p.end_date.strftime('%Y-%m-%d') if p.end_date else ''
+        p.strEventPeriod = f'{start_str} ~ {end_str}' if start_str or end_str else ''
+
+    paginator = Paginator(qs, 20)
+    page_obj = paginator.get_page(page)
+    total_count = paginator.count
+
+    return render(request, 'ba_office/lfcourse/promotion_list.html', {
+        'promotions': page_obj,
+        'total_count': total_count,
+        'useMode': useMode,
+        'stype': stype,
+        'sword': sword,
+        'page_obj': page_obj,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def promotion_input(request):
+    """프로모션 등록/수정"""
+    uid = request.GET.get('uid', '0') if request.method == 'GET' else request.POST.get('uid', '0')
+    try:
+        uid = int(uid)
+    except (ValueError, TypeError):
+        uid = 0
+
+    promotion = None
+    if uid > 0:
+        promotion = Promotion.objects.filter(uid=uid).first()
+
+    if request.method == 'POST':
+        # 템플릿 폼 필드명(camelCase) 기준으로 읽기
+        use_mode = int(request.POST.get('useMode', '0') or '0')
+        issue_mode = int(request.POST.get('issueMode', '0') or '0')
+        title = request.POST.get('title', '')
+        summary = request.POST.get('summary', '')
+        start_date_str = request.POST.get('startDate', '')
+        end_date_str = request.POST.get('endDate', '')
+        discount = int(request.POST.get('discount', '0') or '0')
+        discount_unit = request.POST.get('discountUnit', '')
+        is_period_limit = request.POST.get('isPeriodLimit', '')  # 체크시 'F' (제한없음)
+        is_price_limit = request.POST.get('isPriceLimit', '')  # 체크시 'F' (제한없음)
+        min_price = int(request.POST.get('minPrice', '0') or '0')
+        max_price = int(request.POST.get('maxPrice', '0') or '0')
+        is_use = request.POST.get('isUse', 'T')
+
+        # issueMode별 local_code / sta_code
+        local_code_val = ''
+        sta_code_val = ''
+        if issue_mode == 2:
+            local_code_val = request.POST.get('local_code_2', '')
+        elif issue_mode == 3:
+            local_code_val = request.POST.get('local_code_3', '')
+            sta_code_val = request.POST.get('sta_code3', '')
+
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d') if start_date_str else None
+        except ValueError:
+            start_date = None
+        try:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else None
+        except ValueError:
+            end_date = None
+
+        # 기간 제한없음 체크 시 날짜 무시
+        if is_period_limit == 'F':
+            start_date = None
+            end_date = None
+
+        if promotion:
+            # 수정
+            promotion.use_mode = use_mode
+            promotion.issue_mode = issue_mode
+            promotion.title = title
+            promotion.summary = summary
+            promotion.start_date = start_date
+            promotion.end_date = end_date
+            promotion.discount = discount
+            promotion.discount_unit = discount_unit
+            promotion.is_price_limit = is_price_limit if is_price_limit else 'T'
+            promotion.min_price = min_price
+            promotion.max_price = max_price
+            promotion.is_use = is_use
+            promotion.local_code = int(local_code_val) if local_code_val else None
+            promotion.sta_code = int(sta_code_val) if sta_code_val else None
+            promotion.save()
+        else:
+            # 등록
+            max_uid = Promotion.objects.aggregate(m=Coalesce(Max('uid'), 0))['m']
+            new_uid = max_uid + 1
+
+            promotion = Promotion.objects.create(
+                uid=new_uid,
+                use_mode=use_mode,
+                issue_mode=issue_mode,
+                title=title,
+                summary=summary,
+                start_date=start_date,
+                end_date=end_date,
+                discount=discount,
+                discount_unit=discount_unit,
+                is_price_limit=is_price_limit if is_price_limit else 'T',
+                min_price=min_price,
+                max_price=max_price,
+                is_use=is_use,
+                local_code=int(local_code_val) if local_code_val else None,
+                sta_code=int(sta_code_val) if sta_code_val else None,
+                reg_date=timezone.now(),
+            )
+            uid = promotion.uid
+
+        # PromotionMember 처리: items(콤마구분 child_code 문자열)
+        items_str = request.POST.get('items', '')
+        if items_str:
+            child_codes = [c.strip() for c in items_str.split(',') if c.strip()]
+            for child_code in child_codes:
+                child = MemberChild.objects.filter(child_id=child_code, status='N').first()
+                if child:
+                    PromotionMember.objects.get_or_create(
+                        coupon_uid=promotion.uid,
+                        member_id=child.parent.username if child.parent else '',
+                        child_id=child.child_id,
+                        defaults={'used': 'T', 'is_trash': 'T'},
+                    )
+
+        return redirect('office_promotion_list')
+
+    # GET - 템플릿에서 사용하는 개별 변수로 전달
+    locd_list = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order')
+    stadiums_qs = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
+
+    # 기본값 설정
+    mode = 'add'
+    mode_text = '등록'
+    useMode = 0
+    issueMode = 1
+    p_title = ''
+    p_summary = ''
+    startDate = ''
+    endDate = ''
+    p_discount = ''
+    discountUnit = '1'
+    isPeriodLimit = False
+    isPriceLimit = False
+    minPrice = ''
+    maxPrice = ''
+    isUse = 'T'
+    isAllmem = False
+    local_code = ''
+    items = ''
+
+    member_list = []
+    if promotion:
+        mode = 'edit'
+        mode_text = '수정'
+        useMode = promotion.use_mode
+        issueMode = promotion.issue_mode
+        p_title = promotion.title
+        p_summary = promotion.summary
+        startDate = promotion.start_date.strftime('%Y-%m-%d') if promotion.start_date else ''
+        endDate = promotion.end_date.strftime('%Y-%m-%d') if promotion.end_date else ''
+        p_discount = promotion.discount
+        discountUnit = promotion.discount_unit or '1'
+        isPeriodLimit = not (promotion.start_date or promotion.end_date)
+        isPriceLimit = (promotion.is_price_limit == 'F')
+        minPrice = promotion.min_price
+        maxPrice = promotion.max_price
+        isUse = promotion.is_use or 'T'
+        local_code = promotion.local_code or ''
+
+        # 프로모션 회원 목록
+        pm_qs = PromotionMember.objects.filter(coupon_uid=promotion.uid, used='T', is_trash='T')
+        for pm in pm_qs:
+            child = MemberChild.objects.filter(child_id=pm.child_id).first()
+            member = Member.objects.filter(username=pm.member_id).first()
+            pm.child_name = child.name if child else ''
+            pm.member_name = member.name if member else ''
+            pm.child_code = pm.child_id
+            pm.insert_dt = ''
+            member_list.append(pm)
+
+    return render(request, 'ba_office/lfcourse/promotion_input.html', {
+        'promotion': promotion,
+        'uid': uid,
+        'mode': mode,
+        'mode_text': mode_text,
+        'useMode': useMode,
+        'issueMode': issueMode,
+        'title': p_title,
+        'summary': p_summary,
+        'startDate': startDate,
+        'endDate': endDate,
+        'discount': p_discount,
+        'discountUnit': discountUnit,
+        'isPeriodLimit': isPeriodLimit,
+        'isPriceLimit': isPriceLimit,
+        'minPrice': minPrice,
+        'maxPrice': maxPrice,
+        'isUse': isUse,
+        'isAllmem': isAllmem,
+        'local_code': local_code,
+        'items': items,
+        'locd_list': locd_list,
+        'stadiums': stadiums_qs,
+        'member_list': member_list,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def promotion_member_del(request):
+    """프로모션 회원 삭제"""
+    uid = request.GET.get('uid', '0')
+    child_code = request.GET.get('child_code', '')
+
+    try:
+        uid_int = int(uid)
+    except (ValueError, TypeError):
+        uid_int = 0
+
+    if uid_int > 0 and child_code:
+        PromotionMember.objects.filter(
+            coupon_uid=uid_int, child_id=child_code
+        ).delete()
+
+    return redirect(f'/office/lfcourse/promotion/input/?uid={uid}')
+
+
+# ============================================================
+# 과정관리 > AJAX
+# ============================================================
+
+@office_login_required
+def ajax_course_stadium(request):
+    """AJAX: 권역별 구장 목록"""
+    local_code = request.GET.get('local_code', '')
+    qs = Stadium.objects.filter(use_gbn='Y')
+    if local_code:
+        qs = qs.filter(local_code=int(local_code))
+    qs = qs.order_by('sta_name')
+    data = [{'sta_code': s.sta_code, 'sta_name': s.sta_name} for s in qs]
+    return JsonResponse(data, safe=False)
+
+
+# ============================================================
+# 과정관리 > 수업시간표 팝업
+# ============================================================
+
+@office_login_required
+def course_list_popup(request):
+    """구장별 수업시간표 팝업"""
+    sta_code = request.GET.get('sta_code', '')
+    lecture_dt = request.GET.get('lecture_dt', '')
+
+    now = timezone.now()
+    # 날짜 옵션: 최근 12개월
+    date_options = []
+    for i in range(12):
+        m = now.month - i
+        y = now.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        date_options.append(f'{y}-{m:02d}')
+    if not lecture_dt:
+        lecture_dt = date_options[0]
+
+    class_list = []
+    if sta_code:
+        stadium = Stadium.objects.filter(sta_code=int(sta_code)).first()
+        if stadium:
+            for cls_gbn in ['A', 'B', 'C', 'D']:
+                lectures = Lecture.objects.filter(
+                    stadium=stadium,
+                    class_gbn=cls_gbn,
+                    use_gbn='Y'
+                ).order_by('lecture_day', 'lecture_time', 'lec_age')
+
+                if not lectures.exists():
+                    continue
+
+                rows = []
+                rowspan_count = {}
+                for lec in lectures:
+                    key = (lec.lecture_day, lec.lecture_time)
+                    if key not in rowspan_count:
+                        rowspan_count[key] = 0
+                    rowspan_count[key] += 1
+
+                prev_key = None
+                for lec in lectures:
+                    key = (lec.lecture_day, lec.lecture_time)
+                    days = {1: '월', 2: '화', 3: '수', 4: '목', 5: '금', 6: '토', 7: '일'}
+                    try:
+                        dt_parts = lecture_dt.split('-')
+                        course_ym_dt = date(int(dt_parts[0]), int(dt_parts[1]), 1)
+                    except Exception:
+                        course_ym_dt = date(now.year, now.month, 1)
+                    cur_cnt = EnrollmentCourse.objects.filter(
+                        lecture_code=lec.lecture_code,
+                        course_stats__in=['LY', 'LP'],
+                        course_ym=course_ym_dt,
+                        bill_code='1001',
+                    ).count()
+
+                    row = {
+                        'lec_age': lec.lec_age or '-',
+                        'stu_cnt': lec.stu_cnt,
+                        'cur_cnt': cur_cnt,
+                        'lecture_time': lec.lecture_time or '-',
+                        'day_name': days.get(lec.lecture_day, ''),
+                        'is_first': key != prev_key,
+                        'rowspan': rowspan_count.get(key, 1),
+                    }
+                    rows.append(row)
+                    prev_key = key
+
+                class_list.append({
+                    'class_gbn': cls_gbn,
+                    'rows': rows,
+                })
+
+    return render(request, 'ba_office/lfcourse/course_list_popup.html', {
+        'sta_code': sta_code,
+        'lecture_dt': lecture_dt,
+        'date_options': date_options,
+        'class_list': class_list,
+    })
+
+
+# ============================================================
+# 과정관리 > 프로모션 회원 팝업
+# ============================================================
+
+@office_login_required
+@office_permission_required('L')
+def promotion_member_popup(request):
+    """프로모션 회원 선택 팝업"""
+    uid = request.GET.get('uid', '')
+    sword = request.GET.get('sword', '')
+
+    members = []
+    if sword:
+        member_qs = Member.objects.filter(
+            Q(name__icontains=sword) | Q(member_id__icontains=sword),
+            status='Y'
+        ).order_by('name')[:50]
+        for m in member_qs:
+            children = MemberChild.objects.filter(parent=m, status='Y')
+            for c in children:
+                members.append({
+                    'member_id': m.member_id,
+                    'member_name': m.name,
+                    'child_id': c.child_id,
+                    'child_name': c.name,
+                })
+
+    if request.method == 'POST':
+        selected = request.POST.getlist('sel_member')
+        for sel in selected:
+            parts = sel.split('|')
+            if len(parts) == 2:
+                m_id, c_id = parts
+                if not PromotionMember.objects.filter(
+                    coupon_uid=int(uid), member_id=m_id, child_id=c_id
+                ).exists():
+                    PromotionMember.objects.create(
+                        coupon_uid=int(uid),
+                        member_id=m_id,
+                        child_id=c_id,
+                        used='T',
+                        is_trash='T',
+                    )
+        return render(request, 'ba_office/lfcourse/promotion_member_popup.html', {
+            'uid': uid, 'sword': sword, 'members': members, 'saved': True,
+        })
+
+    return render(request, 'ba_office/lfcourse/promotion_member_popup.html', {
+        'uid': uid,
+        'sword': sword,
+        'members': members,
+    })

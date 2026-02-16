@@ -1,0 +1,336 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfclass_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(function() {
+    $("#startDate").datepicker({
+        showButtonPanel: true,
+        monthNamesShort: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
+        dayNamesMin: ['일','월','화','수','목','금','토'],
+        dateFormat: 'yy-mm-dd',
+        changeMonth: true,
+        changeYear: true,
+        showMonthAfterYear: true
+    });
+    $("#endDate").datepicker({
+        showButtonPanel: true,
+        monthNamesShort: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
+        dayNamesMin: ['일','월','화','수','목','금','토'],
+        dateFormat: 'yy-mm-dd',
+        changeMonth: true,
+        changeYear: true,
+        showMonthAfterYear: true
+    });
+});
+
+function checkUseMode() {
+    // placeholder for future use
+}
+
+function checkIssueMode() {
+    var f = document.reg_form;
+    var radios = f.issueMode;
+    var issue = "";
+    for (var i = 0; i < radios.length; i++) {
+        if (radios[i].checked) { issue = radios[i].value; break; }
+    }
+    for (var i = 1; i <= 3; i++) {
+        var el = document.getElementById("trIssueMode" + i);
+        if (el) {
+            el.style.display = (i == parseInt(issue)) ? "" : "none";
+        }
+    }
+}
+
+function checkDiscountUnit() {
+    var f = document.reg_form;
+    var radios = f.discountUnit;
+    var unit = "";
+    for (var i = 0; i < radios.length; i++) {
+        if (radios[i].checked) { unit = radios[i].value; break; }
+    }
+}
+
+function checkAllMem(cb) {
+    var f = document.reg_form;
+    if (cb.checked) {
+        f.memberListBtn.disabled = true;
+        $("#member_list").hide();
+        f.items.value = "";
+    } else {
+        f.memberListBtn.disabled = false;
+    }
+}
+
+function checkLimit(cb, sId, eId) {
+    var f = document.reg_form;
+    if (cb.checked) {
+        f[sId].disabled = true;
+        f[sId].style.backgroundColor = "#F0F0F0";
+        f[eId].disabled = true;
+        f[eId].style.backgroundColor = "#F0F0F0";
+    } else {
+        f[sId].style.backgroundColor = "";
+        f[sId].disabled = false;
+        f[eId].style.backgroundColor = "";
+        f[eId].disabled = false;
+    }
+}
+
+function sel_stadium(local_code, issue) {
+    $.getJSON("{% url 'office_ajax_course_stadium' %}", {local_code: local_code}, function(data) {
+        var sel = $("#sta_code" + issue);
+        sel.empty().append('<option value="">==선택==</option>');
+        $.each(data, function(i, item) {
+            sel.append('<option value="' + item.sta_code + '">' + item.sta_name + '</option>');
+        });
+    });
+}
+
+function open_member() {
+    window.open("{% url 'office_promotion_member_popup' %}?uid={{ uid }}", "open_member", "scrollbars=yes, width=900,height=650, left=50, top=50");
+}
+
+function sel_member(value) {
+    var childcodes = document.reg_form.items.value;
+    if (childcodes.indexOf(",") != -1) {
+        document.reg_form.items.value = childcodes + value;
+    } else {
+        document.reg_form.items.value = value;
+    }
+    ViewMemberList();
+}
+
+function ViewMemberList() {
+    $("#member_list").show();
+    // Load member list via AJAX if needed
+}
+
+function sendChk() {
+    var f = document.reg_form;
+    var radios_use = f.useMode;
+    var useMode = "";
+    for (var i = 0; i < radios_use.length; i++) {
+        if (radios_use[i].checked) { useMode = radios_use[i].value; break; }
+    }
+    var radios_issue = f.issueMode;
+    var issueMode = "";
+    for (var i = 0; i < radios_issue.length; i++) {
+        if (radios_issue[i].checked) { issueMode = radios_issue[i].value; break; }
+    }
+
+    if (!f.title.value || f.title.value == "") {
+        alert("프로모션명을 입력해 주세요.");
+        f.title.focus();
+        return;
+    }
+
+    if (f.isPeriodLimit && f.isPeriodLimit.checked == false) {
+        if (!f.startDate.value || f.startDate.value == "") {
+            alert("시작일자를 입력해 주세요.");
+            return;
+        }
+        if (!f.endDate.value || f.endDate.value == "") {
+            alert("종료일자를 입력해 주세요.");
+            return;
+        }
+    }
+
+    if (!f.discount.value || f.discount.value == "") {
+        alert("할인금액(률)을 입력해 주세요.");
+        f.discount.focus();
+        return;
+    }
+
+    if (issueMode == "1") {
+        if (f.isAllmem.checked == false) {
+            if (!f.items.value || f.items.value == "") {
+                alert("회원을 선택해주세요.");
+                return;
+            }
+        }
+    } else if (issueMode == "2") {
+        var lc = f.local_code_2;
+        if (!lc.value || lc.value == "") {
+            alert("권역을 선택하세요.");
+            lc.focus();
+            return;
+        }
+    } else if (issueMode == "3") {
+        var lc = f.local_code_3;
+        if (!lc.value || lc.value == "") {
+            alert("권역을 선택하세요.");
+            lc.focus();
+            return;
+        }
+    }
+
+    if (confirm("{{ mode_text }}하시겠습니까?")) {
+        f.submit();
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  과정관리  &gt;  프로모션관리</div>
+<div class="h_55"></div>
+
+<p class="title">프로모션관리 - {{ mode_text }}</p>
+
+<div class="tb_basic">
+    <form name="reg_form" method="post" action="{% url 'office_promotion_input' %}">
+    {% csrf_token %}
+    <input type="hidden" name="mode" value="{{ mode }}">
+    <input type="hidden" name="uid" value="{{ uid }}">
+    <input type="hidden" name="items" value="{{ items }}">
+    <table summary="프로모션관리" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="100px" />
+            <col />
+            <col width="100px" />
+            <col />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">구분<font color="red">*</font></th>
+                <td class="left">
+                    <input type="radio" name="useMode" value="1" {% if useMode == 1 %}checked{% endif %} onclick="checkUseMode();"> 교육용품비
+                    <input type="radio" name="useMode" value="2" {% if useMode == 2 %}checked{% endif %} onclick="checkUseMode();"> 수강료
+                    <input type="radio" name="useMode" value="3" {% if useMode == 3 %}checked{% endif %} onclick="checkUseMode();"> 결제금액
+                </td>
+                <th scope="col">대상<font color="red">*</font></th>
+                <td class="left">
+                    <input type="radio" name="issueMode" value="1" {% if issueMode == 1 %}checked{% endif %} onclick="checkIssueMode();"> 회원별
+                    <!--<input type="radio" name="issueMode" value="2" {% if issueMode == 2 %}checked{% endif %} onclick="checkIssueMode();"> 야드별
+                    <input type="radio" name="issueMode" value="3" {% if issueMode == 3 %}checked{% endif %} onclick="checkIssueMode();"> 구장별-->
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">프로모션명<font color="red">*</font></th>
+                <td class="left">
+                    <input type="text" name="title" value="{{ title }}" size="20" maxlength="50">
+                    <span style="color:gray;">(간결하고 짧게 적으세요.)</span>
+                </td>
+                <th scope="col">간략한설명</th>
+                <td class="left">
+                    <input type="text" name="summary" value="{{ summary }}" size="30" maxlength="100">
+                    <span style="color:gray;">(필요할 경우 입력하세요.)</span>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">기간<font color="red">*</font></th>
+                <td class="left">
+                    <input type="checkbox" name="isPeriodLimit" value="F" {% if isPeriodLimit %}checked{% endif %} onclick="checkLimit(this,'startDate','endDate');"> 제한없음<br>
+                    <input type="text" id="startDate" name="startDate" value="{{ startDate }}" class="box" style="width:70px;" maxlength="10" readonly> ~
+                    <input type="text" id="endDate" name="endDate" value="{{ endDate }}" class="box" style="width:70px;" maxlength="10" readonly>
+                </td>
+                <th scope="col">할인금액(률)<font color="red">*</font></th>
+                <td class="left">
+                    <input type="text" name="discount" class="box money" style="width:70px;" maxlength="7" value="{{ discount }}">
+                    <input type="radio" name="discountUnit" value="1" {% if discountUnit == "1" or discountUnit == 1 %}checked{% endif %} onclick="checkDiscountUnit()"> 원
+                    <input type="radio" name="discountUnit" value="2" {% if discountUnit == "2" or discountUnit == 2 %}checked{% endif %} onclick="checkDiscountUnit()"> %
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">최저/최대금액</th>
+                <td class="left">
+                    <input type="checkbox" name="isPriceLimit" value="F" {% if isPriceLimit %}checked{% endif %} onclick="checkLimit(this,'minPrice','maxPrice');"> 제한없음<br>
+                    결제금액이
+                    <input type="text" name="minPrice" style="width:70px;" maxlength="7" value="{{ minPrice }}"> 원 이상
+                    <input type="text" name="maxPrice" style="width:70px;" maxlength="7" value="{{ maxPrice }}"> 원 이하
+                    <br><span style="color:gray">(최소, 최대금액중 하나는 0원 이상으로 반드시 입력해야합니다.)</span>
+                </td>
+                <th scope="col">사용여부<font color="red">*</font></th>
+                <td class="left">
+                    <input type="radio" name="isUse" value="T" {% if isUse == "T" %}checked{% endif %}> 사용함
+                    <input type="radio" name="isUse" value="F" {% if isUse == "F" %}checked{% endif %}> 사용하지 않음
+                </td>
+            </tr>
+            <tr id="trIssueMode1" style="display:none;">
+                <th scope="col">회원선택</th>
+                <td class="left" colspan="3">
+                    <input type="button" name="memberListBtn" value="회원선택" onclick="open_member();" style="width:100px;height:25px;">
+                    &nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox" name="isAllmem" value="T" onclick="checkAllMem(this);" {% if isAllmem %}checked{% endif %}> 회원전체선택
+                    <div id="member_list" class="scroll">
+                        {% if member_list %}
+                        <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                            <tr>
+                                <th>부모ID</th><th>부모명</th><th>자녀ID</th><th>자녀명</th><th>등록일</th><th>삭제</th>
+                            </tr>
+                            {% for m in member_list %}
+                            <tr>
+                                <td>{{ m.member_id }}</td>
+                                <td>{{ m.member_name }}</td>
+                                <td>{{ m.child_id }}</td>
+                                <td>{{ m.child_name }}</td>
+                                <td>{{ m.insert_dt }}</td>
+                                <td><a href="{% url 'office_promotion_member_delete' %}?uid={{ uid }}&child_code={{ m.child_code }}"><img src="{% static 'ba_office/images/ico_x.gif' %}"></a></td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            <tr id="trIssueMode2" style="display:none;">
+                <th scope="col">권역선택</th>
+                <td class="left" colspan="3">
+                    <select name="local_code_2">
+                        <option value="">권역선택</option>
+                        {% for cd in locd_list %}
+                        <option value="{{ cd.subcode }}" {% if local_code == cd.subcode %}selected{% endif %}>{{ cd.code_desc }}_{{ cd.code_name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+            </tr>
+            <tr id="trIssueMode3" style="display:none;">
+                <th scope="col">권역선택</th>
+                <td class="left">
+                    <select name="local_code_3" onchange="sel_stadium(this.value, 3);">
+                        <option value="">권역선택</option>
+                        {% for cd in locd_list %}
+                        <option value="{{ cd.subcode }}" {% if local_code == cd.subcode %}selected{% endif %}>{{ cd.code_desc }}_{{ cd.code_name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <th scope="col">구장선택</th>
+                <td class="left">
+                    <select name="sta_code3" id="sta_code3">
+                        <option value="">==선택==</option>
+                    </select>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    </form>
+</div>
+
+<div class="btn_right">
+    <a href="javascript:sendChk();">{% if mode == 'edit' %}<img src="{% static 'ba_office/images/btn_modify.gif' %}" alt="수정" />{% else %}<img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" />{% endif %}</a>
+    <a href="{% url 'office_promotion_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+
+1.교육용품비: 신규입단 시 교육용품비가 적용될 경우 할인금액<br><br>
+2.수강료 : 월 수강료에서 일정한 금액 할인시 적용,  수강기간 , 수업횟수별로 증감된다<br><br>
+3.결제금액 : 교육용품비, 수강료를 모두 더한 총금액에서 특정금액을 할인하는 경우 <br><br>
+  (수강기간, 수업횟수별로 증감되지 않으며 만들어진 총금액에서 차감됨)<br><br><br><br>
+[기간설명]<br><br>
+의미 : 프로모션을 적용하는 기간이며 실제수강기간과는 상관없이 프로모션을 적용하여 데이터가 생성 혹은 수정되는 날짜<br><br>
+EX) 기간에 20150425 ~ 20150426 등록 시 25일부터 26일까지 수강창을 만드는 경우 프로모션 적용되며 27일부터 만드는 수강등록, 수강정보변경시에는 프로모션이 적용되지 않음<br><br>
+따라서 이월금액반영, 일시중지자 등 1회성 금액 반영을 위한 프로모션 등록시에는 반드시 날짜를 적용하여 특정기간에만 적용되도록 해야 하며<br>
+주2회금액할인, 특별케이스등 지속적으로 할인을 적용받는 경우 '제한없음' 으로 등록!
+
+<script>
+    checkIssueMode();
+    checkLimit(document.reg_form.isPeriodLimit, 'startDate', 'endDate');
+    checkLimit(document.reg_form.isPriceLimit, 'minPrice', 'maxPrice');
+    checkAllMem(document.reg_form.isAllmem);
+</script>
+
+{% endblock %}

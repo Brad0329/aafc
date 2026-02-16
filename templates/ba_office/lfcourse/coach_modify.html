@@ -1,0 +1,104 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfclass_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function sendChk() {
+    if (chec_fun(reg_form.coach_name, "코치명") == false) { return; }
+    if (chec_fun(reg_form.coach_level, "직급") == false) { return; }
+    if (chec_fun(reg_form.mhtel1, "연락처1") == false) { return; }
+    if (chec_num(reg_form.mhtel1, "연락처1") == false) { return; }
+    if (chec_fun(reg_form.mhtel2, "연락처2") == false) { return; }
+    if (chec_num(reg_form.mhtel2, "연락처2") == false) { return; }
+    if (chec_fun(reg_form.mhtel3, "연락처3") == false) { return; }
+    if (chec_num(reg_form.mhtel3, "연락처3") == false) { return; }
+    if (chec_fun(reg_form.order_seq, "정렬번호") == false) { return; }
+    if (chec_num(reg_form.order_seq, "정렬번호") == false) { return; }
+
+    var con = confirm("수정 하시겠습니까?");
+    if (con == true) {
+        reg_form.submit();
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  과정관리  &gt;  코칭스탭관리</div>
+<div class="h_55"></div>
+
+<p class="title">코칭스탭 - 수정</p>
+
+<div class="tb_basic">
+    <form name="reg_form" method="post" action="{% url 'office_coach_modify' coach.coach_code %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="coach_code" value="{{ coach.coach_code }}">
+    <input type="hidden" name="be_coach_s_img" value="{{ coach.coach_s_img }}">
+    <table summary="코치수정" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="20%" />
+            <col width="30%" />
+            <col width="20%" />
+            <col width="30%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">코치코드</th>
+                <td class="left" colspan="3">{{ coach.coach_code }}</td>
+            </tr>
+            <tr>
+                <th scope="col">코치명<font color="red">*</font></th>
+                <td class="left"><input type="text" name="coach_name" style="width:150px;" maxlength="15" value="{{ coach.coach_name }}"></td>
+                <th scope="col">직급구분</th>
+                <td class="left">
+                    <select name="coach_level" class="select">
+                        {% for cd in levl_list %}
+                        <option value="{{ cd.subcode }}" {% if coach.coach_level == cd.subcode %}selected{% endif %}>{{ cd.code_name }}({{ cd.code_desc }})</option>
+                        {% endfor %}
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">연락처<font color="red">*</font></th>
+                <td class="left" colspan="3">
+                    <select name="mhtel1">
+                        <option value="010" {% if coach.mhtel1 == "010" %}selected{% endif %}>010</option>
+                        <option value="011" {% if coach.mhtel1 == "011" %}selected{% endif %}>011</option>
+                        <option value="016" {% if coach.mhtel1 == "016" %}selected{% endif %}>016</option>
+                        <option value="017" {% if coach.mhtel1 == "017" %}selected{% endif %}>017</option>
+                        <option value="019" {% if coach.mhtel1 == "019" %}selected{% endif %}>019</option>
+                    </select>)
+                    <input type="text" name="mhtel2" style="width:50px;" maxlength="4" value="{{ coach.mhtel2 }}">-
+                    <input type="text" name="mhtel3" style="width:50px;" maxlength="4" value="{{ coach.mhtel3 }}">
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">부서<font color="red">*</font></th>
+                <td class="left" colspan="3"><input type="text" name="dpart" style="width:150px;" maxlength="15" value="{{ coach.dpart }}"></td>
+            </tr>
+            <tr>
+                <th scope="col">정렬번호<font color="red">*</font></th>
+                <td class="left" colspan="3"><input type="text" name="order_seq" style="width:150px;" maxlength="3" value="{{ coach.order_seq }}">ex : 10</td>
+            </tr>
+            <tr>
+                <th scope="col">썸네일<font color="red">*</font><br>(300*200)</th>
+                <td class="left" colspan="3">
+                    <input type="file" name="coach_s_img" style="width:600px;"><br>
+                    이전파일 : {{ coach.coach_s_img }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    </form>
+</div>
+
+<div class="btn_right">
+    <a href="javascript:sendChk();"><img src="{% static 'ba_office/images/btn_modify.gif' %}" alt="수정" /></a>
+    <a href="{% url 'office_coach_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+
+{% endblock %}

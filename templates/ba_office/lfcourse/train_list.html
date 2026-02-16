@@ -1,0 +1,142 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfclass_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function srch_snd() {
+    if (chec_fun(srch_form.sel_year_code, "조회년도") == false) { return; }
+    if (chec_fun(srch_form.sel_month_code, "조회월") == false) { return; }
+    if (chec_fun(srch_form.sch_sta_code, "구장명") == false) { return; }
+
+    document.srch_form.submit();
+}
+function lflectrain_del(train_code, train_dt) {
+    var con = confirm("해당 훈련일정을 삭제하시겠습니까?");
+    if (con) {
+        document.getElementById('del_form_' + train_code).submit();
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  과정관리  &gt;  훈련일정관리</div>
+<div class="h_55"></div>
+
+<p class="title">훈련일정 - 리스트</p>
+<div class="tb_basic">
+    <form name="srch_form" method="get" action="{% url 'office_train_list' %}">
+    <select name="hi_sta_code" class="select" style="display:none;">
+        {% for s in all_stadiums %}
+        <option value="{{ s.sta_code }}" title="{{ s.local_code }}">{{ s.sta_name }}</option>
+        {% endfor %}
+    </select>
+    <table summary="훈련일정" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="35%" />
+            <col width="15%" />
+            <col width="35%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">조회년도</th>
+                <td class="left">
+                    <select name="sel_year_code" class="select">
+                        {% for y in year_list %}
+                        <option value="{{ y }}" {% if sel_year_code == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <th scope="col">조회 월</th>
+                <td class="left">
+                    <select name="sel_month_code" class="select">
+                        <option value="01" {% if sel_month_code == "01" %}selected{% endif %}>1</option>
+                        <option value="02" {% if sel_month_code == "02" %}selected{% endif %}>2</option>
+                        <option value="03" {% if sel_month_code == "03" %}selected{% endif %}>3</option>
+                        <option value="04" {% if sel_month_code == "04" %}selected{% endif %}>4</option>
+                        <option value="05" {% if sel_month_code == "05" %}selected{% endif %}>5</option>
+                        <option value="06" {% if sel_month_code == "06" %}selected{% endif %}>6</option>
+                        <option value="07" {% if sel_month_code == "07" %}selected{% endif %}>7</option>
+                        <option value="08" {% if sel_month_code == "08" %}selected{% endif %}>8</option>
+                        <option value="09" {% if sel_month_code == "09" %}selected{% endif %}>9</option>
+                        <option value="10" {% if sel_month_code == "10" %}selected{% endif %}>10</option>
+                        <option value="11" {% if sel_month_code == "11" %}selected{% endif %}>11</option>
+                        <option value="12" {% if sel_month_code == "12" %}selected{% endif %}>12</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">필드명</th>
+                <td class="left">
+                    <select name="sch_locd_code" class="select" onchange="setSelect('srch_form.hi_sta_code', 'srch_form.sch_sta_code', this.value)">
+                        <option value="">==선택==</option>
+                        {% for cd in locd_list %}
+                        <option value="{{ cd.subcode }}" {% if sch_locd_code == cd.subcode|stringformat:"s" %}selected{% endif %}>{{ cd.code_name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <th scope="col">구장명</th>
+                <td class="left">
+                    <select name="sch_sta_code" class="select">
+                        {% if sch_locd_code %}
+                        {% for s in filtered_stadiums %}
+                        <option value="{{ s.sta_code }}" {% if sch_sta_code == s.sta_code|stringformat:"d" %}selected{% endif %}>{{ s.sta_name }}</option>
+                        {% endfor %}
+                        {% endif %}
+                    </select>
+                </td>
+            </tr>
+        </tbody>
+    </form>
+    </table>
+</div>
+<div class="btn_right"><a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></div>
+
+<div class="tb_basic">
+    <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="12%" />
+            <col width="20%" />
+            <col />
+            <col width="15%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">훈련일자</th>
+                <th scope="col">구장명</th>
+                <th scope="col">등록내용</th>
+                <th scope="col">관리</th>
+            </tr>
+            {% if searched %}
+            {% for t in trains %}
+            <tr>
+                <td>{{ t.training_dt|date:"Y-m-d" }}</td>
+                <td class="left">{{ t.sta_name }}</td>
+                <td>
+                    <textarea name="train_content" class="textarea" style="width:450px" rows="6" readonly>{{ t.training_desc }}</textarea>
+                </td>
+                <td>
+                    <a href="{% url 'office_train_modify' t.pk %}"><img src="{% static 'ba_office/images/btn_edit.gif' %}" alt="수정" /></a>
+                    <a href="javascript:lflectrain_del({{ t.pk }},'{{ t.training_dt|date:"Y-m-d" }}');"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a>
+                    <form id="del_form_{{ t.pk }}" method="post" action="{% url 'office_train_delete' t.pk %}" style="display:none;">
+                        {% csrf_token %}
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td align="center" colspan="4">등록 Data가 없습니다.</td></tr>
+            {% endfor %}
+            {% else %}
+            <tr><td colspan="4">검색 과정이 없습니다.</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+<div class="btn_right"><a href="{% url 'office_train_write' %}"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a></div>
+
+{% endblock %}

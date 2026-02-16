@@ -1,0 +1,177 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfclass_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function sendChk() {
+    if (chec_fun(reg_form.sta_name, "구장명") == false) { return; }
+    if (chec_fun(reg_form.sta_useYN, "상태") == false) { return; }
+    if (chec_fun(reg_form.sta_coach, "담당코치") == false) { return; }
+
+    var chk_num = 0;
+    var chks = document.getElementsByName("chk_coach");
+    for (var i = 0; i < chks.length; i++) {
+        if (chks[i].checked == true) {
+            chk_num = chk_num + 1;
+        }
+    }
+    reg_form.chk_num.value = chk_num;
+
+    if (chec_fun(reg_form.sta_locd, "지역구분") == false) { return; }
+    if (chec_fun(reg_form.sta_address, "주소") == false) { return; }
+    if (chec_num(reg_form.kapa_tot, "전체정원 kapa") == false) { return; }
+    if (chec_fun(reg_form.inve, "구장구분") == false) { return; }
+    if (chec_fun(reg_form.grou, "장소구분") == false) { return; }
+
+    var con = confirm("등록 하시겠습니까?");
+    if (con == true) {
+        reg_form.submit();
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  과정관리  &gt;  구장정보</div>
+<div class="h_55"></div>
+
+<p class="title">구장정보 - 등록</p>
+
+<div class="tb_basic">
+    <form name="reg_form" method="post" action="{% url 'office_stadium_write' %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="chk_num">
+    <table summary="구장등록" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="35%" />
+            <col width="15%" />
+            <col width="35%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">구장명<font color="red">*</font></th>
+                <td class="left"><input type="text" name="sta_name" style="width:150px;" maxlength="10" value=""></td>
+                <th scope="col">구장_닉네임명</th>
+                <td class="left"><input type="text" name="sta_nicname" style="width:150px;" maxlength="10" value=""></td>
+            </tr>
+            <tr>
+                <th scope="col">담당코치<font color="red">*</font></th>
+                <td class="left">
+                    <select name="sta_coach" class="select">
+                        <option value="">선택</option>
+                        {% for c in coaches %}
+                        <option value="{{ c.coach_code }}">{{ c.coach_name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <th scope="col">상태<font color="red">*</font></th>
+                <td class="left">
+                    <select name="sta_useYN" class="select">
+                        <option value="">선택</option>
+                        <option value="Y">사용</option>
+                        <option value="N">미사용</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">소속코치선택</th>
+                <td class="left" colspan="3">
+                    {% for c in coaches %}
+                    <input type="checkbox" name="chk_coach" class="checkbox" value="{{ c.coach_code }}">{{ c.coach_name }} &nbsp;
+                    {% endfor %}
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">지역구분<font color="red">*</font></th>
+                <td class="left">
+                    <select name="sta_locd" class="select">
+                        <option value="">선택</option>
+                        {% for cd in locd_list %}
+                        <option value="{{ cd.subcode }}">{{ cd.code_name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <th scope="col">연락처</th>
+                <td class="left">
+                    <input type="text" name="sta_phone" style="width:300px;">
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">3회체험수업</th>
+                <td class="left" colspan="3">
+                    <select name="three_lecyn" class="select">
+                        <option value="Y">가능</option>
+                        <option value="N">불가능</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">주소<font color="red">*</font></th>
+                <td class="left" colspan="3">
+                    <input type="text" name="sta_address" style="width:600px;">
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">이미지1<br></th>
+                <td class="left" colspan="3"><input type="file" name="sta_s_img" style="width:600px;"></td>
+            </tr>
+            <tr>
+                <th scope="col">이미지2<br></th>
+                <td class="left" colspan="3"><input type="file" name="sta_l_img" style="width:600px;"></td>
+            </tr>
+            <tr>
+                <th scope="col">프로그램이미지<br></th>
+                <td class="left" colspan="3"><input type="file" name="sta_p_img" style="width:600px;"></td>
+            </tr>
+            <tr>
+                <th scope="col">약도</th>
+                <td class="left" colspan="3"><input type="file" name="sta_m_img" style="width:600px;"></td>
+            </tr>
+            <tr>
+                <th scope="col">소개</th>
+                <td class="left" colspan="3">
+                    <textarea name="sta_desc" id="sta_desc" rows="10" style="width:600px;"></textarea>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">전체정원 kapa</th>
+                <td class="left" colspan="3"><input type="text" name="kapa_tot" style="width:100px;">명</td>
+            </tr>
+            <tr>
+                <th scope="col">구장구분<font color="red">*</font></th>
+                <td class="left" colspan="3">
+                    <select name="inve" class="select">
+                        <option value="">선택</option>
+                        {% for cd in inve_list %}
+                        <option value="{{ cd.subcode }}">{{ cd.code_name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">장소구분<font color="red">*</font></th>
+                <td class="left" colspan="3">
+                    <select name="grou" class="select">
+                        <option value="">선택</option>
+                        {% for cd in grou_list %}
+                        <option value="{{ cd.subcode }}">{{ cd.code_name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    </form>
+</div>
+
+<div class="btn_right">
+    <a href="javascript:sendChk();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+    <a href="{% url 'office_stadium_list' %}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfclass_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function lfcoach_del(coach_code) {
+    var con = confirm("삭제하시겠습니까?");
+    if (con) {
+        document.getElementById('del_form_' + coach_code).submit();
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  과정관리  &gt;  코칭스탭관리</div>
+<div class="h_55"></div>
+
+<p class="title">코칭스탭 - 리스트</p>
+
+<div class="tb_basic">
+    <table summary="코치정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="10%" />
+            <col width="10%" />
+            <col width="10%" />
+            <col width="10%" />
+            <col width="10%" />
+            <col width="10%" />
+            <col />
+            <col width="5%" />
+            <col width="20%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">순번</th>
+                <th scope="col">성명</th>
+                <th scope="col">연락처</th>
+                <th scope="col">직급</th>
+                <th scope="col">코치코드</th>
+                <th scope="col">부서</th>
+                <th scope="col">이미지</th>
+                <th scope="col">정렬번호</th>
+                <th scope="col">관리</th>
+            </tr>
+            {% for coach in coaches %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ coach.coach_name }}</td>
+                <td>{{ coach.phone }}</td>
+                <td>{{ coach.level_name }}<br>({{ coach.level_desc }})</td>
+                <td>{{ coach.coach_code }}</td>
+                <td>{{ coach.dpart }}</td>
+                <td><img src="/media/fcdata/coach/{{ coach.coach_s_img }}" width="100"></td>
+                <td>{{ coach.order_seq }}</td>
+                <td>
+                    <a href="{% url 'office_coach_modify' coach.coach_code %}"><img src="{% static 'ba_office/images/btn_edit.gif' %}" alt="수정" /></a>
+                    <a href="javascript:lfcoach_del({{ coach.coach_code }});"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a>
+                    <form id="del_form_{{ coach.coach_code }}" method="post" action="{% url 'office_coach_delete' coach.coach_code %}" style="display:none;">
+                        {% csrf_token %}
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td align="center" colspan="9">등록 Data가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div class="btn_right"><a href="{% url 'office_coach_write' %}"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a></div>
+
+{% endblock %}

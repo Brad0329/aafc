@@ -1,0 +1,97 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfclass_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function course_list_popup(sta_code) {
+    window.open("{% url 'office_course_list_popup' %}?sta_code=" + sta_code, "Course_Popup", "scrollbars=yes, width=917,height=500, left=50, top=50");
+}
+function lecture_information(sta_code) {
+    location.href = "{% url 'office_lecture_list' %}?sel_sta_code=" + sta_code;
+}
+function srch_snd() {
+    document.srch_form.submit();
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  과정관리  &gt;  구장정보</div>
+<div class="h_55"></div>
+
+<p class="title">구장정보 - 리스트</p>
+<div class="tb_basic">
+    <form name="srch_form" method="get" action="{% url 'office_stadium_list' %}">
+    <table summary="구장정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="*" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">검색</th>
+                <td class="left">
+                    <select name="use_gbn" id="use_gbn" onchange="srch_snd();">
+                        <option value="Y" {% if use_gbn == "Y" %}selected{% endif %}>활성</option>
+                        <option value="N" {% if use_gbn == "N" %}selected{% endif %}>비활성</option>
+                    </select>
+                </td>
+            </tr>
+        </tbody>
+    </form>
+    </table>
+</div>
+
+<div class="tb_basic">
+    <table summary="구장정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="7%" />
+            <col width="14%" />
+            <col width="11%" />
+            <col />
+            <col width="7%" />
+            <col width="7%" />
+            <col width="9%" />
+            <col width="28%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">코드</th>
+                <th scope="col">구장명</th>
+                <th scope="col">연락처</th>
+                <th scope="col">주소</th>
+                <th scope="col">3회체험</th>
+                <th scope="col">상태</th>
+                <th scope="col">등록일</th>
+                <th scope="col">관리</th>
+            </tr>
+            {% for s in stadiums %}
+            <tr>
+                <td>{{ s.sta_code }}</td>
+                <td class="left">{{ s.sta_name }}</td>
+                <td>{{ s.sta_phone }}</td>
+                <td class="left">{{ s.sta_address }}</td>
+                <td>{{ s.three_lecyn }}</td>
+                <td>{{ s.use_gbn }}</td>
+                <td>{{ s.insert_dt|date:"Y-m-d" }}</td>
+                <td>
+                    <input type="button" value="수업시간표" onclick="course_list_popup({{ s.sta_code }});" class="button">
+                    <input type="button" value="과정정보" onclick="lecture_information({{ s.sta_code }});" class="button">
+                    <a href="{% url 'office_stadium_modify' s.sta_code %}"><img src="{% static 'ba_office/images/btn_edit.gif' %}" alt="수정" /></a>
+                    <a href="{% url 'office_stadium_goal' s.sta_code %}"><img src="{% static 'ba_office/images/goal_mana.gif' %}" alt="목표관리" /></a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td align="center" colspan="8">등록 Data가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div class="btn_right"><a href="{% url 'office_stadium_write' %}"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a></div>
+
+{% endblock %}

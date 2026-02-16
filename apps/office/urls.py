@@ -136,4 +136,42 @@ urlpatterns = [
     path('lfstudent/batch/confirm/', views.batch_confirm_proc, name='office_batch_confirm'),
     path('lfstudent/batch/confirm-pay/', views.batch_confirm_pay_proc, name='office_batch_confirm_pay'),
     path('lfstudent/batch/lms/', views.batch_lms_proc, name='office_batch_lms'),
+
+    # 과정관리 > 구장정보
+    path('lfcourse/stadium/', views.stadium_list, name='office_stadium_list'),
+    path('lfcourse/stadium/write/', views.stadium_write, name='office_stadium_write'),
+    path('lfcourse/stadium/modify/<int:pk>/', views.stadium_modify, name='office_stadium_modify'),
+    path('lfcourse/stadium/goal/<int:sta_code>/', views.stadium_goal, name='office_stadium_goal'),
+    path('lfcourse/stadium/goal/del/<int:sta_code>/', views.stadium_goal_del, name='office_stadium_goal_delete'),
+
+    # 과정관리 > 코칭스탭관리
+    path('lfcourse/coach/', views.coach_list, name='office_coach_list'),
+    path('lfcourse/coach/write/', views.coach_write, name='office_coach_write'),
+    path('lfcourse/coach/modify/<int:pk>/', views.coach_modify, name='office_coach_modify'),
+    path('lfcourse/coach/del/<int:pk>/', views.coach_del, name='office_coach_delete'),
+
+    # 과정관리 > 과정관리(강좌)
+    path('lfcourse/lecture/', views.lecture_list, name='office_lecture_list'),
+    path('lfcourse/lecture/write/', views.lecture_write, name='office_lecture_write'),
+    path('lfcourse/lecture/modify/<int:pk>/', views.lecture_modify, name='office_lecture_modify'),
+    path('lfcourse/lecture/del/<int:pk>/', views.lecture_del, name='office_lecture_delete'),
+    path('lfcourse/lecture/timetable/<int:lecture_code>/', views.lecture_timetable, name='office_lecture_timetable'),
+
+    # 과정관리 > 훈련일정관리
+    path('lfcourse/train/', views.train_list, name='office_train_list'),
+    path('lfcourse/train/write/', views.train_write, name='office_train_write'),
+    path('lfcourse/train/modify/<int:pk>/', views.train_modify, name='office_train_modify'),
+    path('lfcourse/train/del/<int:pk>/', views.train_del, name='office_train_delete'),
+
+    # 과정관리 > 프로모션관리
+    path('lfcourse/promotion/', views.promotion_list, name='office_promotion_list'),
+    path('lfcourse/promotion/input/', views.promotion_input, name='office_promotion_input'),
+    path('lfcourse/promotion/member-del/', views.promotion_member_del, name='office_promotion_member_delete'),
+    path('lfcourse/promotion/member-popup/', views.promotion_member_popup, name='office_promotion_member_popup'),
+
+    # 과정관리 > AJAX
+    path('lfcourse/ajax/stadium/', views.ajax_course_stadium, name='office_ajax_course_stadium'),
+
+    # 과정관리 > 팝업
+    path('lfcourse/popup/course-list/', views.course_list_popup, name='office_course_list_popup'),
 ]

@@ -214,3 +214,22 @@ class PromotionMember(models.Model):
 
     def __str__(self):
         return f'프로모션{self.coupon_uid} - {self.member_id}/{self.child_id}'
+
+
+class LectureTraining(models.Model):
+    """훈련일정 (lf_lectraining)"""
+    sta_code = models.IntegerField('구장코드', default=0)
+    local_code = models.IntegerField('권역코드', default=0)
+    training_dt = models.DateField('훈련일자', null=True, blank=True)
+    training_desc = models.TextField('훈련내용', blank=True)
+    insert_dt = models.DateTimeField('등록일', null=True, blank=True)
+    insert_id = models.CharField('등록자', max_length=30, blank=True)
+
+    class Meta:
+        db_table = 'courses_lecturetraining'
+        verbose_name = '훈련일정'
+        verbose_name_plural = '훈련일정'
+        ordering = ['training_dt']
+
+    def __str__(self):
+        return f'{self.training_dt} - 구장{self.sta_code}'
