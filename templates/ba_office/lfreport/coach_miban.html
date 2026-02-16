@@ -10,84 +10,90 @@
 {% block extra_js %}
 <script>
 function srch_snd() {
-    var ld = document.getElementById("lecture_dt").value;
-    if (ld == "") { alert("조회월을 입력해주세요."); return; }
-    location.href = "{% url 'office_report_coach_miban' %}?lecture_dt=" + ld;
+    var sd = document.getElementById("search_date").value;
+    if (sd == "") { alert("기준월을 입력해주세요."); return; }
+    location.href = "{% url 'office_report_coach_miban' %}?search_date=" + sd;
 }
 </script>
 {% endblock %}
 
 {% block content %}
-<div class="navi">HOME &gt; REPORT &gt; 코치 실적 미반영 취소</div>
+<div class="navi">HOME &gt; REPORT &gt; 코치 실적 미반영 취소분</div>
 <div class="h_55"></div>
 
-<p class="title">코치 실적 미반영 취소</p>
+<p class="title">코치 실적 미반영 취소분</p>
 <div class="tb_basic">
-    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+    <form name="srch_form" id="srch_form" method="get" action="">
+    <table summary="수강생정보" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
-            <col width="15%" />
-            <col width="*" />
+            <col width="10%" />
+            <col width="23%" />
+            <col width="10%" />
+            <col width="23%" />
         </colgroup>
         <tbody>
             <tr>
-                <th scope="col">조회월</th>
+                <th scope="col">기준월</th>
                 <td class="left">
-                    <input type="text" id="lecture_dt" value="{{ lecture_dt }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                    <input type="text" name="search_date" id="search_date" maxlength="10" style="width:100px;" value="{{ search_date }}" />
+                </td>
+                <td class="left">
                     <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
-                    &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
                 </td>
             </tr>
         </tbody>
     </table>
+    </form>
 </div>
 
-<div class="scroll">
-<div class="tb_scroll">
-    <table summary="미반영취소" border="0" cellpadding="0" cellspacing="0">
-        <thead>
-            <tr>
-                <th>순번</th><th>필드</th><th>구장</th><th>클래스</th>
-                <th>자녀아이디</th><th>자녀명</th><th>수강상태</th>
-                <th>취소일자</th><th>취소코드</th><th>취소사유</th>
-                <th>결제금액</th><th>수업료</th><th>교육용품비</th>
-                <th>결제상태</th><th>결제방법</th>
-                <th>결제일자</th><th>수강기간</th><th>수업주기</th>
-                <th>시작월</th><th>종료월</th><th>수강월</th>
-                <th>등록자</th><th>등록일자</th>
-            </tr>
-        </thead>
+<p>&nbsp;</p>
+
+<p>실적에 미반영된 취소분 리스트입니다.</p>
+<p>최초결제 : 최초 납입한 수강료</p>
+<p>취소결제 : 취소 후 납입한 수강료</p>
+
+<div class="tb_basic common">
+    <table summary="회원정보" class="exel_table common" border="0" style="width:100%;">
+        <colgroup>
+            <col width="*" />
+            <col width="*" />
+            <col width="*" />
+            <col width="*" />
+            <col width="*" />
+            <col width="*" />
+            <col width="*" />
+            <col width="*" />
+            <col width="*" />
+            <col width="*" />
+        </colgroup>
         <tbody>
+            <tr>
+                <th>코치명</th>
+                <th>취소월</th>
+                <th>회원명</th>
+                <th>수강생명</th>
+                <th>구장명</th>
+                <th>수업명</th>
+                <th>수강월</th>
+                <th>최초결제</th>
+                <th>취소결제</th>
+                <th>차액</th>
+            </tr>
             {% for r in rows %}
             <tr>
-                <td>{{ r.num }}</td>
-                <td>{{ r.code_desc }}</td>
-                <td class="left">{{ r.sta_name }}</td>
-                <td class="left">{{ r.lecture_title }}</td>
-                <td>{{ r.child_id }}</td>
+                <td>{{ r.ch_name }}</td>
+                <td>{{ r.reg_dt }}</td>
+                <td>{{ r.member_name }}</td>
                 <td>{{ r.child_name }}</td>
-                <td>{{ r.lecture_stats_nm }}</td>
-                <td>{{ r.cancel_date_str }}</td>
-                <td>{{ r.cancel_code }}</td>
-                <td class="left">{{ r.cancel_desc }}</td>
-                <td class="right">{{ r.pay_price|intcomma }}</td>
-                <td class="right">{{ r.lec_price|intcomma }}</td>
-                <td class="right">{{ r.join_price|intcomma }}</td>
-                <td>{{ r.pay_stats_nm }}</td>
-                <td>{{ r.pay_method_nm }}</td>
-                <td>{{ r.pay_dt }}</td>
-                <td>{{ r.lec_period }}개월</td>
-                <td>주{{ r.lec_cycle }}회</td>
-                <td>{{ r.start_dt }}</td>
-                <td>{{ r.end_dt }}</td>
-                <td>{{ r.course_ym_str }}</td>
-                <td>{{ r.insert_id }}</td>
-                <td>{{ r.insert_dt_str }}</td>
+                <td>{{ r.sta_name }}</td>
+                <td>{{ r.lec_title }}</td>
+                <td>{{ r.course_ym }}</td>
+                <td>{{ r.course_ym_amt|intcomma }}</td>
+                <td>{{ r.course_ym_amt2|intcomma }}</td>
+                <td><font color="red">{{ r.totsum|intcomma }}</font></td>
             </tr>
-            {% empty %}
-            <tr><td colspan="23" align="center">데이터가 없습니다.</td></tr>
             {% endfor %}
         </tbody>
     </table>
-</div>
 </div>
 {% endblock %}

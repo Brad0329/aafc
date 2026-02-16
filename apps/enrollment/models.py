@@ -73,6 +73,7 @@ class EnrollmentCourse(models.Model):
         related_name='courses', verbose_name='입단',
         db_column='no_seq',
     )
+    pknum = models.IntegerField('원본PK', default=0, db_index=True)
     bill_code = models.CharField('청구코드', max_length=4)
     course_ym = models.DateField('수강년월')
     course_ym_amt = models.IntegerField('수강금액', default=0)
@@ -148,6 +149,28 @@ class Attendance(models.Model):
 
     def __str__(self):
         return f'{self.child_id} {self.attendance_dt} {self.attendance_gbn}'
+
+
+class EnrollmentCourseSrc(models.Model):
+    """수강과정 변경원본 (lf_fcjoin_course_src)"""
+    src_seq = models.IntegerField('원본번호', default=0, db_index=True)
+    pknum = models.IntegerField('과정PK', default=0)
+    no_seq = models.IntegerField('입단번호', default=0)
+    bill_code = models.CharField('청구코드', max_length=4)
+    course_ym = models.DateField('수강년월')
+    course_ym_amt = models.IntegerField('수강금액', default=0)
+    lecture_code = models.IntegerField('강좌코드', default=0)
+    start_ymd = models.DateField('시작일', null=True, blank=True)
+    course_stats = models.CharField('수강상태', max_length=2, default='LY')
+    ch_name = models.CharField('코치명', max_length=40, blank=True)
+
+    class Meta:
+        db_table = 'enrollment_enrollmentcoursesrc'
+        verbose_name = '수강과정 변경원본'
+        verbose_name_plural = '수강과정 변경원본'
+
+    def __str__(self):
+        return f'원본#{self.src_seq} PK#{self.pknum} {self.bill_code}'
 
 
 class ChangeHistory(models.Model):

@@ -10,73 +10,314 @@
 {% block extra_js %}
 <script>
 function srch_snd() {
-    var sd = document.getElementById("search_date").value;
-    if (sd == "") { alert("조회년도를 입력해주세요."); return; }
-    location.href = "{% url 'office_report_stadium_year' %}?search_date=" + sd;
-}
-function exceldown() {
-    var sd = document.getElementById("search_date").value;
-    if (sd == "") { alert("조회년도를 입력해주세요."); return; }
-    location.href = "{% url 'office_report_stadium_year_excel' %}?search_date=" + sd;
+    var sy = document.getElementById("syear").value;
+    var sc = document.getElementById("selst_code").value;
+    if (sy == "") { alert("조회년도를 입력해주세요."); return; }
+    location.href = "{% url 'office_report_stadium_year' %}?syear=" + sy + "&selst_code=" + sc;
 }
 </script>
 {% endblock %}
 
 {% block content %}
-<div class="navi">HOME &gt; REPORT &gt; 연도별 구장별 현황</div>
+<div class="navi">HOME &gt; REPORT &gt; 연도별_구장별_현황</div>
 <div class="h_55"></div>
 
-<p class="title">연도별 구장별 현황</p>
+<p class="title">연도별_구장별_현황</p>
 <div class="tb_basic">
-    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+    <table summary="수강생정보" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
-            <col width="15%" />
-            <col width="*" />
+            <col width="10%" />
+            <col width="23%" />
+            <col width="10%" />
+            <col width="23%" />
         </colgroup>
         <tbody>
             <tr>
                 <th scope="col">조회년도</th>
                 <td class="left">
-                    <input type="text" id="search_date" value="{{ search_date }}" size="6" maxlength="4" placeholder="YYYY" />
-                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
-                    &nbsp;&nbsp;
-                    <a href="javascript:exceldown();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a>
-                    &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
+                    <input type="text" id="syear" value="{{ syear }}" maxlength="10" style="width:100px;" />
+                </td>
+                <th scope="col">구장</th>
+                <td class="left">
+                    <select name="selst_code" id="selst_code">
+                        <option value="">==구장선택==</option>
+                        {% for code, name in stadiums %}
+                        <option value="{{ code }}" {% if selst_code == code|stringformat:"d" %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
                 </td>
             </tr>
         </tbody>
     </table>
 </div>
+<div class="btn_right"><a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></div>
 
+{% if sel_sta_name %}
+<p>&nbsp;</p>
+<p class="title" align="center">{{ sel_sta_name }}</p>
+
+{# ── 담당코치정보 ── #}
+<p>&nbsp;</p>
+<p class="title">담당코치정보</p>
 <div class="tb_basic">
-    <table summary="구장별현황" border="0" cellpadding="0" cellspacing="0">
-        <colgroup>
-            <col width="20%" />
-            <col width="10%" /><col width="10%" /><col width="10%" />
-            <col width="10%" /><col width="10%" /><col width="10%" /><col width="10%" />
-        </colgroup>
-        <thead>
-            <tr>
-                <th>구장</th><th>회원수</th><th>목표</th><th>클래스</th>
-                <th>신규</th><th>갱신</th><th>재입단</th><th>퇴단</th>
-            </tr>
-        </thead>
+    <table summary="수강생정보" border="0" cellpadding="0" cellspacing="0">
         <tbody>
-            {% for r in rows %}
-            <tr>
-                <td class="left">{{ r.sta_name }}</td>
-                <td>{{ r.total_m_cnt|intcomma }}</td>
-                <td>{{ r.total_goal|intcomma }}</td>
-                <td>{{ r.total_tocl|intcomma }}</td>
-                <td>{{ r.total_new|intcomma }}</td>
-                <td>{{ r.total_renew|intcomma }}</td>
-                <td>{{ r.total_again|intcomma }}</td>
-                <td>{{ r.total_end|intcomma }}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="8" align="center">데이터가 없습니다.</td></tr>
+            {% for c in coaches %}
+            <tr><th scope="col">{{ c.code_name }} : {{ c.coach_name }}</th></tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+
+{# ── 월별 수강 인원 ── #}
+<p>&nbsp;</p>
+<p class="title">월별 수강 인원 - 명/원</p>
+<div class="tb_basic">
+    <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="*" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="7%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th>수업명</th>
+                <th>01 월</th><th>02 월</th><th>03 월</th><th>04 월</th>
+                <th>05 월</th><th>06 월</th><th>07 월</th><th>08 월</th>
+                <th>09 월</th><th>10 월</th><th>11 월</th><th>12 월</th>
+                <th>계</th>
+            </tr>
+            {% for r in lec_rows %}
+            {% if r.is_total and lec_avg %}
+            <tr>
+                <td><font color="green"><b>월평균</b></font></td>
+                {% for a in lec_avg %}<td>{{ a|intcomma }}</td>{% endfor %}
+                <td>{{ lec_avg_sum|intcomma }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <td>{% if r.is_total %}<font color="blue">합계</font>{% else %}{{ r.name }}{% endif %}</td>
+                {% for c in r.cnt %}<td>{{ c }}</td>{% endfor %}
+                <td>{{ r.cnt_sum }}</td>
+            </tr>
+            <tr>
+                <td></td>
+                {% for a in r.amt %}<td>{{ a|intcomma }}</td>{% endfor %}
+                <td>{{ r.amt_sum|intcomma }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{# ── 교육용품비 ── #}
+<p>&nbsp;</p>
+<p class="title">교육용품비 - 명/원</p>
+<div class="tb_basic">
+    <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="*" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="7%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th>수업명</th>
+                <th>01 월</th><th>02 월</th><th>03 월</th><th>04 월</th>
+                <th>05 월</th><th>06 월</th><th>07 월</th><th>08 월</th>
+                <th>09 월</th><th>10 월</th><th>11 월</th><th>12 월</th>
+                <th>계</th>
+            </tr>
+            {% for r in join_rows %}
+            <tr>
+                <td>{% if r.is_total %}<font color="blue">합계</font>{% else %}{{ r.name }}{% endif %}</td>
+                {% for c in r.cnt %}<td>{{ c }}</td>{% endfor %}
+                <td>{{ r.cnt_sum }}</td>
+            </tr>
+            <tr>
+                <td></td>
+                {% for a in r.amt %}<td>{{ a|intcomma }}</td>{% endfor %}
+                <td>{{ r.amt_sum|intcomma }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{# ── 쇼핑몰 이용현황 ── #}
+<p>&nbsp;</p>
+<p class="title">쇼핑몰 이용현황</p>
+<p>조회년도의 해당구장을 수강한 자녀아이디 기준의 쇼핑몰 구매 건수 및 구매 금액입니다.</p>
+<p>두개의 구장을 중복하는 자녀 아이디가 있을 경우 쇼핑몰 집계는 두개 구장에 중복으로 집계됩니다.</p>
+<div class="tb_basic">
+    <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="*" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="8%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th>구분</th>
+                <th>01 월</th><th>02 월</th><th>03 월</th><th>04 월</th>
+                <th>05 월</th><th>06 월</th><th>07 월</th><th>08 월</th>
+                <th>09 월</th><th>10 월</th><th>11 월</th><th>12 월</th>
+                <th>계</th>
+            </tr>
+            {% if shop_row %}
+            <tr>
+                <td>구매건수</td>
+                {% for c in shop_row.cnt %}<td>{{ c }}</td>{% endfor %}
+                <td>{{ shop_row.cnt_sum }}</td>
+            </tr>
+            <tr>
+                <td>구매금액</td>
+                {% for a in shop_row.amt %}<td>{{ a|intcomma }}</td>{% endfor %}
+                <td>{{ shop_row.amt_sum|intcomma }}</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+{# ── 조회년도 발생 매출 금액 - 수강월 기준 ── #}
+<p>&nbsp;</p>
+<p class="title">조회년도 발생 매출 금액 - 수강월 기준</p>
+<p>((교육비 + 교육용품비) - 할인 비용 ) + 쇼핑몰 금액</p>
+<p>수강료 관련 : 수강월 기준입니다.</p>
+<p>쇼핑몰 관련 : 쇼핑몰 결제일 기준</p>
+<div class="tb_basic">
+    <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="*" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="8%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th>구분</th>
+                <th>01 월</th><th>02 월</th><th>03 월</th><th>04 월</th>
+                <th>05 월</th><th>06 월</th><th>07 월</th><th>08 월</th>
+                <th>09 월</th><th>10 월</th><th>11 월</th><th>12 월</th>
+                <th>계</th>
+            </tr>
+            {% for r in tot_rows %}
+            <tr>
+                <td>{% if r.is_total %}<font color="blue">합계</font>{% else %}{{ r.name }}{% endif %}</td>
+                {% for a in r.amt %}<td>{{ a|intcomma }}</td>{% endfor %}
+                <td>{{ r.amt_sum|intcomma }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{# ── 조회년도 발생 매출 금액 - 결제일 기준 ── #}
+<p>&nbsp;</p>
+<p class="title">조회년도 발생 매출 금액 - 결제일 기준</p>
+<p>((교육비 + 교육용품비) - 할인 비용 ) + 쇼핑몰 금액</p>
+<p>수강료 관련 : 결제일 기준이며 실 결제 금액입니다. 1월에 2,3,4월 선결제 시 1월 매출로 잡힙니다. (선납 결제시 결제월의 매출로 잡힙니다.)</p>
+<p>쇼핑몰 관련 : 쇼핑몰 결제일 기준</p>
+<div class="tb_basic">
+    <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="*" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="8%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th>구분</th>
+                <th>01 월</th><th>02 월</th><th>03 월</th><th>04 월</th>
+                <th>05 월</th><th>06 월</th><th>07 월</th><th>08 월</th>
+                <th>09 월</th><th>10 월</th><th>11 월</th><th>12 월</th>
+                <th>계</th>
+            </tr>
+            {% for r in tot2_rows %}
+            <tr>
+                <td>{% if r.is_total %}<font color="blue">합계</font>{% else %}{{ r.name }}{% endif %}</td>
+                {% for a in r.amt %}<td>{{ a|intcomma }}</td>{% endfor %}
+                <td>{{ r.amt_sum|intcomma }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{# ── 조회년도 발생 매출 금액 - 정산월 기준 ── #}
+<p>&nbsp;</p>
+<p class="title">조회년도 발생 매출 금액 - 정산월 기준</p>
+<p>((교육비 + 교육용품비) - 할인 비용 ) + 쇼핑몰 금액</p>
+<p>수강료 관련 : 결제일 기준이며 실 결제 금액입니다. 1월에 2,3,4월 선결제 시 1월 매출로 잡힙니다. </p>
+<p>카드, 실시간 : 전월 25일 ~ 현재월 24일 : 현재월 매출</p>
+<p>쇼핑몰 관련 : 전월 25일 ~ 현재월 24일 : 현재월 매출</p>
+<div class="tb_basic">
+    <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="*" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="8%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th>구분</th>
+                <th>01 월</th><th>02 월</th><th>03 월</th><th>04 월</th>
+                <th>05 월</th><th>06 월</th><th>07 월</th><th>08 월</th>
+                <th>09 월</th><th>10 월</th><th>11 월</th><th>12 월</th>
+                <th>계</th>
+            </tr>
+            {% for r in tot3_rows %}
+            <tr>
+                <td>{% if r.is_total %}<font color="blue">합계</font>{% else %}{{ r.name }}{% endif %}</td>
+                {% for a in r.amt %}<td>{{ a|intcomma }}</td>{% endfor %}
+                <td>{{ r.amt_sum|intcomma }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{# ── 월별 출석 집계 ── #}
+<p>&nbsp;</p>
+<p class="title"> 월별 출석 집계 - 출석횟수 / 결석횟수</p>
+<p>코치가 각 수강생에 대하여 출결 체크한 집계입니다.</p>
+<p>등록되어있는 수업이 표시되지 않는 경우는 출결 체크를 안한 경우입니다.</p>
+<div class="tb_basic">
+    <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="*" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+            <col width="6%" /><col width="6%" /><col width="6%" /><col width="6%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th>구분</th>
+                <th>01 월</th><th>02 월</th><th>03 월</th><th>04 월</th>
+                <th>05 월</th><th>06 월</th><th>07 월</th><th>08 월</th>
+                <th>09 월</th><th>10 월</th><th>11 월</th><th>12 월</th>
+            </tr>
+            {% for r in attd_rows %}
+            <tr>
+                <td>{{ r.name }}</td>
+                {% for y, n in r.data %}<td>{{ y }}/{{ n }}</td>{% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endif %}
 {% endblock %}

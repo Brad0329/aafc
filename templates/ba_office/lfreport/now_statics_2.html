@@ -9,36 +9,76 @@
 
 {% block extra_js %}
 <script>
-function load_stadium(local_code) {
-    if (!local_code) { $("#sta_code").html('<option value="">구장 선택</option>'); return; }
-    $.get("{% url 'office_report_ajax_stadium' %}", {local_code: local_code}, function(data) {
-        var html = '<option value="">구장 선택</option>';
-        $.each(data.stadiums, function(i, s) {
-            html += '<option value="' + s.sta_code + '">' + s.sta_name + '</option>';
+function sel_group(obj) {
+    var code_desc = obj.value;
+    $("#LocalDiv").html("");
+    $("#StadiumDiv").html("");
+    $("#CourseDiv").html("");
+    if (!code_desc) return;
+    $.get("{% url 'office_report_ajax_local' %}", {code_desc: code_desc}, function(data) {
+        var html = '<select name="local_code" id="local_code" onchange="sel_local(this);"><option value="">지역선택</option>';
+        $.each(data.locals, function(i, item) {
+            html += '<option value="' + item.subcode + '">' + item.code_desc + '_' + item.code_name + '</option>';
         });
-        $("#sta_code").html(html);
+        html += '</select>';
+        $("#LocalDiv").html(html);
     });
 }
 
-function srch_snd() {
-    var ld = document.getElementById("sel_lecture_dt").value;
-    if (ld == "") { alert("조회월을 입력해주세요."); return; }
-    var params = "sel_lecture_dt=" + ld;
-    var gc = document.getElementById("group_code").value;
-    var lc = document.getElementById("local_code").value;
-    var sc = document.getElementById("sta_code").value;
-    var lec = document.getElementById("lecture_code").value;
-    var ag = document.getElementById("apply_gubun").value;
-    var ls = document.getElementById("lecture_stats").value;
-    var ps = document.getElementById("pay_stats").value;
-    if (gc) params += "&group_code=" + gc;
-    if (lc) params += "&local_code=" + lc;
-    if (sc) params += "&sta_code=" + sc;
-    if (lec) params += "&lecture_code=" + lec;
-    if (ag) params += "&apply_gubun=" + ag;
-    if (ls) params += "&lecture_stats=" + ls;
-    if (ps) params += "&pay_stats=" + ps;
+function sel_local(obj) {
+    var local_code = obj.value;
+    $("#StadiumDiv").html("");
+    $("#CourseDiv").html("");
+    if (!local_code) return;
+    $.get("{% url 'office_report_ajax_stadium' %}", {local_code: local_code}, function(data) {
+        var html = '<select name="sta_code" id="sta_code" onchange="sel_stadium(this);"><option value="">==선택==</option>';
+        $.each(data.stadiums, function(i, s) {
+            html += '<option value="' + s.sta_code + '">' + s.sta_name + '</option>';
+        });
+        html += '</select>';
+        $("#StadiumDiv").html(html);
+    });
+}
 
+function sel_stadium(obj) {
+    var sta_code = obj.value;
+    $("#CourseDiv").html("");
+    if (!sta_code) return;
+    $.get("{% url 'office_report_ajax_course' %}", {sta_code: sta_code}, function(data) {
+        var html = '<select name="lecture_code" id="lecture_code"><option value="">==선택==</option>';
+        $.each(data.courses, function(i, c) {
+            html += '<option value="' + c.lecture_code + '">' + c.lecture_title + '</option>';
+        });
+        html += '</select>';
+        $("#CourseDiv").html(html);
+    });
+}
+
+function srchsnd() {
+    var sel_lecture_dt = $("#sel_lecture_dt").val();
+    if (sel_lecture_dt == "") { alert("조회월을 입력해주세요."); return; }
+
+    var group_code = $("#group_code").val() || "";
+    var local_code = $("#local_code").val() || "";
+    var sta_code = $("#sta_code").val() || "";
+    var lecture_code = $("#lecture_code").val() || "";
+    var apply_gubun = $("#apply_gubun").val() || "";
+    var lecture_stats = $("#lecture_stats").val() || "";
+    var pay_stats = $("#pay_stats").val() || "";
+
+    if (isNaN(sta_code)) sta_code = "";
+    if (isNaN(lecture_code)) lecture_code = "";
+
+    var params = "sel_lecture_dt=" + sel_lecture_dt;
+    if (group_code) params += "&group_code=" + encodeURIComponent(group_code);
+    if (local_code) params += "&local_code=" + local_code;
+    if (sta_code) params += "&sta_code=" + sta_code;
+    if (lecture_code) params += "&lecture_code=" + lecture_code;
+    if (apply_gubun) params += "&apply_gubun=" + apply_gubun;
+    if (lecture_stats) params += "&lecture_stats=" + lecture_stats;
+    if (pay_stats) params += "&pay_stats=" + pay_stats;
+
+    $("#data_area").html("");
     $.get("{% url 'office_report_now_statics_2_load' %}?" + params, function(data) {
         $("#data_area").html(data);
     });
@@ -52,68 +92,76 @@ function srch_snd() {
 
 <p class="title">조회월 현재원</p>
 <div class="tb_basic">
-    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+    <table summary="수강생정보" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
-            <col width="15%" />
-            <col width="*" />
+            <col width="8%" />
+            <col width="14%" />
+            <col width="8%" />
+            <col width="14%" />
+            <col width="8%" />
+            <col width="14%" />
+            <col width="8%" />
+            <col width="26%" />
         </colgroup>
         <tbody>
             <tr>
                 <th scope="col">조회월</th>
                 <td class="left">
-                    <input type="text" id="sel_lecture_dt" value="{{ sel_lecture_dt }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                    <input type="text" id="sel_lecture_dt" value="{{ sel_lecture_dt }}" maxlength="10" style="width:100px;" />
                 </td>
-            </tr>
-            <tr>
-                <th scope="col">필드(권역)</th>
+                <th scope="col">필드</th>
                 <td class="left">
-                    <select id="group_code" onchange="load_stadium(this.value);">
-                        <option value="">전체</option>
+                    <select name="group_code" id="group_code" onchange="sel_group(this);">
+                        <option value="">필드선택</option>
                         {% for cd in code_descs %}
                         <option value="{{ cd }}">{{ cd }}</option>
                         {% endfor %}
                     </select>
-                    <select id="local_code">
-                        <option value="">전체</option>
-                    </select>
-                    <select id="sta_code">
-                        <option value="">구장 선택</option>
-                    </select>
                 </td>
+                <th scope="col">지역선택</th>
+                <td class="left" id="LocalDiv"></td>
+                <th scope="col">구장명</th>
+                <td class="left" id="StadiumDiv"></td>
             </tr>
             <tr>
-                <th scope="col">기타검색</th>
+                <th scope="col">과정명</th>
+                <td class="left" id="CourseDiv"></td>
+                <th scope="col">입단구분</th>
                 <td class="left">
-                    클래스코드: <input type="text" id="lecture_code" size="8" />
-                    입단구분:
-                    <select id="apply_gubun">
+                    <select name="apply_gubun" id="apply_gubun">
                         <option value="">전체</option>
                         <option value="NEW">신규입단</option>
                         <option value="RENEW">재입단</option>
                         <option value="AGAIN">재수강</option>
-                        <option value="RE">재등록</option>
                     </select>
-                    수강상태:
-                    <select id="lecture_stats">
+                </td>
+                <th scope="col">수강상태</th>
+                <td class="left">
+                    <select name="lecture_stats" id="lecture_stats">
                         <option value="">전체</option>
                         <option value="LY">수강확정</option>
                         <option value="LP">수강예정</option>
                         <option value="LN">퇴단</option>
                         <option value="PN">일시중지</option>
+                        <option value="LS">중도취소</option>
                     </select>
-                    결제상태:
-                    <select id="pay_stats">
+                </td>
+                <th scope="col">결제상태</th>
+                <td class="left">
+                    <select name="pay_stats" id="pay_stats">
                         <option value="">전체</option>
                         <option value="PY">결제완료</option>
                         <option value="PP">결제대기</option>
                         <option value="PN">결제취소</option>
+                        <option value="PZ">결제대기취소</option>
+                        <option value="PQ">입금확인대기</option>
                     </select>
-                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
                 </td>
             </tr>
         </tbody>
     </table>
 </div>
+<div class="btn_right"><a href="javascript:srchsnd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></div>
 
 <div id="data_area"></div>
 {% endblock %}

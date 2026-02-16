@@ -923,7 +923,7 @@ def report_now_statics_1(request):
     sql = """
     SELECT cv.code_desc AS codegrp, cv2.code_name, s.sta_name,
            l.lecture_title, l.lecture_code,
-           COALESCE(l.kapa_tot, 0) AS stu_cnt,
+           COALESCE(s.kapa_tot, 0) AS stu_cnt,
            COUNT(CASE WHEN e.lecture_stats = 'LY' THEN 1 END) AS sugang_yes,
            COUNT(CASE WHEN e.lecture_stats = 'LP' THEN 1 END) AS sugang_wait,
            COUNT(CASE WHEN e.lecture_stats = 'PN' THEN 1 END) AS sugang_pause,
@@ -938,7 +938,7 @@ def report_now_statics_1(request):
       AND ec.course_stats IN ('LY', 'LP', 'LN', 'PN')
       AND TO_CHAR(ec.course_ym, 'YYYYMM') = %s
     GROUP BY cv.code_desc, cv2.code_name, s.sta_name,
-             l.lecture_title, l.lecture_code, l.kapa_tot
+             l.lecture_title, l.lecture_code, s.kapa_tot
     ORDER BY cv.code_desc, s.sta_name, l.lecture_code
     """
     with connection.cursor() as cursor:
@@ -1136,7 +1136,7 @@ def _get_end_student_data(p_start_dt):
     """퇴단자 데이터"""
     sql = """
     SELECT * FROM (
-        SELECT ROW_NUMBER() OVER(ORDER BY e.cancel_date DESC, s.sta_name, e.child_id) AS rnum,
+        SELECT ROW_NUMBER() OVER(ORDER BY e.cancel_date, s.sta_name, e.child_id) AS rnum,
                e.id AS no_seq, cv.code_desc, s.sta_name, l.lecture_title, co.coach_name,
                e.child_id, mc.name AS child_name, mc.birth AS child_birth,
                m.phone AS mhtel,
@@ -1176,7 +1176,7 @@ def _get_end_student_data(p_start_dt):
           )
     ) X
     WHERE X.is_end = 'Y' AND X.is_end_exclude = 'N'
-    ORDER BY X.rnum
+    ORDER BY X.rnum, X.cancel_date DESC, X.sta_name, X.child_id
     LIMIT 10000
     """
     with connection.cursor() as cursor:
@@ -1186,12 +1186,12 @@ def _get_end_student_data(p_start_dt):
 
     # 퇴단유형 코드맵
     resn_codes = dict(
-        CodeValue.objects.filter(grpcode='RESN', del_chk='N').values_list('subcode', 'code_name')
+        CodeValue.objects.filter(group_id='RESN', del_chk='N').values_list('subcode', 'code_name')
     )
 
     today = date.today()
     data = []
-    for r in result:
+    for idx, r in enumerate(result, 1):
         birth = r.get('child_birth') or ''
         age = (today.year - int(birth[:4]) + 1) if birth and len(birth) >= 4 else 0
         cancel_code = str(r.get('cancel_code') or '')
@@ -1203,7 +1203,7 @@ def _get_end_student_data(p_start_dt):
         course_ym = r.get('course_ym')
         data.append({
             **r,
-            'num': r['rnum'], 'age': age,
+            'num': idx, 'age': age,
             'cancel_type': cancel_type,
             'lecture_stats_nm': _get_lecture_stats_display(r['lecture_stats']),
             'pay_stats_nm': _get_pay_stats_display(r['pay_stats']),
@@ -1232,9 +1232,9 @@ def report_end_student_excel(request):
     ws.title = '퇴단자리스트'
     headers = ['순번', 'NO_SEQ', '필드', '구장', '클래스', '코치명', '자녀아이디',
                '자녀명', '나이', '전화번호', '퇴단일자', '퇴단코드', '퇴단유형',
-               '퇴단사유', '수강상태', '결제금액', '수업료', '교육용품비',
-               '결제상태', '결제방법', '결제일자', '수강기간', '수업주기',
-               '시작월', '종료월', '수강월', '등록자', '등록일자']
+               '퇴단사유', '퇴단일자', '수강상태', '총결제금액', '수업료', '교육용품비',
+               '결제상태', '결제방법', '결제일자', '수강기간', '수업주가',
+               '시작월', '종료월', '수강월', '등록아이디', '등록일자']
     hfill = _header_fill()
     border = _thin_border()
     for ci, h in enumerate(headers, 1):
@@ -1243,15 +1243,19 @@ def report_end_student_excel(request):
         c.border = border
         c.font = Font(bold=True)
     for i, r in enumerate(rows, 1):
+        course_ym_raw = (r.get('course_ym_str') or '').replace('-', '')
         vals = [r['num'], r['no_seq'], r.get('code_desc', ''), r['sta_name'],
                 r['lecture_title'], r['coach_name'], r['child_id'], r['child_name'],
                 r['age'], r['mhtel'], r['cancel_date_str'], r.get('cancel_code', ''),
                 r['cancel_type'], r.get('cancel_desc', ''),
-                r['lecture_stats_nm'], r['display_pay_price'],
-                r['display_lec_price'], r['display_join_price'],
+                r['cancel_date_str'],
+                r['lecture_stats_nm'],
+                f"{r['display_pay_price']:,}원" if r['display_pay_price'] else '0원',
+                f"{r['display_lec_price']:,}원" if r['display_lec_price'] else '0원',
+                f"{r['display_join_price']:,}원" if r['display_join_price'] else '0원',
                 r['pay_stats_nm'], r['pay_method_nm'], r['pay_dt_str'],
-                f"{r['lec_period']}개월", f"주{r['lec_cycle']}회",
-                r['start_dt'], r['end_dt'], r['course_ym_str'],
+                r['lec_period'], r['lec_cycle'],
+                r['start_dt'], r['end_dt'], course_ym_raw,
                 r['insert_id'], r['insert_dt_str']]
         for ci, v in enumerate(vals, 1):
             ws.cell(row=i + 1, column=ci, value=v).border = border
@@ -1384,7 +1388,7 @@ def report_now_statics_2(request):
 
     # 권역(필드) 목록
     code_descs = list(
-        CodeValue.objects.filter(grpcode='LOCD', del_chk='N')
+        CodeValue.objects.filter(group_id='LOCD', del_chk='N')
         .values_list('code_desc', flat=True).distinct().order_by('code_desc')
     )
 
@@ -1495,6 +1499,17 @@ def report_now_statics_2_load(request):
     })
 
 
+def ajax_report_local(request):
+    """REPORT > AJAX 지역 목록 (필드/code_desc 기준)"""
+    from django.http import JsonResponse
+    code_desc = request.GET.get('code_desc', '')
+    qs = CodeValue.objects.filter(group_id='LOCD', del_chk='N')
+    if code_desc:
+        qs = qs.filter(code_desc=code_desc)
+    items = list(qs.order_by('code_desc', 'code_order').values('subcode', 'code_name', 'code_desc'))
+    return JsonResponse({'locals': items})
+
+
 def ajax_report_stadium(request):
     """REPORT > AJAX 구장 목록"""
     local_code = request.GET.get('local_code', '')
@@ -1505,6 +1520,23 @@ def ajax_report_stadium(request):
     return JsonResponse({
         'stadiums': list(qs.values('sta_code', 'sta_name').order_by('sta_name'))
     })
+
+
+def ajax_report_course(request):
+    """REPORT > AJAX 과정(강좌) 목록 (구장 기준)"""
+    from django.http import JsonResponse
+    sta_code = request.GET.get('sta_code', '')
+    qs = Lecture.objects.all()
+    if sta_code:
+        qs = qs.filter(stadium__sta_code=int(sta_code))
+    qs = qs.order_by('-use_gbn', 'lecture_day', 'class_gbn', 'lecture_time')
+    items = []
+    for lec in qs.values('lecture_code', 'lecture_title', 'use_gbn'):
+        title = lec['lecture_title']
+        if lec['use_gbn'] == 'N':
+            title = '(종료)' + title
+        items.append({'lecture_code': lec['lecture_code'], 'lecture_title': title})
+    return JsonResponse({'courses': items})
 
 
 # ── 12. 쇼핑몰 주문현황 ────────────────────────────────
@@ -1674,60 +1706,105 @@ def report_order_list_dedup_excel(request):
 
 # ── 13. 미납자관리 ──────────────────────────────────────
 
+def _delay_base_where():
+    """미납자 공통 WHERE 절"""
+    return """
+    WHERE ec.bill_code = '1001'
+      AND TO_CHAR(ec.course_ym, 'YYYYMMDD') <= %s
+      AND e.lecture_stats IN ('LY', 'LP', 'PN')
+      AND e.pay_stats IN ('PP', 'PQ')
+      AND cv.grpcode = 'LOCD'
+    """
+
+
 @office_login_required
 @office_permission_required('R')
 def report_delay_data(request):
     """미납자관리"""
-    lecture_dt = request.GET.get('lecture_dt', '')
-    if not lecture_dt:
-        lecture_dt = _default_ym()
+    search_date = request.GET.get('search_date', '')
+    p_st_code = request.GET.get('p_st_code', '')
+    if not search_date:
+        search_date = date.today().strftime('%Y%m%d')
 
-    sql = """
-    SELECT e.id AS no_seq, e.child_id, mc.name AS child_name,
-           m.phone AS mhtel, m.name AS member_name,
-           s.sta_name, cv.code_desc, l.lecture_title, co.coach_name,
-           e.apply_gubun, e.lecture_stats, e.pay_price, e.pay_stats, e.pay_method,
-           e.pay_dt, e.lec_period, e.lec_cycle, e.start_dt, e.end_dt,
-           ec.course_ym, ec.course_ym_amt, e.insert_id, e.insert_dt,
-           e.bigo_content
+    # 구장 목록
+    stadiums = list(
+        Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
+        .values_list('sta_code', 'sta_name')
+    )
+
+    # 통계 테이블 (구장별 신규/재입단/재수강 집계 with ROLLUP)
+    stats_sql = """
+    SELECT cv.code_desc,
+           s.sta_name,
+           SUM(CASE WHEN e.apply_gubun = 'NEW' THEN 1 ELSE 0 END) AS new_cnt,
+           SUM(CASE WHEN e.apply_gubun = 'RENEW' THEN 1 ELSE 0 END) AS renew_cnt,
+           SUM(CASE WHEN e.apply_gubun = 'AGAIN' THEN 1 ELSE 0 END) AS again_cnt,
+           SUM(CASE WHEN e.apply_gubun = 'NEW' THEN 1 ELSE 0 END) +
+           SUM(CASE WHEN e.apply_gubun = 'RENEW' THEN 1 ELSE 0 END) +
+           SUM(CASE WHEN e.apply_gubun = 'AGAIN' THEN 1 ELSE 0 END) AS total_cnt
     FROM enrollment_enrollment e
     INNER JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
     INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
-    INNER JOIN courses_coach co ON l.coach_id = co.id
     INNER JOIN courses_stadium s ON l.stadium_id = s.id
     INNER JOIN common_codevalue cv ON s.local_code = cv.subcode AND cv.grpcode = 'LOCD'
     INNER JOIN accounts_member m ON e.member_id = m.username
     INNER JOIN accounts_memberchild mc ON e.child_id = mc.child_id
-    WHERE ec.bill_code = '1001'
-      AND TO_CHAR(ec.course_ym, 'YYYYMM') = %s
-      AND e.lecture_stats IN ('LY', 'LP', 'PN')
-      AND e.pay_stats NOT IN ('PY')
-    ORDER BY s.sta_name, e.child_id
-    LIMIT 10000
+    """ + _delay_base_where() + """
+    GROUP BY ROLLUP(cv.code_desc, s.sta_name)
     """
     with connection.cursor() as cursor:
-        cursor.execute(sql, [lecture_dt])
-        columns = [col[0] for col in cursor.description]
-        result = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        cursor.execute(stats_sql, [search_date])
+        stats_cols = [col[0] for col in cursor.description]
+        stats_rows = [dict(zip(stats_cols, row)) for row in cursor.fetchall()]
 
-    data = []
-    for i, r in enumerate(result, 1):
-        pay_dt = r.get('pay_dt')
-        insert_dt = r.get('insert_dt')
-        course_ym = r.get('course_ym')
-        data.append({
-            **r, 'num': i,
-            'apply_gubun_nm': _get_apply_gubun_display(r['apply_gubun']),
-            'lecture_stats_nm': _get_lecture_stats_display(r['lecture_stats']),
-            'pay_stats_nm': _get_pay_stats_display(r['pay_stats']),
-            'pay_method_nm': _get_pay_method_display(r['pay_method']),
-            'pay_dt_str': pay_dt.strftime('%Y-%m-%d') if pay_dt else '',
-            'insert_dt_str': insert_dt.strftime('%Y-%m-%d') if insert_dt else '',
-            'course_ym_str': course_ym.strftime('%Y-%m') if course_ym else '',
-        })
+    # 상세 리스트 (구장 선택 시만)
+    detail_rows = []
+    if p_st_code:
+        detail_sql = """
+        SELECT m.name AS member_name,
+               mc.name AS child_name,
+               e.child_id,
+               mc.card_num,
+               m.phone AS mhtel,
+               e.apply_gubun, s.sta_name,
+               e.lec_period, e.lec_cycle, e.start_dt, e.end_dt,
+               l.lecture_title,
+               e.lecture_stats, e.pay_price, e.pay_stats, e.pay_method,
+               e.pay_dt, e.id AS no_seq
+        FROM enrollment_enrollment e
+        INNER JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
+        INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
+        INNER JOIN courses_stadium s ON l.stadium_id = s.id
+        INNER JOIN common_codevalue cv ON s.local_code = cv.subcode AND cv.grpcode = 'LOCD'
+        INNER JOIN accounts_member m ON e.member_id = m.username
+        INNER JOIN accounts_memberchild mc ON e.child_id = mc.child_id
+        """ + _delay_base_where() + """
+          AND s.sta_code = %s
+        ORDER BY mc.name, e.id, l.lecture_title
+        LIMIT 10000
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(detail_sql, [search_date, int(p_st_code)])
+            cols = [col[0] for col in cursor.description]
+            result = [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+        for r in result:
+            pay_dt = r.get('pay_dt')
+            detail_rows.append({
+                **r,
+                'apply_gubun_nm': _get_apply_gubun_display(r['apply_gubun']),
+                'lecture_stats_nm': _get_lecture_stats_display(r['lecture_stats']),
+                'pay_stats_nm': _get_pay_stats_display(r['pay_stats']),
+                'pay_method_nm': _get_pay_method_display(r['pay_method']),
+                'pay_dt_str': pay_dt.strftime('%Y-%m-%d') if pay_dt else '',
+            })
 
     return render(request, 'ba_office/lfreport/delay_data.html', {
-        'lecture_dt': lecture_dt, 'rows': data, 'total_count': len(data),
+        'search_date': search_date,
+        'p_st_code': p_st_code,
+        'stadiums': stadiums,
+        'stats_rows': stats_rows,
+        'rows': detail_rows,
     })
 
 
@@ -1735,45 +1812,44 @@ def report_delay_data(request):
 @office_permission_required('R')
 def report_delay_data_excel(request):
     """미납자관리 Excel"""
-    lecture_dt = request.GET.get('lecture_dt', '')
-    if not lecture_dt:
-        return HttpResponse('조회월을 지정해주세요.')
-    # 동일 쿼리 재사용
-    request_copy = type('Request', (), {'GET': {'lecture_dt': lecture_dt}})()
-    # 직접 쿼리
-    sql = """
-    SELECT e.id AS no_seq, e.child_id, mc.name AS child_name,
-           m.phone AS mhtel, m.name AS member_name,
-           s.sta_name, cv.code_desc, l.lecture_title, co.coach_name,
-           e.apply_gubun, e.lecture_stats, e.pay_price, e.pay_stats, e.pay_method,
-           e.pay_dt, e.lec_period, e.lec_cycle, e.start_dt, e.end_dt,
-           ec.course_ym, ec.course_ym_amt, e.insert_id, e.insert_dt
+    search_date = request.GET.get('search_date', '')
+    p_st_code = request.GET.get('p_st_code', '')
+    if not search_date or not p_st_code:
+        return HttpResponse('기준일자와 구장을 선택해주세요.')
+
+    detail_sql = """
+    SELECT m.name AS member_name,
+           mc.name AS child_name,
+           e.child_id,
+           m.phone AS mhtel,
+           e.apply_gubun, s.sta_name,
+           e.lec_period, e.lec_cycle, e.start_dt, e.end_dt,
+           l.lecture_title,
+           e.lecture_stats, e.pay_price, e.pay_stats, e.pay_method,
+           e.pay_dt, e.id AS no_seq
     FROM enrollment_enrollment e
     INNER JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
     INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
-    INNER JOIN courses_coach co ON l.coach_id = co.id
     INNER JOIN courses_stadium s ON l.stadium_id = s.id
     INNER JOIN common_codevalue cv ON s.local_code = cv.subcode AND cv.grpcode = 'LOCD'
     INNER JOIN accounts_member m ON e.member_id = m.username
     INNER JOIN accounts_memberchild mc ON e.child_id = mc.child_id
-    WHERE ec.bill_code = '1001'
-      AND TO_CHAR(ec.course_ym, 'YYYYMM') = %s
-      AND e.lecture_stats IN ('LY', 'LP', 'PN')
-      AND e.pay_stats NOT IN ('PY')
-    ORDER BY s.sta_name, e.child_id
+    """ + _delay_base_where() + """
+      AND s.sta_code = %s
+    ORDER BY mc.name, e.id, l.lecture_title
     LIMIT 10000
     """
     with connection.cursor() as cursor:
-        cursor.execute(sql, [lecture_dt])
-        columns = [col[0] for col in cursor.description]
-        result = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        cursor.execute(detail_sql, [search_date, int(p_st_code)])
+        cols = [col[0] for col in cursor.description]
+        result = [dict(zip(cols, row)) for row in cursor.fetchall()]
 
     wb = Workbook()
     ws = wb.active
     ws.title = '미납자관리'
-    headers = ['순번', '구장', '코치', '자녀아이디', '자녀명', '전화번호',
-               '입단구분', '수강상태', '결제금액', '결제상태', '결제방법',
-               '수강기간', '수업주기', '시작월', '종료월', '수강월']
+    headers = ['부모명', '자녀명', '자녀아이디', '전화번호', 'NO_SEQ',
+               '입단구분', '수강상태', '수강기간', '수업주기',
+               '시작월', '종료월', '결제금액', '결제상태', '클래스']
     hfill = _header_fill()
     border = _thin_border()
     for ci, h in enumerate(headers, 1):
@@ -1782,18 +1858,18 @@ def report_delay_data_excel(request):
         c.border = border
         c.font = Font(bold=True)
     for i, r in enumerate(result, 1):
-        course_ym = r.get('course_ym')
-        vals = [i, r['sta_name'], r['coach_name'], r['child_id'], r['child_name'],
-                r['mhtel'], _get_apply_gubun_display(r['apply_gubun']),
-                _get_lecture_stats_display(r['lecture_stats']), r['pay_price'],
-                _get_pay_stats_display(r['pay_stats']),
-                _get_pay_method_display(r['pay_method']),
+        vals = [r['member_name'], r['child_name'], r['child_id'],
+                r['mhtel'], r['no_seq'],
+                _get_apply_gubun_display(r['apply_gubun']),
+                _get_lecture_stats_display(r['lecture_stats']),
                 f"{r['lec_period']}개월", f"주{r['lec_cycle']}회",
                 r['start_dt'], r['end_dt'],
-                course_ym.strftime('%Y-%m') if course_ym else '']
+                r['pay_price'],
+                _get_pay_stats_display(r['pay_stats']),
+                r.get('lecture_title', '')]
         for ci, v in enumerate(vals, 1):
             ws.cell(row=i + 1, column=ci, value=v).border = border
-    return _excel_response(wb, f'delay_data_{lecture_dt}.xlsx')
+    return _excel_response(wb, f'delay_data_{search_date}.xlsx')
 
 
 # ── 14. 월별출결현황 ────────────────────────────────────
@@ -1801,28 +1877,32 @@ def report_delay_data_excel(request):
 @office_login_required
 @office_permission_required('R')
 def report_attendance_month(request):
-    """월별출결현황"""
+    """월별출결현황 - 일별 출결 건수 PIVOT"""
     lecture_dt = request.GET.get('lecture_dt', '')
     if not lecture_dt:
         lecture_dt = date.today().strftime('%Y%m')
 
     ym_prefix = f"{lecture_dt[:4]}-{lecture_dt[4:6]}"
 
-    sql = """
-    SELECT s.sta_name, l.lecture_title, co.coach_name,
-           COUNT(CASE WHEN a.attendance_gbn = 'Y' THEN 1 END) AS att_y,
-           COUNT(CASE WHEN a.attendance_gbn = 'A' THEN 1 END) AS att_a,
-           COUNT(CASE WHEN a.attendance_gbn = 'N' THEN 1 END) AS att_n,
-           COUNT(CASE WHEN a.attendance_gbn = 'R' THEN 1 END) AS att_r,
-           COUNT(CASE WHEN a.attendance_gbn = 'D' THEN 1 END) AS att_d,
-           COUNT(CASE WHEN a.attendance_gbn = 'E' THEN 1 END) AS att_e,
-           COUNT(*) AS att_total
-    FROM enrollment_attendance a
-    INNER JOIN courses_lecture l ON a.lecture_code = l.lecture_code
-    INNER JOIN courses_stadium s ON a.sta_code = s.sta_code
-    INNER JOIN courses_coach co ON l.coach_id = co.id
-    WHERE a.attendance_dt LIKE %s
-    GROUP BY s.sta_name, l.lecture_title, co.coach_name
+    # ASP 원본과 동일: 일별(01~31) 출결 건수를 PIVOT
+    day_cols = ',\n'.join([
+        f"           SUM(CASE WHEN attd_dt = '{d:02d}' THEN sum_cnt ELSE 0 END) AS cnt_{d:02d}"
+        for d in range(1, 32)
+    ])
+    sql = f"""
+    SELECT s.sta_name, l.lecture_title,
+{day_cols}
+    FROM (
+        SELECT sta_code, lecture_code,
+               SUBSTRING(attendance_dt, 9, 2) AS attd_dt,
+               COUNT(*) AS sum_cnt
+        FROM enrollment_attendance
+        WHERE attendance_dt LIKE %s
+        GROUP BY sta_code, lecture_code, SUBSTRING(attendance_dt, 9, 2)
+    ) sub
+    INNER JOIN courses_stadium s ON sub.sta_code = s.sta_code
+    INNER JOIN courses_lecture l ON sub.lecture_code = l.lecture_code
+    GROUP BY s.sta_name, l.lecture_title
     ORDER BY s.sta_name, l.lecture_title
     """
     with connection.cursor() as cursor:
@@ -1831,33 +1911,36 @@ def report_attendance_month(request):
         result = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
     return render(request, 'ba_office/lfreport/attendance_month.html', {
-        'lecture_dt': lecture_dt, 'rows': result, 'total_count': len(result),
+        'lecture_dt': lecture_dt, 'rows': result,
     })
 
 
 @office_login_required
 @office_permission_required('R')
 def report_attendance_month_excel(request):
-    """월별출결현황 Excel"""
+    """월별출결현황 Excel - 일별 PIVOT"""
     lecture_dt = request.GET.get('lecture_dt', '')
     if not lecture_dt:
         return HttpResponse('조회월을 지정해주세요.')
     ym_prefix = f"{lecture_dt[:4]}-{lecture_dt[4:6]}"
-    sql = """
-    SELECT s.sta_name, l.lecture_title, co.coach_name,
-           COUNT(CASE WHEN a.attendance_gbn = 'Y' THEN 1 END) AS att_y,
-           COUNT(CASE WHEN a.attendance_gbn = 'A' THEN 1 END) AS att_a,
-           COUNT(CASE WHEN a.attendance_gbn = 'N' THEN 1 END) AS att_n,
-           COUNT(CASE WHEN a.attendance_gbn = 'R' THEN 1 END) AS att_r,
-           COUNT(CASE WHEN a.attendance_gbn = 'D' THEN 1 END) AS att_d,
-           COUNT(CASE WHEN a.attendance_gbn = 'E' THEN 1 END) AS att_e,
-           COUNT(*) AS att_total
-    FROM enrollment_attendance a
-    INNER JOIN courses_lecture l ON a.lecture_code = l.lecture_code
-    INNER JOIN courses_stadium s ON a.sta_code = s.sta_code
-    INNER JOIN courses_coach co ON l.coach_id = co.id
-    WHERE a.attendance_dt LIKE %s
-    GROUP BY s.sta_name, l.lecture_title, co.coach_name
+    day_cols = ',\n'.join([
+        f"           SUM(CASE WHEN attd_dt = '{d:02d}' THEN sum_cnt ELSE 0 END) AS cnt_{d:02d}"
+        for d in range(1, 32)
+    ])
+    sql = f"""
+    SELECT s.sta_name, l.lecture_title,
+{day_cols}
+    FROM (
+        SELECT sta_code, lecture_code,
+               SUBSTRING(attendance_dt, 9, 2) AS attd_dt,
+               COUNT(*) AS sum_cnt
+        FROM enrollment_attendance
+        WHERE attendance_dt LIKE %s
+        GROUP BY sta_code, lecture_code, SUBSTRING(attendance_dt, 9, 2)
+    ) sub
+    INNER JOIN courses_stadium s ON sub.sta_code = s.sta_code
+    INNER JOIN courses_lecture l ON sub.lecture_code = l.lecture_code
+    GROUP BY s.sta_name, l.lecture_title
     ORDER BY s.sta_name, l.lecture_title
     """
     with connection.cursor() as cursor:
@@ -1867,8 +1950,9 @@ def report_attendance_month_excel(request):
     wb = Workbook()
     ws = wb.active
     ws.title = '월별출결'
-    headers = ['구장', '클래스', '코치', '출석(Y)', '보강(A)', '결석(N)',
-               '우천(R)', '연기(D)', '제외(E)', '합계']
+    # ASP 원본과 동일: 구장, 수업, 01~31 (12 제외)
+    day_nums = [d for d in range(1, 32) if d != 12]
+    headers = ['구장', '수업'] + [f'{d:02d}' for d in day_nums]
     hfill = _header_fill()
     border = _thin_border()
     for ci, h in enumerate(headers, 1):
@@ -1877,9 +1961,10 @@ def report_attendance_month_excel(request):
         c.border = border
         c.font = Font(bold=True)
     for i, r in enumerate(result, 1):
-        vals = [r['sta_name'], r['lecture_title'], r['coach_name'],
-                r['att_y'], r['att_a'], r['att_n'],
-                r['att_r'], r['att_d'], r['att_e'], r['att_total']]
+        vals = [r['sta_name'], r['lecture_title']]
+        for d in day_nums:
+            v = r.get(f'cnt_{d:02d}', 0)
+            vals.append(v if v else '')
         for ci, v in enumerate(vals, 1):
             ws.cell(row=i + 1, column=ci, value=v).border = border
     return _excel_response(wb, f'attendance_month_{lecture_dt}.xlsx')
@@ -1887,64 +1972,278 @@ def report_attendance_month_excel(request):
 
 # ── 15. 연도별 구장별 현황 ──────────────────────────────
 
+def _pv(me, ve, pf):
+    """월별 PIVOT SUM 컬럼 생성 (01~12)"""
+    return ', '.join([
+        f"SUM(CASE WHEN {me} = {m} THEN {ve} ELSE 0 END) AS {pf}_{m:02d}"
+        for m in range(1, 13)])
+
+
+def _parse_cnt_amt(cursor, calc_avg=False):
+    """cnt_01~12, amt_01~12 결과 파싱"""
+    cols = [c[0] for c in cursor.description]
+    rows, avg_vals, avg_sum = [], None, 0
+    for raw in cursor.fetchall():
+        d = dict(zip(cols, raw))
+        lbl = d.get('lec_title')
+        is_total = lbl is None
+        name = '합계' if is_total else (lbl[1:] if lbl else '')
+        cnts = [d.get(f'cnt_{m:02d}', 0) or 0 for m in range(1, 13)]
+        amts = [d.get(f'amt_{m:02d}', 0) or 0 for m in range(1, 13)]
+        cs, ams = sum(cnts), sum(amts)
+        if is_total and calc_avg and cs > 0:
+            avg_vals = [round(amts[i] / cnts[i]) if cnts[i] else 0 for i in range(12)]
+            avg_sum = round(ams / cs)
+        rows.append({'name': name, 'is_total': is_total,
+                     'cnt': cnts, 'amt': amts, 'cnt_sum': cs, 'amt_sum': ams})
+    return rows, avg_vals, avg_sum
+
+
+def _parse_bill(cursor):
+    """bill_label, amt_01~12 결과 파싱"""
+    cols = [c[0] for c in cursor.description]
+    rows = []
+    for raw in cursor.fetchall():
+        d = dict(zip(cols, raw))
+        lbl = d.get('bill_label')
+        is_total = lbl is None
+        name = '합계' if is_total else (lbl[1:] if lbl else '')
+        amts = [d.get(f'amt_{m:02d}', 0) or 0 for m in range(1, 13)]
+        rows.append({'name': name, 'is_total': is_total, 'amt': amts, 'amt_sum': sum(amts)})
+    return rows
+
+
+def _parse_attd(cursor):
+    """출석/결석 월별 쌍 파싱"""
+    cols = [c[0] for c in cursor.description]
+    rows = []
+    for raw in cursor.fetchall():
+        d = dict(zip(cols, raw))
+        name = d['lec_title'][1:] if d.get('lec_title') else ''
+        data = [(d.get(f'yattd_{m:02d}', 0) or 0, d.get(f'nattd_{m:02d}', 0) or 0)
+                for m in range(1, 13)]
+        rows.append({'name': name, 'data': data})
+    return rows
+
+
 @office_login_required
 @office_permission_required('R')
 def report_stadium_year(request):
-    """연도별 구장별 현황"""
-    search_date = request.GET.get('search_date', '')
-    if not search_date:
-        search_date = str(date.today().year)
+    """연도별 구장별 현황 - ASP stadium_year_statics.asp"""
+    syear = request.GET.get('syear', str(date.today().year))
+    selst_code = request.GET.get('selst_code', '')
 
-    rows = MonthlyData.objects.filter(
-        proc_dt__startswith=search_date
-    ).values('sta_name', 'sta_code').annotate(
-        total_m_cnt=Sum('m_cnt'),
-        total_goal=Sum('goal_cnt'),
-        total_tocl=Sum('tocl'),
-        total_new=Sum('newT_appl_cnt'),
-        total_renew=Sum('renewT_appl_cnt'),
-        total_again=Sum('again_appl_cnt'),
-        total_end=Sum('stats_lnT_cnt'),
-    ).order_by('sta_name')
+    stadiums = list(
+        Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
+        .values_list('sta_code', 'sta_name')
+    )
 
-    return render(request, 'ba_office/lfreport/stadium_year.html', {
-        'search_date': search_date, 'rows': rows, 'total_count': len(rows),
-    })
+    ctx = {
+        'syear': syear, 'stadiums': stadiums, 'selst_code': selst_code,
+        'sel_sta_name': '', 'coaches': [],
+        'lec_rows': [], 'lec_avg': None, 'lec_avg_sum': 0,
+        'join_rows': [], 'shop_row': None,
+        'tot_rows': [], 'tot2_rows': [], 'tot3_rows': [],
+        'attd_rows': [],
+    }
+
+    if not selst_code:
+        return render(request, 'ba_office/lfreport/stadium_year.html', ctx)
+
+    sta = int(selst_code)
+    try:
+        ctx['sel_sta_name'] = Stadium.objects.get(sta_code=sta).sta_name
+    except Stadium.DoesNotExist:
+        return render(request, 'ba_office/lfreport/stadium_year.html', ctx)
+
+    byear = int(syear) - 1
+
+    # 공통 SQL 조각
+    EF = """FROM enrollment_enrollment e
+            JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
+            JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
+            JOIN courses_stadium s ON l.stadium_id = s.id"""
+
+    BL = """CASE ec.bill_code
+                WHEN '1001' THEN 'A수업료' WHEN '1002' THEN 'B결제금액할인'
+                WHEN '1003' THEN 'E수업료할인' WHEN '1007' THEN 'G주3회 할인'
+                WHEN '2001' THEN 'K교육용품비' WHEN '2002' THEN 'L교육용품비할인'
+                ELSE 'Z기타' END"""
+
+    ME = "EXTRACT(MONTH FROM ec.course_ym)::integer"
+    LT = "l.lecture_day::text || l.lecture_title"
+    SM = "EXTRACT(MONTH FROM o.confirm_date)::integer"
+    CID = f"""(SELECT DISTINCT e.child_id {EF}
+               WHERE e.pay_stats = 'PY' AND s.sta_code = %s
+                 AND EXTRACT(YEAR FROM ec.course_ym) = %s)"""
+    AM = _pv("s_month", "amt", "amt")
+
+    with connection.cursor() as cursor:
+        # ── 1. 담당코치정보 ──
+        cursor.execute("""
+            SELECT c.coach_name, COALESCE(cv.code_name, '') AS code_name
+            FROM courses_stadiumcoach sc
+            JOIN courses_coach c ON sc.coach_id = c.id
+            JOIN courses_stadium s ON sc.stadium_id = s.id
+            LEFT JOIN common_codevalue cv
+                ON c.coach_level ~ '^\\d+$'
+                AND c.coach_level::integer = cv.subcode AND cv.grpcode = 'LEVL'
+            WHERE c.use_gbn = 'Y' AND s.sta_code = %s
+            ORDER BY cv.code_order
+        """, [sta])
+        ctx['coaches'] = [{'coach_name': r[0], 'code_name': r[1]} for r in cursor.fetchall()]
+
+        # ── 2. 월별 수강 인원 (bill_code=1001) ──
+        cursor.execute(f"""
+            SELECT {LT} AS lec_title,
+                   {_pv(ME, '1', 'cnt')}, {_pv(ME, 'ec.course_ym_amt', 'amt')}
+            {EF}
+            WHERE e.pay_stats = 'PY' AND s.sta_code = %s
+              AND ec.bill_code = '1001' AND EXTRACT(YEAR FROM ec.course_ym) = %s
+            GROUP BY ROLLUP({LT}) ORDER BY {LT} NULLS LAST
+        """, [sta, syear])
+        ctx['lec_rows'], ctx['lec_avg'], ctx['lec_avg_sum'] = _parse_cnt_amt(cursor, True)
+
+        # ── 3. 교육용품비 (bill_code=2001) ──
+        cursor.execute(f"""
+            SELECT {LT} AS lec_title,
+                   {_pv(ME, '1', 'cnt')}, {_pv(ME, 'ec.course_ym_amt', 'amt')}
+            {EF}
+            WHERE e.pay_stats = 'PY' AND s.sta_code = %s
+              AND ec.bill_code = '2001' AND EXTRACT(YEAR FROM ec.course_ym) = %s
+            GROUP BY ROLLUP({LT}) ORDER BY {LT} NULLS LAST
+        """, [sta, syear])
+        ctx['join_rows'], _, _ = _parse_cnt_amt(cursor)
+
+        # ── 4. 쇼핑몰 이용현황 ──
+        cursor.execute(f"""
+            SELECT {_pv(SM, '1', 'cnt')}, {_pv(SM, 'o.total_order_price', 'amt')}
+            FROM {CID} sub
+            JOIN shop_order o ON sub.child_id = o.child_id
+            WHERE o.is_finish = 'T' AND o.is_confirm = 'T'
+              AND EXTRACT(YEAR FROM o.confirm_date) = %s
+        """, [sta, syear, syear])
+        row = cursor.fetchone()
+        if row:
+            cols = [c[0] for c in cursor.description]
+            d = dict(zip(cols, row))
+            cnts = [d.get(f'cnt_{m:02d}', 0) or 0 for m in range(1, 13)]
+            amts = [d.get(f'amt_{m:02d}', 0) or 0 for m in range(1, 13)]
+            ctx['shop_row'] = {'cnt': cnts, 'amt': amts,
+                               'cnt_sum': sum(cnts), 'amt_sum': sum(amts)}
+
+        # ── 5. 매출 수강월 기준 ──
+        cursor.execute(f"""
+            SELECT bill_label, {AM}
+            FROM (
+                SELECT {BL} AS bill_label, {ME} AS s_month, ec.course_ym_amt AS amt
+                {EF}
+                WHERE e.pay_stats = 'PY' AND s.sta_code = %s
+                  AND EXTRACT(YEAR FROM ec.course_ym) = %s
+                UNION ALL
+                SELECT 'M쇼핑몰', {SM}, o.total_order_price
+                FROM {CID} sub2
+                JOIN shop_order o ON sub2.child_id = o.child_id
+                WHERE o.is_finish = 'T' AND o.is_confirm = 'T'
+                  AND EXTRACT(YEAR FROM o.confirm_date) = %s
+            ) combined
+            GROUP BY ROLLUP(bill_label) ORDER BY bill_label NULLS LAST
+        """, [sta, syear, sta, syear, syear])
+        ctx['tot_rows'] = _parse_bill(cursor)
+
+        # ── 6. 매출 결제일 기준 ──
+        # ASP: child_id 서브쿼리가 pay_dt/insert_dt 연도 기준 (CID는 course_ym 사용)
+        PM = "EXTRACT(MONTH FROM COALESCE(e.pay_dt, e.insert_dt))::integer"
+        CID6 = f"""(SELECT DISTINCT e.child_id {EF}
+                    WHERE e.pay_stats = 'PY' AND s.sta_code = %s
+                      AND EXTRACT(YEAR FROM COALESCE(e.pay_dt, e.insert_dt)) = %s)"""
+        cursor.execute(f"""
+            SELECT bill_label, {AM}
+            FROM (
+                SELECT {BL} AS bill_label, {PM} AS s_month, ec.course_ym_amt AS amt
+                {EF}
+                WHERE e.pay_stats = 'PY' AND s.sta_code = %s
+                  AND EXTRACT(YEAR FROM COALESCE(e.pay_dt, e.insert_dt)) = %s
+                UNION ALL
+                SELECT 'M쇼핑몰', {SM}, o.total_order_price
+                FROM {CID6} sub3
+                JOIN shop_order o ON sub3.child_id = o.child_id
+                WHERE o.is_finish = 'T' AND o.is_confirm = 'T'
+                  AND EXTRACT(YEAR FROM o.confirm_date) = %s
+            ) combined
+            GROUP BY ROLLUP(bill_label) ORDER BY bill_label NULLS LAST
+        """, [sta, syear, sta, syear, syear])
+        ctx['tot2_rows'] = _parse_bill(cursor)
+
+        # ── 7. 매출 정산월 기준 (25일 기준 월 조정) ──
+        start_dt = f'{byear}-12-25 00:00:00'
+        end_dt = f'{syear}-12-24 23:59:59'
+        PDTI = "COALESCE(e.pay_dt, e.insert_dt)"
+        cursor.execute(f"""
+            SELECT bill_label, {AM}
+            FROM (
+                SELECT {BL} AS bill_label,
+                       EXTRACT(MONTH FROM {PDTI})::integer AS s_month,
+                       ec.course_ym_amt AS amt
+                {EF}
+                WHERE e.pay_stats = 'PY' AND s.sta_code = %s
+                  AND e.pay_method NOT IN ('CARD','VACCT','R')
+                  AND EXTRACT(YEAR FROM {PDTI}) = %s
+                UNION ALL
+                SELECT {BL} AS bill_label,
+                       CASE WHEN EXTRACT(DAY FROM {PDTI}) < 25
+                            THEN EXTRACT(MONTH FROM {PDTI})::integer
+                            ELSE EXTRACT(MONTH FROM {PDTI} + INTERVAL '1 month')::integer
+                       END AS s_month,
+                       ec.course_ym_amt AS amt
+                {EF}
+                WHERE e.pay_stats = 'PY' AND s.sta_code = %s
+                  AND e.pay_method IN ('CARD','VACCT','R')
+                  AND {PDTI} >= %s AND {PDTI} <= %s
+                UNION ALL
+                SELECT 'M쇼핑몰',
+                       CASE WHEN EXTRACT(DAY FROM o.confirm_date) < 25
+                            THEN EXTRACT(MONTH FROM o.confirm_date)::integer
+                            ELSE EXTRACT(MONTH FROM o.confirm_date + INTERVAL '1 month')::integer
+                       END,
+                       o.total_order_price
+                FROM {CID} sub4
+                JOIN shop_order o ON sub4.child_id = o.child_id
+                WHERE o.is_finish = 'T' AND o.is_confirm = 'T'
+                  AND o.confirm_date >= %s AND o.confirm_date <= %s
+            ) combined
+            GROUP BY ROLLUP(bill_label) ORDER BY bill_label NULLS LAST
+        """, [sta, syear, sta, start_dt, end_dt, sta, syear, start_dt, end_dt])
+        ctx['tot3_rows'] = _parse_bill(cursor)
+
+        # ── 8. 월별 출석 집계 ──
+        attd_pv = ', '.join([
+            f"SUM(CASE WHEN s_month = '{m:02d}' THEN y_attd ELSE 0 END) AS yattd_{m:02d}, "
+            f"SUM(CASE WHEN s_month = '{m:02d}' THEN n_attd ELSE 0 END) AS nattd_{m:02d}"
+            for m in range(1, 13)])
+        cursor.execute(f"""
+            SELECT lec_title, {attd_pv}
+            FROM (
+                SELECT l.lecture_day::text || l.lecture_title AS lec_title,
+                       SUBSTRING(a.attendance_dt, 6, 2) AS s_month,
+                       CASE WHEN a.attendance_gbn IN ('Y','A') THEN 1 ELSE 0 END AS y_attd,
+                       CASE WHEN a.attendance_gbn IN ('N','R','D') THEN 1 ELSE 0 END AS n_attd
+                FROM enrollment_attendance a
+                JOIN courses_lecture l ON a.lecture_code = l.lecture_code
+                WHERE a.sta_code = %s AND SUBSTRING(a.attendance_dt, 1, 4) = %s
+            ) sub
+            GROUP BY lec_title ORDER BY lec_title
+        """, [sta, syear])
+        ctx['attd_rows'] = _parse_attd(cursor)
+
+    return render(request, 'ba_office/lfreport/stadium_year.html', ctx)
 
 
 @office_login_required
 @office_permission_required('R')
 def report_stadium_year_excel(request):
-    """연도별 구장별 현황 Excel"""
-    search_date = request.GET.get('search_date', '')
-    if not search_date:
-        return HttpResponse('조회년도를 지정해주세요.')
-    rows = MonthlyData.objects.filter(
-        proc_dt__startswith=search_date
-    ).values('sta_name').annotate(
-        total_m_cnt=Sum('m_cnt'), total_goal=Sum('goal_cnt'),
-        total_tocl=Sum('tocl'), total_new=Sum('newT_appl_cnt'),
-        total_renew=Sum('renewT_appl_cnt'), total_again=Sum('again_appl_cnt'),
-        total_end=Sum('stats_lnT_cnt'),
-    ).order_by('sta_name')
-    wb = Workbook()
-    ws = wb.active
-    ws.title = '구장별현황'
-    headers = ['구장', '회원수', '목표', '클래스', '신규', '갱신', '재입단', '퇴단']
-    hfill = _header_fill()
-    border = _thin_border()
-    for ci, h in enumerate(headers, 1):
-        c = ws.cell(row=1, column=ci, value=h)
-        c.fill = hfill
-        c.border = border
-        c.font = Font(bold=True)
-    for i, r in enumerate(rows, 1):
-        vals = [r['sta_name'], r['total_m_cnt'], r['total_goal'],
-                r['total_tocl'], r['total_new'], r['total_renew'],
-                r['total_again'], r['total_end']]
-        for ci, v in enumerate(vals, 1):
-            ws.cell(row=i + 1, column=ci, value=v).border = border
-    return _excel_response(wb, f'stadium_year_{search_date}.xlsx')
+    """연도별 구장별 현황 Excel - ASP에 Excel 없음"""
+    return HttpResponse('이 페이지는 Excel 다운로드를 지원하지 않습니다.')
 
 
 # ── 16. 코치 실적 미반영 취소 ───────────────────────────
@@ -1952,63 +2251,60 @@ def report_stadium_year_excel(request):
 @office_login_required
 @office_permission_required('R')
 def report_coach_miban(request):
-    """코치 실적 미반영 취소 - 결제없이 퇴단한 건"""
-    lecture_dt = request.GET.get('lecture_dt', '')
-    if not lecture_dt:
-        lecture_dt = _default_ym()
-
-    sql = """
-    SELECT e.id AS no_seq, cv.code_desc, s.sta_name, l.lecture_title,
-           e.child_id, mc.name AS child_name,
-           e.lecture_stats, e.cancel_date, e.cancel_code, e.cancel_desc,
-           e.pay_price, e.pay_stats, e.pay_method,
-           COALESCE(bs.lec_price, 0) AS lec_price,
-           COALESCE(bs.join_price, 0) AS join_price,
-           e.pay_dt, e.lec_period, e.lec_cycle, e.start_dt, e.end_dt,
-           ec.course_ym, e.insert_id, e.insert_dt
-    FROM enrollment_enrollment e
-    INNER JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
-    INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
-    INNER JOIN courses_stadium s ON l.stadium_id = s.id
-    INNER JOIN common_codevalue cv ON s.local_code = cv.subcode AND cv.grpcode = 'LOCD'
-    INNER JOIN accounts_memberchild mc ON e.child_id = mc.child_id
-    INNER JOIN (
-        SELECT no_seq,
-               SUM(CASE WHEN LEFT(bill_code,2)='10' THEN bill_amt ELSE 0 END) AS lec_price,
-               SUM(CASE WHEN LEFT(bill_code,2)='20' THEN bill_amt ELSE 0 END) AS join_price
-        FROM enrollment_enrollmentbill GROUP BY no_seq
-    ) bs ON e.id = bs.no_seq
-    WHERE ec.bill_code = '1001'
-      AND TO_CHAR(ec.course_ym, 'YYYYMM') = %s
-      AND e.lecture_stats = 'LN'
-      AND e.apply_gubun IN ('NEW', 'RENEW')
-      AND e.pay_dt IS NULL
-      AND TO_CHAR(e.cancel_date, 'YYYYMM') = %s
-    ORDER BY s.sta_name, e.child_id
-    LIMIT 10000
+    """코치 실적 미반영 취소분 - ASP coach_month_miban.asp
+    change_history + course_src(변경전) vs course(변경후) 비교하여
+    수업료(1001) 금액이 다르고, 취소월 > 수강월인 건
     """
-    with connection.cursor() as cursor:
-        cursor.execute(sql, [lecture_dt, lecture_dt])
-        columns = [col[0] for col in cursor.description]
-        result = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    search_date = request.GET.get('search_date', '')
 
-    data = []
-    for i, r in enumerate(result, 1):
-        cancel_date = r.get('cancel_date')
-        insert_dt = r.get('insert_dt')
-        course_ym = r.get('course_ym')
-        data.append({
-            **r, 'num': i,
-            'lecture_stats_nm': _get_lecture_stats_display(r['lecture_stats']),
-            'pay_stats_nm': _get_pay_stats_display(r['pay_stats']),
-            'pay_method_nm': _get_pay_method_display(r['pay_method']),
-            'cancel_date_str': cancel_date.strftime('%Y-%m-%d') if cancel_date else '',
-            'insert_dt_str': insert_dt.strftime('%Y-%m-%d') if insert_dt else '',
-            'course_ym_str': course_ym.strftime('%Y-%m') if course_ym else '',
-        })
+    rows = []
+    if search_date:
+        sql = """
+        SELECT a.ch_name, a.reg_dt, a.member_id, a.child_id,
+               m.name AS member_name,
+               mc.name AS child_name,
+               s.sta_name,
+               l.lecture_title AS lec_title,
+               a.course_ym, a.course_ym_amt, a.course_ym_amt2,
+               (a.course_ym_amt - a.course_ym_amt2) AS totsum
+        FROM (
+            SELECT x.ch_name, x.reg_dt, x.member_id, x.child_id,
+                   x.src_seq, x.no_seq, x.pknum, x.lecture_code,
+                   x.course_ym, x.course_ym_amt,
+                   COALESCE(y.course_ym_amt, 0) AS course_ym_amt2
+            FROM (
+                SELECT b.ch_name, TO_CHAR(a.reg_dt, 'YYYYMM') AS reg_dt,
+                       a.member_id, a.child_id, a.src_seq, a.no_seq,
+                       b.pknum, b.lecture_code,
+                       TO_CHAR(b.course_ym, 'YYYYMM') AS course_ym,
+                       b.course_ym_amt
+                FROM enrollment_changehistory a
+                JOIN enrollment_enrollmentcoursesrc b ON a.src_seq = b.src_seq
+                WHERE TO_CHAR(a.reg_dt, 'YYYYMM') = %s
+                  AND b.bill_code = '1001'
+            ) x LEFT OUTER JOIN (
+                SELECT a.no_seq, b.pknum, b.course_ym_amt
+                FROM enrollment_changehistory a
+                JOIN enrollment_enrollmentcourse b ON a.no_seq = b.no_seq
+                WHERE TO_CHAR(a.reg_dt, 'YYYYMM') = %s
+                  AND b.bill_code = '1001'
+            ) y ON x.no_seq = y.no_seq AND x.pknum = y.pknum
+        ) a
+        LEFT JOIN accounts_member m ON a.member_id = m.username
+        LEFT JOIN accounts_memberchild mc ON a.child_id = mc.child_id
+        LEFT JOIN courses_lecture l ON a.lecture_code = l.lecture_code
+        LEFT JOIN courses_stadium s ON l.stadium_id = s.id
+        WHERE a.course_ym_amt <> a.course_ym_amt2
+          AND a.reg_dt > a.course_ym
+        ORDER BY a.ch_name, a.reg_dt, a.member_id, a.child_id, a.course_ym
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(sql, [search_date, search_date])
+            columns = [col[0] for col in cursor.description]
+            rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
     return render(request, 'ba_office/lfreport/coach_miban.html', {
-        'lecture_dt': lecture_dt, 'rows': data, 'total_count': len(data),
+        'search_date': search_date, 'rows': rows,
     })
 
 

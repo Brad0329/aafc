@@ -11,12 +11,12 @@
 <script>
 function srch_snd() {
     var sd = document.getElementById("p_start_dt").value;
-    if (sd == "") { alert("검색월을 입력해주세요."); return; }
+    if (sd == "") { alert("조회월을 입력해주세요."); return; }
     location.href = "{% url 'office_report_end_student' %}?p_start_dt=" + sd;
 }
 function exceldown() {
     var sd = document.getElementById("p_start_dt").value;
-    if (sd == "") { alert("검색월을 입력해주세요."); return; }
+    if (sd == "") { alert("조회월을 입력해주세요."); return; }
     location.href = "{% url 'office_report_end_student_excel' %}?p_start_dt=" + sd;
 }
 </script>
@@ -28,77 +28,100 @@ function exceldown() {
 
 <p class="title">퇴단자 리스트</p>
 <div class="tb_basic">
-    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+    <table summary="수강생정보" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
-            <col width="15%" />
-            <col width="*" />
+            <col width="10%" />
+            <col width="23%" />
+            <col width="10%" />
+            <col width="23%" />
         </colgroup>
         <tbody>
             <tr>
-                <th scope="col">검색월</th>
+                <th scope="col">검색일</th>
                 <td class="left">
-                    <input type="text" id="p_start_dt" value="{{ p_start_dt }}" size="10" maxlength="6" placeholder="YYYYMM" />
-                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
-                    &nbsp;&nbsp;
-                    <a href="javascript:exceldown();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a>
-                    &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
+                    <input type="text" id="p_start_dt" value="{{ p_start_dt }}" maxlength="10" style="width:100px;" />
                 </td>
+                <th scope="col"></th>
+                <td class="left"></td>
             </tr>
         </tbody>
     </table>
 </div>
+<div class="btn_right"><a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></div>
 
-<div class="scroll">
-<div class="tb_scroll">
-    <table summary="퇴단자리스트" border="0" cellpadding="0" cellspacing="0">
+<div class="tb_basic common">
+    <table summary="" class="exel_table common" border="1">
         <thead>
             <tr>
-                <th>순번</th><th>NO_SEQ</th><th>필드</th><th>구장</th><th>클래스</th>
-                <th>코치명</th><th>자녀아이디</th><th>자녀명</th><th>나이</th><th>전화번호</th>
-                <th>퇴단일자</th><th>퇴단코드</th><th>퇴단유형</th><th>퇴단사유</th>
-                <th>수강상태</th><th>결제금액</th><th>수업료</th><th>교육용품비</th>
-                <th>결제상태</th><th>결제방법</th><th>결제일자</th>
-                <th>수강기간</th><th>수업주기</th><th>시작월</th><th>종료월</th>
-                <th>수강월</th><th>등록자</th><th>등록일자</th>
+                <th>순번</th>
+                <th>NO_SEQ</th>
+                <th>필드</th>
+                <th>구장</th>
+                <th>클래스</th>
+                <th>코치명</th>
+                <th>자녀아이디</th>
+                <th>자녀명</th>
+                <th>나이</th>
+                <th>전화번호</th>
+                <th>퇴단일자</th>
+                <th>퇴단코드</th>
+                <th>퇴단유형</th>
+                <th>퇴단사유</th>
+                <th>퇴단일자</th>
+                <th>수강상태</th>
+                <th>총결제금액</th>
+                <th>수업료</th>
+                <th>교육용품비</th>
+                <th>결제상태</th>
+                <th>결제방법</th>
+                <th>결제일자</th>
+                <th>수강기간</th>
+                <th>수업주가</th>
+                <th>시작월</th>
+                <th>종료월</th>
+                <th>수강월</th>
+                <th>등록아이디</th>
+                <th>등록일자</th>
             </tr>
         </thead>
         <tbody>
             {% for r in rows %}
             <tr>
-                <td>{{ r.num }}</td>
-                <td>{{ r.no_seq }}</td>
-                <td>{{ r.code_desc }}</td>
-                <td class="left">{{ r.sta_name }}</td>
-                <td class="left">{{ r.lecture_title }}</td>
-                <td>{{ r.coach_name }}</td>
-                <td>{{ r.child_id }}</td>
-                <td>{{ r.child_name }}</td>
-                <td>{{ r.age }}</td>
-                <td>{{ r.mhtel }}</td>
-                <td>{{ r.cancel_date_str }}</td>
-                <td>{{ r.cancel_code }}</td>
-                <td>{{ r.cancel_type }}</td>
-                <td class="left">{{ r.cancel_desc }}</td>
-                <td>{{ r.lecture_stats_nm }}</td>
-                <td class="right">{{ r.display_pay_price|intcomma }}</td>
-                <td class="right">{{ r.display_lec_price|intcomma }}</td>
-                <td class="right">{{ r.display_join_price|intcomma }}</td>
-                <td>{{ r.pay_stats_nm }}</td>
-                <td>{{ r.pay_method_nm }}</td>
-                <td>{{ r.pay_dt_str }}</td>
-                <td>{{ r.lec_period }}개월</td>
-                <td>주{{ r.lec_cycle }}회</td>
-                <td>{{ r.start_dt }}</td>
-                <td>{{ r.end_dt }}</td>
-                <td>{{ r.course_ym_str }}</td>
-                <td>{{ r.insert_id }}</td>
-                <td>{{ r.insert_dt_str }}</td>
+                <th>{{ r.num }}</th>
+                <th>{{ r.no_seq }}</th>
+                <th>{{ r.code_desc }}</th>
+                <th>{{ r.sta_name }}</th>
+                <th>{{ r.lecture_title }}</th>
+                <th>{{ r.coach_name }}</th>
+                <th>{{ r.child_id }}</th>
+                <th>{{ r.child_name }}</th>
+                <th>{{ r.age }}</th>
+                <th>{{ r.mhtel }}</th>
+                <th>{{ r.cancel_date_str }}</th>
+                <th>{{ r.cancel_code }}</th>
+                <th>{{ r.cancel_type }}</th>
+                <th>{{ r.cancel_desc }}</th>
+                <th>{{ r.cancel_date_str }}</th>
+                <th>{{ r.lecture_stats_nm }}</th>
+                <th>{{ r.display_pay_price|intcomma }}원</th>
+                <th>{{ r.display_lec_price|intcomma }}원</th>
+                <th>{{ r.display_join_price|intcomma }}원</th>
+                <th>{{ r.pay_stats_nm }}</th>
+                <th>{{ r.pay_method_nm }}</th>
+                <th>{{ r.pay_dt_str }}</th>
+                <th>{{ r.lec_period }}</th>
+                <th>{{ r.lec_cycle }}</th>
+                <th>{{ r.start_dt }}</th>
+                <th>{{ r.end_dt }}</th>
+                <th>{{ r.course_ym_str }}</th>
+                <th>{{ r.insert_id }}</th>
+                <th>{{ r.insert_dt_str }}</th>
             </tr>
             {% empty %}
-            <tr><td colspan="28" align="center">데이터가 없습니다.</td></tr>
+            <tr><td colspan="29" align="center">데이터가 없습니다.</td></tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
-</div>
+<div style="padding-top:10px; text-align:right;"><a href="javascript:exceldown();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a></div>
 {% endblock %}

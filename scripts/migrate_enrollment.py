@@ -237,7 +237,7 @@ def migrate_enrollment_bills(cursor):
 def migrate_enrollment_courses(cursor):
     """lf_fcjoin_course → EnrollmentCourse"""
     cursor.execute("""
-        SELECT no_seq, bill_code, course_ym, course_ym_amt,
+        SELECT pknum, no_seq, bill_code, course_ym, course_ym_amt,
                lecture_code, start_ymd, course_stats
           FROM lf_fcjoin_course
     """)
@@ -265,6 +265,7 @@ def migrate_enrollment_courses(cursor):
 
         EnrollmentCourse.objects.create(
             enrollment_id=no_seq,
+            pknum=checkint(data['pknum']),
             bill_code=safe_str(data['bill_code']),
             course_ym=course_ym,
             course_ym_amt=checkint(data['course_ym_amt']),

@@ -1,7 +1,6 @@
 {% extends "ba_office/base_office.html" %}
 {% load static %}
 {% load office_tags %}
-{% load humanize %}
 
 {% block left_menu %}
 {% include "ba_office/includes/lfreport_left.html" %}
@@ -14,11 +13,6 @@ function srch_snd() {
     if (ld == "") { alert("조회월을 입력해주세요."); return; }
     location.href = "{% url 'office_report_attendance_month' %}?lecture_dt=" + ld;
 }
-function exceldown() {
-    var ld = document.getElementById("lecture_dt").value;
-    if (ld == "") { alert("조회월을 입력해주세요."); return; }
-    location.href = "{% url 'office_report_attendance_month_excel' %}?lecture_dt=" + ld;
-}
 </script>
 {% endblock %}
 
@@ -28,60 +22,89 @@ function exceldown() {
 
 <p class="title">월별출결현황</p>
 <div class="tb_basic">
-    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+    <table summary="수강생정보" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
-            <col width="15%" />
-            <col width="*" />
+            <col width="10%" />
+            <col width="23%" />
+            <col width="10%" />
+            <col width="23%" />
         </colgroup>
         <tbody>
             <tr>
-                <th scope="col">조회월</th>
+                <th scope="col">기준월</th>
                 <td class="left">
-                    <input type="text" id="lecture_dt" value="{{ lecture_dt }}" size="10" maxlength="6" placeholder="YYYYMM" />
-                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
-                    &nbsp;&nbsp;
-                    <a href="javascript:exceldown();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a>
-                    &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
+                    <input type="text" id="lecture_dt" value="{{ lecture_dt }}" maxlength="10" style="width:100px;" />
                 </td>
+                <th scope="col"></th>
+                <td class="left"></td>
             </tr>
         </tbody>
     </table>
 </div>
+<div class="btn_right"><a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></div>
 
 <div class="tb_basic">
-    <table summary="출결현황" border="0" cellpadding="0" cellspacing="0">
+    <table summary="" class="exel_table" border="1">
         <colgroup>
-            <col width="15%" />
-            <col width="25%" />
-            <col width="10%" />
-            <col width="7%" /><col width="7%" /><col width="7%" />
-            <col width="7%" /><col width="7%" /><col width="7%" />
-            <col width="8%" />
+            <col width="9%" />
+            <col width="*" />
+            <col width="2.2%" /><col width="2.2%" /><col width="2.2%" /><col width="2.2%" />
+            <col width="2.2%" /><col width="2.2%" /><col width="2.2%" /><col width="2.2%" />
+            <col width="2.2%" /><col width="2.2%" /><col width="2.2%" /><col width="2.2%" />
+            <col width="2.2%" /><col width="2.2%" /><col width="2.2%" /><col width="2.2%" />
+            <col width="2.2%" /><col width="2.2%" /><col width="2.2%" /><col width="2.2%" />
+            <col width="2.2%" /><col width="2.2%" /><col width="2.2%" /><col width="2.2%" />
+            <col width="2.2%" /><col width="2.2%" /><col width="2.2%" /><col width="2.2%" />
+            <col width="2.2%" />
         </colgroup>
         <thead>
             <tr>
-                <th>구장</th><th>클래스</th><th>코치</th>
-                <th>출석(Y)</th><th>보강(A)</th><th>결석(N)</th>
-                <th>우천(R)</th><th>연기(D)</th><th>제외(E)</th>
-                <th>합계</th>
+                <th>구장</th>
+                <th>수업</th>
+                <th>01</th><th>02</th><th>03</th><th>04</th><th>05</th>
+                <th>06</th><th>07</th><th>08</th><th>09</th><th>10</th>
+                <th>11</th><th>13</th><th>14</th><th>15</th><th>16</th>
+                <th>17</th><th>18</th><th>19</th><th>20</th><th>21</th>
+                <th>22</th><th>23</th><th>24</th><th>25</th><th>26</th>
+                <th>27</th><th>28</th><th>29</th><th>30</th><th>31</th>
             </tr>
         </thead>
         <tbody>
             {% for r in rows %}
             <tr>
-                <td class="left">{{ r.sta_name }}</td>
-                <td class="left">{{ r.lecture_title }}</td>
-                <td>{{ r.coach_name }}</td>
-                <td>{{ r.att_y }}</td>
-                <td>{{ r.att_a }}</td>
-                <td>{{ r.att_n }}</td>
-                <td>{{ r.att_r }}</td>
-                <td>{{ r.att_d }}</td>
-                <td>{{ r.att_e }}</td>
-                <td><b>{{ r.att_total }}</b></td>
+                <th>{{ r.sta_name }}</th>
+                <th>{{ r.lecture_title }}</th>
+                <th>{% if r.cnt_01 %}{{ r.cnt_01 }}{% endif %}</th>
+                <th>{% if r.cnt_02 %}{{ r.cnt_02 }}{% endif %}</th>
+                <th>{% if r.cnt_03 %}{{ r.cnt_03 }}{% endif %}</th>
+                <th>{% if r.cnt_04 %}{{ r.cnt_04 }}{% endif %}</th>
+                <th>{% if r.cnt_05 %}{{ r.cnt_05 }}{% endif %}</th>
+                <th>{% if r.cnt_06 %}{{ r.cnt_06 }}{% endif %}</th>
+                <th>{% if r.cnt_07 %}{{ r.cnt_07 }}{% endif %}</th>
+                <th>{% if r.cnt_08 %}{{ r.cnt_08 }}{% endif %}</th>
+                <th>{% if r.cnt_09 %}{{ r.cnt_09 }}{% endif %}</th>
+                <th>{% if r.cnt_10 %}{{ r.cnt_10 }}{% endif %}</th>
+                <th>{% if r.cnt_11 %}{{ r.cnt_11 }}{% endif %}</th>
+                <th>{% if r.cnt_13 %}{{ r.cnt_13 }}{% endif %}</th>
+                <th>{% if r.cnt_14 %}{{ r.cnt_14 }}{% endif %}</th>
+                <th>{% if r.cnt_15 %}{{ r.cnt_15 }}{% endif %}</th>
+                <th>{% if r.cnt_16 %}{{ r.cnt_16 }}{% endif %}</th>
+                <th>{% if r.cnt_17 %}{{ r.cnt_17 }}{% endif %}</th>
+                <th>{% if r.cnt_18 %}{{ r.cnt_18 }}{% endif %}</th>
+                <th>{% if r.cnt_19 %}{{ r.cnt_19 }}{% endif %}</th>
+                <th>{% if r.cnt_20 %}{{ r.cnt_20 }}{% endif %}</th>
+                <th>{% if r.cnt_21 %}{{ r.cnt_21 }}{% endif %}</th>
+                <th>{% if r.cnt_22 %}{{ r.cnt_22 }}{% endif %}</th>
+                <th>{% if r.cnt_23 %}{{ r.cnt_23 }}{% endif %}</th>
+                <th>{% if r.cnt_24 %}{{ r.cnt_24 }}{% endif %}</th>
+                <th>{% if r.cnt_25 %}{{ r.cnt_25 }}{% endif %}</th>
+                <th>{% if r.cnt_26 %}{{ r.cnt_26 }}{% endif %}</th>
+                <th>{% if r.cnt_27 %}{{ r.cnt_27 }}{% endif %}</th>
+                <th>{% if r.cnt_28 %}{{ r.cnt_28 }}{% endif %}</th>
+                <th>{% if r.cnt_29 %}{{ r.cnt_29 }}{% endif %}</th>
+                <th>{% if r.cnt_30 %}{{ r.cnt_30 }}{% endif %}</th>
+                <th>{% if r.cnt_31 %}{{ r.cnt_31 }}{% endif %}</th>
             </tr>
-            {% empty %}
-            <tr><td colspan="10" align="center">데이터가 없습니다.</td></tr>
             {% endfor %}
         </tbody>
     </table>
