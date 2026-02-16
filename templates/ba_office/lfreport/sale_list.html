@@ -30,63 +30,78 @@ function exceldown() {
 
 <p class="title">(결제월)전체_DATA</p>
 <div class="tb_basic">
-    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+    <table summary="수강생정보" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
-            <col width="15%" />
-            <col width="*" />
+            <col width="10%" />
+            <col width="23%" />
+            <col width="10%" />
+            <col width="23%" />
         </colgroup>
         <tbody>
             <tr>
-                <th scope="col">조회월</th>
+                <th scope="col">기준월</th>
                 <td class="left">
                     <input type="text" id="sch_lecture_month" value="{{ sch_lecture_month }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                </td>
+                <th scope="col">결제상태</th>
+                <td class="left">
                     <select id="sch_pay_stats">
                         <option value="">전체</option>
                         <option value="PY" {% if sch_pay_stats == "PY" %}selected{% endif %}>결제완료</option>
                         <option value="PP" {% if sch_pay_stats == "PP" %}selected{% endif %}>결제대기</option>
-                        <option value="PQ" {% if sch_pay_stats == "PQ" %}selected{% endif %}>입금확인대기</option>
                         <option value="PN" {% if sch_pay_stats == "PN" %}selected{% endif %}>결제취소</option>
                         <option value="PZ" {% if sch_pay_stats == "PZ" %}selected{% endif %}>결제대기취소</option>
+                        <option value="PQ" {% if sch_pay_stats == "PQ" %}selected{% endif %}>입금확인대기</option>
                     </select>
-                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
-                    &nbsp;&nbsp;
-                    <a href="javascript:exceldown();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a>
-                    &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
                 </td>
             </tr>
         </tbody>
     </table>
 </div>
+<div class="btn_right">
+    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+</div>
 
-{% if summary %}
-<p class="title">월별 결제현황 요약 ({{ sch_lecture_month|slice:":4" }}년)</p>
+<p>&nbsp;</p>
+<p><b><font color="red">결제자 리스트는 기준월의 수강리스트입니다. 중복 수업을 제거하였고 결제 관련 데이타만 리스트업 됩니다.</font></b></p>
+<p><b><font color="red">해당 데이타는 라이브 데이타입니다.  이전월 데이라도 현재월에 결제 상태를 변경할 경우 이전에 조회했던 데이타와 다를 수 있습니다.</font></b></p>
+<p>&nbsp;</p>
+
 <div class="tb_basic">
-    <table summary="요약" border="0" cellpadding="0" cellspacing="0">
+    <table summary="" border="1">
         <thead>
             <tr>
-                <th>결제월</th><th>결제완료(PY)</th><th>결제대기(PP)</th><th>입금확인대기(PQ)</th><th>결제취소(PN)</th><th>결제대기취소(PZ)</th>
+                <th>기준월</th><th>결제완료금액</th><th>결제대기금액</th><th>입금확인대기</th><th>결제취소</th><th>결제대기취소</th>
             </tr>
         </thead>
         <tbody>
             {% for s in summary %}
             <tr>
-                <td>{{ s.stand_dt }}</td>
-                <td class="right">{{ s.py_price|intcomma }}</td>
-                <td class="right">{{ s.pp_price|intcomma }}</td>
-                <td class="right">{{ s.pq_price|intcomma }}</td>
-                <td class="right">{{ s.pn_price|intcomma }}</td>
-                <td class="right">{{ s.pz_price|intcomma }}</td>
+                <th>{{ s.stand_dt }}</th>
+                <th>{{ s.py_price|intcomma }} 원</th>
+                <th>{{ s.pp_price|intcomma }} 원</th>
+                <th>{{ s.pq_price|intcomma }} 원</th>
+                <th>{{ s.pn_price|intcomma }} 원</th>
+                <th>{{ s.pz_price|intcomma }} 원</th>
             </tr>
             {% endfor %}
+            <tr>
+                <td class="left" colspan="6">
+                    <p>결제일자 기준의 결제금액 통계입니다.</p>
+                    <p>결제 일이 없는 결제건은(결제 대기 상태) 등록일자 기준으로 설정했습니다.</p>
+                    <p>실제 수강월이 5월 이라도 4월결제를 한 경우 4월 매출로 잡힙니다.</p>
+                    <p>4월, 5월, 6월 수강의 결제 대기건이라도 등록건이 4월 일경우 4월 결제 대기건으로 집계됩니다.</p>
+                    <p>4월, 5월, 6월 수강의 결제건이 5월 결제가 되었다면 5월 결제로 집계됩니다.</p>
+                </td>
+            </tr>
         </tbody>
     </table>
 </div>
-{% endif %}
+<p>&nbsp;</p>
 
-<p class="title">상세 리스트</p>
-<div class="scroll">
-<div class="tb_scroll">
-    <table summary="결제월전체DATA" border="0" cellpadding="0" cellspacing="0">
+{% if rows %}
+<div class="tb_basic">
+    <table summary="" border="1">
         <thead>
             <tr>
                 <th>순번</th><th>부모아이디</th><th>부모명</th><th>자녀아이디</th>
@@ -100,31 +115,32 @@ function exceldown() {
         <tbody>
             {% for r in rows %}
             <tr>
-                <td>{{ r.num }}</td>
-                <td>{{ r.member_id }}</td>
-                <td>{{ r.member_name }}</td>
-                <td>{{ r.child_id }}</td>
-                <td>{{ r.mhtel }}</td>
-                <td>{{ r.child_name }}</td>
-                <td>{{ r.apply_gubun_nm }}</td>
-                <td>주{{ r.lec_cycle }}회</td>
-                <td>{{ r.lec_period }}개월</td>
-                <td>{{ r.lecture_stats_nm }}</td>
-                <td class="right">{{ r.pay_price|intcomma }}</td>
-                <td>{{ r.pay_stats_nm }}</td>
-                <td>{{ r.pay_method_nm }}</td>
-                <td>{{ r.pay_dt_str }}</td>
-                <td>{{ r.cancel_date_str }}</td>
-                <td>{{ r.cancel_code }}</td>
-                <td class="left">{{ r.cancel_desc }}</td>
-                <td>{{ r.start_dt }}</td>
-                <td>{{ r.end_dt }}</td>
+                <th>{{ r.num }}</th>
+                <th>{{ r.member_id }}</th>
+                <th>{{ r.member_name }}</th>
+                <th>{{ r.child_id }}</th>
+                <th>{{ r.mhtel }}</th>
+                <th>{{ r.child_name }}</th>
+                <th>{{ r.apply_gubun_nm }}</th>
+                <th>{{ r.lec_cycle }}</th>
+                <th>{{ r.lec_period }}</th>
+                <th>{{ r.lecture_stats_nm }}</th>
+                <th>{{ r.pay_price|intcomma }}</th>
+                <th>{{ r.pay_stats_nm }}</th>
+                <th>{{ r.pay_method_nm }}</th>
+                <th>{{ r.pay_dt_str }}</th>
+                <th>{{ r.cancel_date_str }}</th>
+                <th>{{ r.cancel_code }}</th>
+                <th>{{ r.cancel_desc }}</th>
+                <th>{{ r.start_dt }}</th>
+                <th>{{ r.end_dt }}</th>
             </tr>
-            {% empty %}
-            <tr><td colspan="19" align="center">데이터가 없습니다.</td></tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+<div style="padding-top:10px; text-align:right;">
+    <a href="javascript:exceldown();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a>
 </div>
+{% endif %}
 {% endblock %}

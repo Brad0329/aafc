@@ -23,16 +23,20 @@ function srch_snd() {
 
 <p class="title">주간회의자료_ver3</p>
 <div class="tb_basic">
-    <table summary="주간회의자료" border="0" cellpadding="0" cellspacing="0">
+    <table summary="수강생정보" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
-            <col width="15%" />
-            <col width="*" />
+            <col width="10%" />
+            <col width="23%" />
+            <col width="10%" />
+            <col width="23%" />
         </colgroup>
         <tbody>
             <tr>
-                <th scope="col">조회월</th>
+                <th scope="col">기준월</th>
                 <td class="left">
                     <input type="text" id="search_date" value="{{ search_date }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                </td>
+                <td class="left">
                     <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
                 </td>
             </tr>
@@ -40,62 +44,75 @@ function srch_snd() {
     </table>
 </div>
 
-<p class="title">{{ month_m2|slice:":4" }}년{{ month_m2|slice:"4:" }}월 ~ {{ month_m0|slice:":4" }}년{{ month_m0|slice:"4:" }}월</p>
-<div class="scroll">
-<div class="tb_scroll">
-    <table summary="주간회의자료" border="0" cellpadding="0" cellspacing="0">
+<p>&nbsp;</p>
+<p>회원 : 수강을 신청한 회원</p>
+<p>         - 결제상태가 결제완료, 결제대기, 입금대기인 상태</p>
+<p>&nbsp;</p>
+<p>클래스 : 수강을 신청한 수</p>
+<p>         - 결제상태가 결제완료, 결제대기, 입금대기인 상태</p>
+<p>         - 수강상태가 퇴단(LN)인 클래스도 포함(당월 퇴단 포함)</p>
+<p>&nbsp;</p>
+<p>  신규 : 결제구분이 신규 회원이 신청한 클래스 수</p>
+<p>재가입 : 결제구분이 재입단, 재수강인 회원이 신청한 클래스 수</p>
+<p>  퇴단 : 수강상태가 퇴단(LN)인 회원이 신청한 클래스 수</p>
+<p>&nbsp;</p>
+<p>매일 23시에 자동으로 일 마감데이타가 생성됩니다.</p>
+<p>2020년 1월부터 데이터 생성</p>
+
+<div class="tb_basic">
+    <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
-            <col width="80px" />
-            <col width="100px" />
-            <col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" />
-            <col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" />
-            <col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" />
+            <col width="*" />
+            <col width="8%" />
+            <col width="4%" /><col width="4%" /><col width="4%" /><col width="4%" /><col width="4%" /><col width="4%" />
+            <col width="4%" /><col width="4%" /><col width="4%" /><col width="4%" /><col width="4%" /><col width="4%" /><col width="5%" /><col width="5%" />
+            <col width="4%" /><col width="4%" /><col width="4%" /><col width="4%" /><col width="4%" /><col width="4%" /><col width="5%" /><col width="5%" />
         </colgroup>
-        <thead>
-            <tr>
-                <th rowspan="2">필드</th>
-                <th rowspan="2">구장</th>
-                <th colspan="6">{{ month_m2|slice:":4" }}년{{ month_m2|slice:"4:" }}월</th>
-                <th colspan="8">{{ month_m1|slice:":4" }}년{{ month_m1|slice:"4:" }}월</th>
-                <th colspan="8">{{ month_m0|slice:":4" }}년{{ month_m0|slice:"4:" }}월</th>
-            </tr>
-            <tr>
-                <th>목표</th><th>회원</th><th>클래스</th><th>신규</th><th>재가입</th><th>퇴단</th>
-                <th>목표</th><th>회원</th><th>증감(회원)</th><th>클래스</th><th>증감(클래스)</th><th>신규</th><th>재가입</th><th>퇴단</th>
-                <th>목표</th><th>회원</th><th>증감(회원)</th><th>클래스</th><th>증감(클래스)</th><th>신규</th><th>재가입</th><th>퇴단</th>
-            </tr>
-        </thead>
         <tbody>
+            <tr>
+                <th rowspan="2">권역명</th>
+                <th rowspan="2" style="border-right:1px solid blue;">구장명</th>
+                <th colspan="6" style="border-right:1px solid blue;">{{ proc_dt_m2 }}</th>
+                <th colspan="8" style="border-right:1px solid blue;">{{ proc_dt_m1 }}</th>
+                <th colspan="8">{{ proc_dt_m0 }}</th>
+            </tr>
+            <tr>
+                <th>목표</th><th>회원</th><th>클래스</th><th>신규</th><th>재가입</th>
+                <th style="border-right:1px solid blue;">퇴단</th>
+                <th>목표</th><th>회원</th><th>클래스</th><th>신규</th><th>재가입</th><th>퇴단</th>
+                <th>회원<br>증감</th><th style="border-right:1px solid blue;">클래스<br>증감</th>
+                <th>목표</th><th>회원</th><th>클래스</th><th>신규</th><th>재가입</th><th>퇴단</th>
+                <th>회원<br>증감</th><th>클래스<br>증감</th>
+            </tr>
             {% for r in rows %}
-            <tr{% if r.is_subtotal %} style="background-color:#c2d69a; font-weight:bold;"{% endif %}{% if r.is_total %} style="background-color:#ccffff; font-weight:bold;"{% endif %}>
-                <td>{{ r.code_desc }}</td>
-                <td class="left">{{ r.sta_name }}</td>
-                <td>{{ r.goal_m2|intcomma }}</td>
-                <td>{{ r.mcnt_m2|intcomma }}</td>
-                <td>{{ r.tocl_m2|intcomma }}</td>
-                <td>{{ r.new_m2|intcomma }}</td>
-                <td>{{ r.again_m2|intcomma }}</td>
-                <td>{{ r.end_m2|intcomma }}</td>
-                <td>{{ r.goal_m1|intcomma }}</td>
-                <td>{{ r.mcnt_m1|intcomma }}</td>
-                <td>{{ r.mcnt_diff_m1|intcomma }}</td>
-                <td>{{ r.tocl_m1|intcomma }}</td>
-                <td>{{ r.tocl_diff_m1|intcomma }}</td>
-                <td>{{ r.new_m1|intcomma }}</td>
-                <td>{{ r.again_m1|intcomma }}</td>
-                <td>{{ r.end_m1|intcomma }}</td>
-                <td>{{ r.goal_m0|intcomma }}</td>
-                <td>{{ r.mcnt_m0|intcomma }}</td>
-                <td>{{ r.mcnt_diff_m0|intcomma }}</td>
-                <td>{{ r.tocl_m0|intcomma }}</td>
-                <td>{{ r.tocl_diff_m0|intcomma }}</td>
-                <td>{{ r.new_m0|intcomma }}</td>
-                <td>{{ r.again_m0|intcomma }}</td>
-                <td>{{ r.end_m0|intcomma }}</td>
+            <tr>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.code_desc }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;border-right:1px solid blue;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;border-right:1px solid blue;"{% else %}style="background-color:#ffffcc;font-weight:bold;border-right:1px solid blue;"{% endif %}>{{ r.sta_name }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.goal_m2|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.mcnt_m2|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.tocl_m2|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.new_m2|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.again_m2|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;border-right:1px solid blue;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;border-right:1px solid blue;"{% else %}style="background-color:#ffffcc;font-weight:bold;border-right:1px solid blue;"{% endif %}>{{ r.end_m2|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.goal_m1|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.mcnt_m1|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.tocl_m1|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.new_m1|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.again_m1|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.end_m1|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.mcnt_diff_m1|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;border-right:1px solid blue;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;border-right:1px solid blue;"{% else %}style="background-color:#ffffcc;font-weight:bold;border-right:1px solid blue;"{% endif %}>{{ r.tocl_diff_m1|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.goal_m0|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.mcnt_m0|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.tocl_m0|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.new_m0|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.again_m0|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.end_m0|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.mcnt_diff_m0|intcomma }}</td>
+                <td {% if r.is_total %}style="background-color:#ccffff;font-weight:bold;"{% elif r.is_subtotal %}style="background-color:#c2d69a;font-weight:bold;"{% else %}style="background-color:#ffffcc;"{% endif %}>{{ r.tocl_diff_m0|intcomma }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-</div>
 </div>
 {% endblock %}

@@ -116,9 +116,19 @@ def report_weekly(request):
 
     exclude_sta = ['관악AI-11센터', '신도림로꼬구장']
 
-    def _get_month_data(proc_dt_prefix):
+    # 각 월별 실제 proc_dt max 값 (헤더 표시용)
+    def _get_max_proc_dt(prefix):
+        v = MonthlyData.objects.filter(proc_dt__startswith=prefix).order_by('-proc_dt').values_list('proc_dt', flat=True).first()
+        return v or prefix
+
+    proc_dt_m0 = _get_max_proc_dt(m0)
+    proc_dt_m1 = _get_max_proc_dt(m1)
+    proc_dt_m2 = _get_max_proc_dt(m2)
+
+    def _get_month_data(exact_proc_dt):
+        """해당 월의 max(proc_dt) 하루치 데이터만 조회 (ASP 원본과 동일)"""
         qs = MonthlyData.objects.filter(
-            proc_dt__startswith=proc_dt_prefix
+            proc_dt=exact_proc_dt
         ).exclude(sta_name__in=exclude_sta)
         rows = {}
         for r in qs:
@@ -139,9 +149,9 @@ def report_weekly(request):
             d['stats_lnT_cnt'] += r.stats_lnT_cnt or 0
         return rows
 
-    data2 = _get_month_data(m2)
-    data1 = _get_month_data(m1)
-    data0 = _get_month_data(m0)
+    data2 = _get_month_data(proc_dt_m2)
+    data1 = _get_month_data(proc_dt_m1)
+    data0 = _get_month_data(proc_dt_m0)
 
     all_keys = sorted(set(list(data2.keys()) + list(data1.keys()) + list(data0.keys())))
 
@@ -209,8 +219,8 @@ def report_weekly(request):
         sub['tocl_diff_m0'] = sub['tocl_m0'] - sub['tocl_m1']
         rows.append(sub)
 
-    grand_total['code_desc'] = '합계'
-    grand_total['sta_name'] = ''
+    grand_total['code_desc'] = 'AAFC'
+    grand_total['sta_name'] = '합계'
     grand_total['is_subtotal'] = False
     grand_total['is_total'] = True
     grand_total['mcnt_diff_m1'] = grand_total['mcnt_m1'] - grand_total['mcnt_m2']
@@ -222,6 +232,7 @@ def report_weekly(request):
     return render(request, 'ba_office/lfreport/weekly_report.html', {
         'search_date': search_date, 'rows': rows,
         'month_m2': m2, 'month_m1': m1, 'month_m0': m0,
+        'proc_dt_m2': proc_dt_m2, 'proc_dt_m1': proc_dt_m1, 'proc_dt_m0': proc_dt_m0,
     })
 
 
@@ -394,8 +405,8 @@ def _get_total_data(sch_month):
     FROM enrollment_enrollment e
     INNER JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
     INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
-    INNER JOIN courses_stadium s ON l.sta_code = s.sta_code
-    INNER JOIN courses_coach co ON l.coach_code = co.coach_code
+    INNER JOIN courses_stadium s ON l.stadium_id = s.id
+    INNER JOIN courses_coach co ON l.coach_id = co.id
     INNER JOIN accounts_member m ON e.member_id = m.username
     INNER JOIN accounts_memberchild mc ON e.child_id = mc.child_id
     INNER JOIN (
@@ -521,7 +532,7 @@ def _get_sale_list_data(sch_month, sch_pay_stats=''):
         GROUP BY no_seq
     ) ec ON e.id = ec.no_seq
     INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
-    INNER JOIN courses_stadium s ON l.sta_code = s.sta_code
+    INNER JOIN courses_stadium s ON l.stadium_id = s.id
     INNER JOIN accounts_member m ON e.member_id = m.username
     INNER JOIN accounts_memberchild mc ON e.child_id = mc.child_id
     WHERE 1=1
@@ -639,7 +650,7 @@ def _get_sale_day_data(stdt, eddt):
         GROUP BY no_seq
     ) ec ON e.id = ec.no_seq
     INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
-    INNER JOIN courses_stadium s ON l.sta_code = s.sta_code
+    INNER JOIN courses_stadium s ON l.stadium_id = s.id
     INNER JOIN accounts_member m ON e.member_id = m.username
     INNER JOIN accounts_memberchild mc ON e.child_id = mc.child_id
     WHERE e.pay_stats = 'PY'
@@ -776,8 +787,8 @@ def _get_now_data(sta_code, lecture_dt):
             FROM enrollment_enrollment e
             INNER JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
             INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
-            INNER JOIN courses_coach co ON l.coach_code = co.coach_code
-            INNER JOIN courses_stadium s ON l.sta_code = s.sta_code
+            INNER JOIN courses_coach co ON l.coach_id = co.id
+            INNER JOIN courses_stadium s ON l.stadium_id = s.id
             INNER JOIN common_codevalue cv ON s.local_code = cv.subcode AND cv.grpcode = 'LOCD'
             INNER JOIN accounts_member m ON e.member_id = m.username
             INNER JOIN accounts_memberchild mc ON e.child_id = mc.child_id
@@ -906,7 +917,7 @@ def report_now_statics_1(request):
     FROM enrollment_enrollment e
     INNER JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
     INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
-    INNER JOIN courses_stadium s ON l.sta_code = s.sta_code
+    INNER JOIN courses_stadium s ON l.stadium_id = s.id
     INNER JOIN common_codevalue cv ON s.local_code = cv.subcode AND cv.grpcode = 'LOCD'
     LEFT JOIN common_codevalue cv2 ON s.local_code = cv2.subcode AND cv2.grpcode = 'LOCD'
     WHERE ec.bill_code = '1001'
@@ -1003,7 +1014,7 @@ def _get_new_student_data(p_start_dt):
         FROM enrollment_enrollment e
         INNER JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
         INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
-        INNER JOIN courses_stadium s ON l.sta_code = s.sta_code
+        INNER JOIN courses_stadium s ON l.stadium_id = s.id
         INNER JOIN common_codevalue cv ON s.local_code = cv.subcode AND cv.grpcode = 'LOCD'
         INNER JOIN accounts_memberchild mc ON e.child_id = mc.child_id
         INNER JOIN (
@@ -1129,8 +1140,8 @@ def _get_end_student_data(p_start_dt):
         FROM enrollment_enrollment e
         INNER JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
         INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
-        INNER JOIN courses_coach co ON l.coach_code = co.coach_code
-        INNER JOIN courses_stadium s ON l.sta_code = s.sta_code AND s.use_gbn = 'Y'
+        INNER JOIN courses_coach co ON l.coach_id = co.id
+        INNER JOIN courses_stadium s ON l.stadium_id = s.id AND s.use_gbn = 'Y'
         INNER JOIN common_codevalue cv ON s.local_code = cv.subcode AND cv.grpcode = 'LOCD'
         INNER JOIN accounts_member m ON e.member_id = m.username
         INNER JOIN accounts_memberchild mc ON e.child_id = mc.child_id
@@ -1401,7 +1412,7 @@ def report_now_statics_2_load(request):
     FROM enrollment_enrollment e
     INNER JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
     INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
-    INNER JOIN courses_stadium s ON l.sta_code = s.sta_code
+    INNER JOIN courses_stadium s ON l.stadium_id = s.id
     INNER JOIN common_codevalue cv ON s.local_code = cv.subcode AND cv.grpcode = 'LOCD'
     INNER JOIN accounts_member m ON e.member_id = m.username
     INNER JOIN accounts_memberchild mc ON e.child_id = mc.child_id
@@ -1668,8 +1679,8 @@ def report_delay_data(request):
     FROM enrollment_enrollment e
     INNER JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
     INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
-    INNER JOIN courses_coach co ON l.coach_code = co.coach_code
-    INNER JOIN courses_stadium s ON l.sta_code = s.sta_code
+    INNER JOIN courses_coach co ON l.coach_id = co.id
+    INNER JOIN courses_stadium s ON l.stadium_id = s.id
     INNER JOIN common_codevalue cv ON s.local_code = cv.subcode AND cv.grpcode = 'LOCD'
     INNER JOIN accounts_member m ON e.member_id = m.username
     INNER JOIN accounts_memberchild mc ON e.child_id = mc.child_id
@@ -1726,8 +1737,8 @@ def report_delay_data_excel(request):
     FROM enrollment_enrollment e
     INNER JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
     INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
-    INNER JOIN courses_coach co ON l.coach_code = co.coach_code
-    INNER JOIN courses_stadium s ON l.sta_code = s.sta_code
+    INNER JOIN courses_coach co ON l.coach_id = co.id
+    INNER JOIN courses_stadium s ON l.stadium_id = s.id
     INNER JOIN common_codevalue cv ON s.local_code = cv.subcode AND cv.grpcode = 'LOCD'
     INNER JOIN accounts_member m ON e.member_id = m.username
     INNER JOIN accounts_memberchild mc ON e.child_id = mc.child_id
@@ -1795,7 +1806,7 @@ def report_attendance_month(request):
     FROM enrollment_attendance a
     INNER JOIN courses_lecture l ON a.lecture_code = l.lecture_code
     INNER JOIN courses_stadium s ON a.sta_code = s.sta_code
-    INNER JOIN courses_coach co ON l.coach_code = co.coach_code
+    INNER JOIN courses_coach co ON l.coach_id = co.id
     WHERE a.attendance_dt LIKE %s
     GROUP BY s.sta_name, l.lecture_title, co.coach_name
     ORDER BY s.sta_name, l.lecture_title
@@ -1830,7 +1841,7 @@ def report_attendance_month_excel(request):
     FROM enrollment_attendance a
     INNER JOIN courses_lecture l ON a.lecture_code = l.lecture_code
     INNER JOIN courses_stadium s ON a.sta_code = s.sta_code
-    INNER JOIN courses_coach co ON l.coach_code = co.coach_code
+    INNER JOIN courses_coach co ON l.coach_id = co.id
     WHERE a.attendance_dt LIKE %s
     GROUP BY s.sta_name, l.lecture_title, co.coach_name
     ORDER BY s.sta_name, l.lecture_title
@@ -1944,7 +1955,7 @@ def report_coach_miban(request):
     FROM enrollment_enrollment e
     INNER JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
     INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
-    INNER JOIN courses_stadium s ON l.sta_code = s.sta_code
+    INNER JOIN courses_stadium s ON l.stadium_id = s.id
     INNER JOIN common_codevalue cv ON s.local_code = cv.subcode AND cv.grpcode = 'LOCD'
     INNER JOIN accounts_memberchild mc ON e.child_id = mc.child_id
     INNER JOIN (
@@ -2085,8 +2096,8 @@ def report_raw_data(request):
     FROM enrollment_enrollment e
     INNER JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
     INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
-    INNER JOIN courses_stadium s ON l.sta_code = s.sta_code
-    INNER JOIN courses_coach co ON l.coach_code = co.coach_code
+    INNER JOIN courses_stadium s ON l.stadium_id = s.id
+    INNER JOIN courses_coach co ON l.coach_id = co.id
     INNER JOIN accounts_memberchild mc ON e.child_id = mc.child_id
     WHERE TO_CHAR(ec.course_ym, 'YYYYMM') = %s
     ORDER BY s.sta_name, co.coach_name, e.child_id

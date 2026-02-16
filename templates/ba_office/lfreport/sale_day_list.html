@@ -30,89 +30,96 @@ function exceldown() {
 
 <p class="title">(결제일)전체_DATA</p>
 <div class="tb_basic">
-    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+    <table summary="수강생정보" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
-            <col width="15%" />
-            <col width="*" />
+            <col width="10%" />
+            <col width="23%" />
+            <col width="10%" />
+            <col width="23%" />
         </colgroup>
         <tbody>
             <tr>
-                <th scope="col">조회기간</th>
+                <th scope="col">결제일</th>
                 <td class="left">
                     <input type="text" id="sch_lecture_stdt" value="{{ sch_lecture_stdt }}" size="10" maxlength="8" placeholder="YYYYMMDD" />
                     ~
                     <input type="text" id="sch_lecture_eddt" value="{{ sch_lecture_eddt }}" size="10" maxlength="8" placeholder="YYYYMMDD" />
-                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
-                    &nbsp;&nbsp;
-                    <a href="javascript:exceldown();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a>
-                    &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
                 </td>
             </tr>
         </tbody>
     </table>
 </div>
+<div class="btn_right">
+    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+</div>
+
+<p>&nbsp;</p>
+<p><b><font color="red">결제자 리스트는 기준월의 수강리스트입니다. 중복 수업을 제거하였고 결제 관련 데이타만 리스트업 됩니다.</font></b></p>
+<p>&nbsp;</p>
 
 {% if summary %}
-<p class="title">종료월별 요약</p>
 <div class="tb_basic">
-    <table summary="요약" border="0" cellpadding="0" cellspacing="0">
+    <table summary="" border="1">
         <thead>
-            <tr><th>종료월</th><th>합계금액</th></tr>
+            <tr><th>종료월</th><th>결제완료금액</th></tr>
         </thead>
         <tbody>
             {% for end_dt, amt in summary %}
             <tr>
-                <td>{{ end_dt }}</td>
-                <td class="right">{{ amt|intcomma }}</td>
+                <th>{{ end_dt }}</th>
+                <th>{{ amt|intcomma }} 원</th>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+<p>&nbsp;</p>
 {% endif %}
 
-<div class="scroll">
-<div class="tb_scroll">
-    <table summary="결제일전체DATA" border="0" cellpadding="0" cellspacing="0">
+{% if rows %}
+<div class="tb_basic">
+    <table summary="" border="1">
         <thead>
             <tr>
                 <th>순번</th><th>부모아이디</th><th>부모명</th><th>자녀아이디</th>
                 <th>핸드폰번호</th><th>자녀명</th><th>입단구분</th>
                 <th>수업주기</th><th>수강기간</th><th>수강상태</th><th>결제금액</th>
                 <th>결제상태</th><th>결제방법</th><th>결제일자</th>
-                <th>시작월</th><th>종료월</th><th>구장</th>
+                <th>시작월</th><th>종료월</th>
                 <th>생년월일</th><th>나이</th><th>과세여부</th>
+                <th>구장</th>
             </tr>
         </thead>
         <tbody>
             {% for r in rows %}
             <tr>
-                <td>{{ r.num }}</td>
-                <td>{{ r.member_id }}</td>
-                <td>{{ r.member_name }}</td>
-                <td>{{ r.child_id }}</td>
-                <td>{{ r.mhtel }}</td>
-                <td>{{ r.child_name }}</td>
-                <td>{{ r.apply_gubun_nm }}</td>
-                <td>주{{ r.lec_cycle }}회</td>
-                <td>{{ r.lec_period }}개월</td>
-                <td>{{ r.lecture_stats_nm }}</td>
-                <td class="right">{{ r.pay_price|intcomma }}</td>
-                <td>{{ r.pay_stats_nm }}</td>
-                <td>{{ r.pay_method_nm }}</td>
-                <td>{{ r.pay_dt_str }}</td>
-                <td>{{ r.start_dt }}</td>
-                <td>{{ r.end_dt }}</td>
-                <td class="left">{{ r.sta_name }}</td>
-                <td>{{ r.birth_str }}</td>
-                <td>{{ r.age }}</td>
-                <td>{{ r.tax_type }}</td>
+                <th>{{ r.num }}</th>
+                <th>{{ r.member_id }}</th>
+                <th>{{ r.member_name }}</th>
+                <th>{{ r.child_id }}</th>
+                <th>{{ r.mhtel }}</th>
+                <th>{{ r.child_name }}</th>
+                <th>{{ r.apply_gubun_nm }}</th>
+                <th>{{ r.lec_cycle }}</th>
+                <th>{{ r.lec_period }}</th>
+                <th>{{ r.lecture_stats_nm }}</th>
+                <th>{{ r.pay_price|intcomma }}</th>
+                <th>{{ r.pay_stats_nm }}</th>
+                <th>{{ r.pay_method_nm }}</th>
+                <th>{{ r.pay_dt_str }}</th>
+                <th>{{ r.start_dt }}</th>
+                <th>{{ r.end_dt }}</th>
+                <th>{{ r.birth_str }}</th>
+                <th>{{ r.age }}</th>
+                <th>{{ r.tax_type }}</th>
+                <th>{{ r.sta_name }}</th>
             </tr>
-            {% empty %}
-            <tr><td colspan="20" align="center">데이터가 없습니다.</td></tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+<div style="padding-top:10px; text-align:right;">
+    <a href="javascript:exceldown();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a>
 </div>
+{% endif %}
 {% endblock %}
