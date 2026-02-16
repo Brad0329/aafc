@@ -3,29 +3,29 @@
     <div id="la20">
         <div class="menu">
             <ul>
-                <li><a href="{% url 'office_main' %}">주간회의자료</a></li>
-                <li><a href="{% url 'office_main' %}">(회원)전체_DATA</a></li>
-                <li><a href="{% url 'office_main' %}">(Daily)전체_DATA</a></li>
-                <li><a href="{% url 'office_main' %}">(결제월)전체_DATA</a></li>
-                <li><a href="{% url 'office_main' %}">(결제일)전체_DATA</a></li>
-                <li><a href="{% url 'office_main' %}">(회원)구장별 현재원</a></li>
-                <li><a href="{% url 'office_main' %}">조회월 수강 통계</a></li>
-                <li><a href="{% url 'office_main' %}">조회월 현재원</a></li>
-                <li><a href="{% url 'office_main' %}">쇼핑몰 주문현황</a></li>
-                <li><a href="{% url 'office_main' %}">쇼핑몰 주문현황<br>(중복제거)</a></li>
-                <li><a href="{% url 'office_main' %}">신규(재)입단 리스트</a></li>
-                <li><a href="{% url 'office_main' %}">퇴단자 리스트</a></li>
-                <li><a href="{% url 'office_main' %}">퇴단자 통계</a></li>
-                <li><a href="{% url 'office_main' %}">미납자관리</a></li>
-                <li><a href="{% url 'office_main' %}">월별출결현황</a></li>
-                <li><a href="{% url 'office_main' %}">연도별 구장별 현황</a></li>
-                <li><a href="{% url 'office_main' %}">코치 실적 미반영 취소</a></li>
-                <li><a href="{% url 'office_main' %}"><font color="blue"><b>코치별현황 NEW</b></font></a></li>
-                <li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="{% url 'office_main' %}">-월별 결제 DATA</a></li>
-                <li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="{% url 'office_main' %}">-수강 RAW DATA</a></li>
-                <li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="{% url 'office_main' %}">-년간 코치 개별</a></li>
-                <li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="{% url 'office_main' %}">-월별 코치 전체</a></li>
-                <li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="{% url 'office_main' %}">-년간 코치 전체</a></li>
+                <li><a href="{% url 'office_report_weekly' %}">주간회의자료</a></li>
+                <li><a href="{% url 'office_report_total_data' %}">(회원)전체_DATA</a></li>
+                <li><a href="{% url 'office_report_total_data_daily' %}">(Daily)전체_DATA</a></li>
+                <li><a href="{% url 'office_report_sale_list' %}">(결제월)전체_DATA</a></li>
+                <li><a href="{% url 'office_report_sale_day_list' %}">(결제일)전체_DATA</a></li>
+                <li><a href="{% url 'office_report_now_data' %}">(회원)구장별 현재원</a></li>
+                <li><a href="{% url 'office_report_now_statics_1' %}">조회월 수강 통계</a></li>
+                <li><a href="{% url 'office_report_now_statics_2' %}">조회월 현재원</a></li>
+                <li><a href="{% url 'office_report_order_list' %}">쇼핑몰 주문현황</a></li>
+                <li><a href="{% url 'office_report_order_list_dedup' %}">쇼핑몰 주문현황<br>(중복제거)</a></li>
+                <li><a href="{% url 'office_report_new_student' %}">신규(재)입단 리스트</a></li>
+                <li><a href="{% url 'office_report_end_student' %}">퇴단자 리스트</a></li>
+                <li><a href="{% url 'office_report_anal_end' %}">퇴단자 통계</a></li>
+                <li><a href="{% url 'office_report_delay_data' %}">미납자관리</a></li>
+                <li><a href="{% url 'office_report_attendance_month' %}">월별출결현황</a></li>
+                <li><a href="{% url 'office_report_stadium_year' %}">연도별 구장별 현황</a></li>
+                <li><a href="{% url 'office_report_coach_miban' %}">코치 실적 미반영 취소</a></li>
+                <li><a href="{% url 'office_report_each_coachdata' %}"><font color="blue"><b>코치별현황 NEW</b></font></a></li>
+                <li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="{% url 'office_report_pay_master' %}">-월별 결제 DATA</a></li>
+                <li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="{% url 'office_report_raw_data' %}">-수강 RAW DATA</a></li>
+                <li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="{% url 'office_report_each_coachdata' %}">-년간 코치 개별</a></li>
+                <li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="{% url 'office_report_month_coachdata' %}">-월별 코치 전체</a></li>
+                <li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="{% url 'office_report_year_coachdata' %}">-년간 코치 전체</a></li>
             </ul>
         </div>
     </div>

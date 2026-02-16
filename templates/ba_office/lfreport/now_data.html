@@ -1,0 +1,123 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfreport_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function srch_snd() {
+    var sc = document.getElementById("selsta_code").value;
+    var ld = document.getElementById("lecture_dt").value;
+    if (sc == "") { alert("구장을 선택해주세요."); return; }
+    if (ld == "") { alert("조회월을 입력해주세요."); return; }
+    location.href = "{% url 'office_report_now_data' %}?selsta_code=" + sc + "&lecture_dt=" + ld;
+}
+function exceldown() {
+    var sc = document.getElementById("selsta_code").value;
+    var ld = document.getElementById("lecture_dt").value;
+    if (sc == "" || ld == "") { alert("구장과 조회월을 지정해주세요."); return; }
+    location.href = "{% url 'office_report_now_data_excel' %}?selsta_code=" + sc + "&lecture_dt=" + ld;
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; REPORT &gt; (회원)구장별 현재원</div>
+<div class="h_55"></div>
+
+<p class="title">(회원)구장별 현재원</p>
+<div class="tb_basic">
+    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="*" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">검색조건</th>
+                <td class="left">
+                    <select id="selsta_code">
+                        <option value="">구장 선택</option>
+                        {% for s in stadiums %}
+                        <option value="{{ s.sta_code }}" {% if selsta_code == s.sta_code|stringformat:"d" %}selected{% endif %}>{{ s.sta_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="text" id="lecture_dt" value="{{ lecture_dt }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+                    &nbsp;&nbsp;
+                    <a href="javascript:exceldown();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a>
+                    &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="scroll">
+<div class="tb_scroll">
+    <table summary="구장별현재원" border="0" cellpadding="0" cellspacing="0">
+        <thead>
+            <tr>
+                <th>순번</th><th>NO_SEQ</th><th>자녀아이디</th><th>자녀명</th><th>학교</th><th>성별</th>
+                <th>생년월일</th><th>나이</th><th>핸드폰</th><th>이메일</th>
+                <th>입단구분</th><th>구장명</th><th>구장코드</th><th>권역</th>
+                <th>클래스코드</th><th>클래스명</th><th>코치명</th><th>수강상태</th>
+                <th>결제금액</th><th>총금액</th><th>수업료</th><th>교육용품비</th>
+                <th>결제상태</th><th>결제방법</th><th>결제일자</th>
+                <th>수강기간</th><th>수업주기</th><th>시작월</th><th>종료월</th>
+                <th>수강월</th><th>수강월수강료</th><th>등록자ID</th><th>등록일자</th>
+                <th>구분</th><th>주소1</th><th>주소2</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td>{{ r.num }}</td>
+                <td>{{ r.no_seq }}</td>
+                <td>{{ r.child_id }}</td>
+                <td>{{ r.child_name }}</td>
+                <td>{{ r.school }}</td>
+                <td>{{ r.gender_nm }}</td>
+                <td>{{ r.birth_str }}</td>
+                <td>{{ r.age }}</td>
+                <td>{{ r.mhtel }}</td>
+                <td>{{ r.email }}</td>
+                <td>{{ r.apply_gubun_nm }}</td>
+                <td class="left">{{ r.sta_name }}</td>
+                <td>{{ r.sta_code }}</td>
+                <td>{{ r.code_desc }}</td>
+                <td>{{ r.lecture_code }}</td>
+                <td class="left">{{ r.lecture_title }}</td>
+                <td>{{ r.coach_name }}</td>
+                <td>{{ r.lecture_stats_nm }}</td>
+                <td class="right">{{ r.display_pay_price|intcomma }}</td>
+                <td class="right">{{ r.display_total_amt|intcomma }}</td>
+                <td class="right">{{ r.display_lec_price|intcomma }}</td>
+                <td class="right">{{ r.display_join_price|intcomma }}</td>
+                <td>{{ r.pay_stats_nm }}</td>
+                <td>{{ r.pay_method_nm }}</td>
+                <td>{{ r.pay_dt_str }}</td>
+                <td>{{ r.lec_period }}개월</td>
+                <td>주{{ r.lec_cycle }}회</td>
+                <td>{{ r.start_dt }}</td>
+                <td>{{ r.end_dt }}</td>
+                <td>{{ r.course_ym_str }}</td>
+                <td class="right">{{ r.course_ym_amt|intcomma }}</td>
+                <td>{{ r.insert_id }}</td>
+                <td>{{ r.insert_dt_str }}</td>
+                <td>{{ r.data_gbn }}</td>
+                <td class="left">{{ r.address1 }}</td>
+                <td class="left">{{ r.address2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="36" align="center">데이터가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</div>
+{% endblock %}

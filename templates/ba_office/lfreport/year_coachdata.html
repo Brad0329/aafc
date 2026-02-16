@@ -1,0 +1,84 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfreport_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function srch_snd() {
+    var sd = document.getElementById("search_date").value;
+    if (sd == "") { alert("조회년도를 입력해주세요."); return; }
+    location.href = "{% url 'office_report_year_coachdata' %}?search_date=" + sd;
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; REPORT &gt; 년간 코치 전체</div>
+<div class="h_55"></div>
+
+<p class="title">년간 코치 전체</p>
+<div class="tb_basic">
+    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="*" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">조회년도</th>
+                <td class="left">
+                    <input type="text" id="search_date" value="{{ search_date }}" size="6" maxlength="4" placeholder="YYYY" />
+                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+                    &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="scroll">
+<div class="tb_scroll">
+    <table summary="년간코치" border="0" cellpadding="0" cellspacing="0">
+        <thead>
+            <tr>
+                <th rowspan="2">구장</th><th rowspan="2">코치</th>
+                <th colspan="2">1월</th><th colspan="2">2월</th><th colspan="2">3월</th>
+                <th colspan="2">4월</th><th colspan="2">5월</th><th colspan="2">6월</th>
+                <th colspan="2">7월</th><th colspan="2">8월</th><th colspan="2">9월</th>
+                <th colspan="2">10월</th><th colspan="2">11월</th><th colspan="2">12월</th>
+            </tr>
+            <tr>
+                {% for m in "123456789ABC" %}<th>인원</th><th>금액</th>{% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td class="left">{{ r.sta_name }}</td>
+                <td>{{ r.coach_name }}</td>
+                <td>{{ r.cnt_01|default:"0" }}</td><td class="right">{{ r.tot_01|default:"0"|intcomma }}</td>
+                <td>{{ r.cnt_02|default:"0" }}</td><td class="right">{{ r.tot_02|default:"0"|intcomma }}</td>
+                <td>{{ r.cnt_03|default:"0" }}</td><td class="right">{{ r.tot_03|default:"0"|intcomma }}</td>
+                <td>{{ r.cnt_04|default:"0" }}</td><td class="right">{{ r.tot_04|default:"0"|intcomma }}</td>
+                <td>{{ r.cnt_05|default:"0" }}</td><td class="right">{{ r.tot_05|default:"0"|intcomma }}</td>
+                <td>{{ r.cnt_06|default:"0" }}</td><td class="right">{{ r.tot_06|default:"0"|intcomma }}</td>
+                <td>{{ r.cnt_07|default:"0" }}</td><td class="right">{{ r.tot_07|default:"0"|intcomma }}</td>
+                <td>{{ r.cnt_08|default:"0" }}</td><td class="right">{{ r.tot_08|default:"0"|intcomma }}</td>
+                <td>{{ r.cnt_09|default:"0" }}</td><td class="right">{{ r.tot_09|default:"0"|intcomma }}</td>
+                <td>{{ r.cnt_10|default:"0" }}</td><td class="right">{{ r.tot_10|default:"0"|intcomma }}</td>
+                <td>{{ r.cnt_11|default:"0" }}</td><td class="right">{{ r.tot_11|default:"0"|intcomma }}</td>
+                <td>{{ r.cnt_12|default:"0" }}</td><td class="right">{{ r.tot_12|default:"0"|intcomma }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="26" align="center">데이터가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</div>
+{% endblock %}

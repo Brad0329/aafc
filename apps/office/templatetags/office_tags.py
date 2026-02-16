@@ -19,3 +19,11 @@ def page_index(counter, start_index):
         return int(counter) + int(start_index) - 1
     except (ValueError, TypeError):
         return counter
+
+
+@register.filter
+def dict_get(d, key):
+    """딕셔너리에서 키로 값 조회: {{ mydict|dict_get:key }}"""
+    if isinstance(d, dict):
+        return d.get(key, '')
+    return ''

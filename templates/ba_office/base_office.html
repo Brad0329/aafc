@@ -71,7 +71,7 @@
                             <li><a href="{% url 'office_main' %}">출고관리</a></li>
                             {% endif %}
                             {% if 'R' in office_user.power_level %}
-                            <li><a href="{% url 'office_main' %}">REPORT</a></li>
+                            <li><a href="{% url 'office_report_weekly' %}">REPORT</a></li>
                             {% endif %}
                             {% if 'P' in office_user.power_level %}
                             <li><a href="{% url 'office_main' %}">포탈관리</a></li>

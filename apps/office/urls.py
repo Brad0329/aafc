@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_report as rpt
 
 urlpatterns = [
     path('', views.main_view, name='office_main'),
@@ -174,4 +175,44 @@ urlpatterns = [
 
     # 과정관리 > 팝업
     path('lfcourse/popup/course-list/', views.course_list_popup, name='office_course_list_popup'),
+
+    # ── REPORT ──────────────────────────────────────────
+    path('report/weekly/', rpt.report_weekly, name='office_report_weekly'),
+    path('report/total-data/', rpt.report_total_data, name='office_report_total_data'),
+    path('report/total-data/excel/', rpt.report_total_data_excel, name='office_report_total_data_excel'),
+    path('report/total-data-daily/', rpt.report_total_data_daily, name='office_report_total_data_daily'),
+    path('report/total-data-daily/excel/', rpt.report_total_data_daily_excel, name='office_report_total_data_daily_excel'),
+    path('report/sale-list/', rpt.report_sale_list, name='office_report_sale_list'),
+    path('report/sale-list/excel/', rpt.report_sale_list_excel, name='office_report_sale_list_excel'),
+    path('report/sale-day-list/', rpt.report_sale_day_list, name='office_report_sale_day_list'),
+    path('report/sale-day-list/excel/', rpt.report_sale_day_list_excel, name='office_report_sale_day_list_excel'),
+    path('report/now-data/', rpt.report_now_data, name='office_report_now_data'),
+    path('report/now-data/excel/', rpt.report_now_data_excel, name='office_report_now_data_excel'),
+    path('report/now-statics-1/', rpt.report_now_statics_1, name='office_report_now_statics_1'),
+    path('report/now-statics-2/', rpt.report_now_statics_2, name='office_report_now_statics_2'),
+    path('report/now-statics-2/load/', rpt.report_now_statics_2_load, name='office_report_now_statics_2_load'),
+    path('report/order-list/', rpt.report_order_list, name='office_report_order_list'),
+    path('report/order-list/excel/', rpt.report_order_list_excel, name='office_report_order_list_excel'),
+    path('report/order-list-dedup/', rpt.report_order_list_dedup, name='office_report_order_list_dedup'),
+    path('report/order-list-dedup/excel/', rpt.report_order_list_dedup_excel, name='office_report_order_list_dedup_excel'),
+    path('report/new-student/', rpt.report_new_student, name='office_report_new_student'),
+    path('report/new-student/excel/', rpt.report_new_student_excel, name='office_report_new_student_excel'),
+    path('report/end-student/', rpt.report_end_student, name='office_report_end_student'),
+    path('report/end-student/excel/', rpt.report_end_student_excel, name='office_report_end_student_excel'),
+    path('report/anal-end/', rpt.report_anal_end, name='office_report_anal_end'),
+    path('report/anal-end/excel/', rpt.report_anal_end_excel, name='office_report_anal_end_excel'),
+    path('report/delay-data/', rpt.report_delay_data, name='office_report_delay_data'),
+    path('report/delay-data/excel/', rpt.report_delay_data_excel, name='office_report_delay_data_excel'),
+    path('report/attendance-month/', rpt.report_attendance_month, name='office_report_attendance_month'),
+    path('report/attendance-month/excel/', rpt.report_attendance_month_excel, name='office_report_attendance_month_excel'),
+    path('report/stadium-year/', rpt.report_stadium_year, name='office_report_stadium_year'),
+    path('report/stadium-year/excel/', rpt.report_stadium_year_excel, name='office_report_stadium_year_excel'),
+    path('report/coach-miban/', rpt.report_coach_miban, name='office_report_coach_miban'),
+    path('report/each-coachdata/', rpt.report_each_coachdata, name='office_report_each_coachdata'),
+    path('report/pay-master/', rpt.report_pay_master, name='office_report_pay_master'),
+    path('report/raw-data/', rpt.report_raw_data, name='office_report_raw_data'),
+    path('report/month-coachdata/', rpt.report_month_coachdata, name='office_report_month_coachdata'),
+    path('report/year-coachdata/', rpt.report_year_coachdata, name='office_report_year_coachdata'),
+    # REPORT > AJAX
+    path('report/ajax/stadium/', rpt.ajax_report_stadium, name='office_report_ajax_stadium'),
 ]

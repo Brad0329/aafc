@@ -1,0 +1,89 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfreport_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function srch_snd() {
+    var ld = document.getElementById("lecture_dt").value;
+    if (ld == "") { alert("조회월을 입력해주세요."); return; }
+    location.href = "{% url 'office_report_attendance_month' %}?lecture_dt=" + ld;
+}
+function exceldown() {
+    var ld = document.getElementById("lecture_dt").value;
+    if (ld == "") { alert("조회월을 입력해주세요."); return; }
+    location.href = "{% url 'office_report_attendance_month_excel' %}?lecture_dt=" + ld;
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; REPORT &gt; 월별출결현황</div>
+<div class="h_55"></div>
+
+<p class="title">월별출결현황</p>
+<div class="tb_basic">
+    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="*" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">조회월</th>
+                <td class="left">
+                    <input type="text" id="lecture_dt" value="{{ lecture_dt }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+                    &nbsp;&nbsp;
+                    <a href="javascript:exceldown();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a>
+                    &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="tb_basic">
+    <table summary="출결현황" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="25%" />
+            <col width="10%" />
+            <col width="7%" /><col width="7%" /><col width="7%" />
+            <col width="7%" /><col width="7%" /><col width="7%" />
+            <col width="8%" />
+        </colgroup>
+        <thead>
+            <tr>
+                <th>구장</th><th>클래스</th><th>코치</th>
+                <th>출석(Y)</th><th>보강(A)</th><th>결석(N)</th>
+                <th>우천(R)</th><th>연기(D)</th><th>제외(E)</th>
+                <th>합계</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td class="left">{{ r.sta_name }}</td>
+                <td class="left">{{ r.lecture_title }}</td>
+                <td>{{ r.coach_name }}</td>
+                <td>{{ r.att_y }}</td>
+                <td>{{ r.att_a }}</td>
+                <td>{{ r.att_n }}</td>
+                <td>{{ r.att_r }}</td>
+                <td>{{ r.att_d }}</td>
+                <td>{{ r.att_e }}</td>
+                <td><b>{{ r.att_total }}</b></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="10" align="center">데이터가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

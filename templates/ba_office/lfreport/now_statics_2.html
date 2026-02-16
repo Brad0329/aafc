@@ -1,0 +1,119 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfreport_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function load_stadium(local_code) {
+    if (!local_code) { $("#sta_code").html('<option value="">구장 선택</option>'); return; }
+    $.get("{% url 'office_report_ajax_stadium' %}", {local_code: local_code}, function(data) {
+        var html = '<option value="">구장 선택</option>';
+        $.each(data.stadiums, function(i, s) {
+            html += '<option value="' + s.sta_code + '">' + s.sta_name + '</option>';
+        });
+        $("#sta_code").html(html);
+    });
+}
+
+function srch_snd() {
+    var ld = document.getElementById("sel_lecture_dt").value;
+    if (ld == "") { alert("조회월을 입력해주세요."); return; }
+    var params = "sel_lecture_dt=" + ld;
+    var gc = document.getElementById("group_code").value;
+    var lc = document.getElementById("local_code").value;
+    var sc = document.getElementById("sta_code").value;
+    var lec = document.getElementById("lecture_code").value;
+    var ag = document.getElementById("apply_gubun").value;
+    var ls = document.getElementById("lecture_stats").value;
+    var ps = document.getElementById("pay_stats").value;
+    if (gc) params += "&group_code=" + gc;
+    if (lc) params += "&local_code=" + lc;
+    if (sc) params += "&sta_code=" + sc;
+    if (lec) params += "&lecture_code=" + lec;
+    if (ag) params += "&apply_gubun=" + ag;
+    if (ls) params += "&lecture_stats=" + ls;
+    if (ps) params += "&pay_stats=" + ps;
+
+    $.get("{% url 'office_report_now_statics_2_load' %}?" + params, function(data) {
+        $("#data_area").html(data);
+    });
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; REPORT &gt; 조회월 현재원</div>
+<div class="h_55"></div>
+
+<p class="title">조회월 현재원</p>
+<div class="tb_basic">
+    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="*" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">조회월</th>
+                <td class="left">
+                    <input type="text" id="sel_lecture_dt" value="{{ sel_lecture_dt }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">필드(권역)</th>
+                <td class="left">
+                    <select id="group_code" onchange="load_stadium(this.value);">
+                        <option value="">전체</option>
+                        {% for cd in code_descs %}
+                        <option value="{{ cd }}">{{ cd }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="local_code">
+                        <option value="">전체</option>
+                    </select>
+                    <select id="sta_code">
+                        <option value="">구장 선택</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">기타검색</th>
+                <td class="left">
+                    클래스코드: <input type="text" id="lecture_code" size="8" />
+                    입단구분:
+                    <select id="apply_gubun">
+                        <option value="">전체</option>
+                        <option value="NEW">신규입단</option>
+                        <option value="RENEW">재입단</option>
+                        <option value="AGAIN">재수강</option>
+                        <option value="RE">재등록</option>
+                    </select>
+                    수강상태:
+                    <select id="lecture_stats">
+                        <option value="">전체</option>
+                        <option value="LY">수강확정</option>
+                        <option value="LP">수강예정</option>
+                        <option value="LN">퇴단</option>
+                        <option value="PN">일시중지</option>
+                    </select>
+                    결제상태:
+                    <select id="pay_stats">
+                        <option value="">전체</option>
+                        <option value="PY">결제완료</option>
+                        <option value="PP">결제대기</option>
+                        <option value="PN">결제취소</option>
+                    </select>
+                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="data_area"></div>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfreport_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function srch_snd() {
+    var sd = document.getElementById("search_date").value;
+    if (sd == "") { alert("조회월을 입력해주세요."); return; }
+    location.href = "{% url 'office_report_weekly' %}?search_date=" + sd;
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; REPORT &gt; 주간회의자료_ver3</div>
+<div class="h_55"></div>
+
+<p class="title">주간회의자료_ver3</p>
+<div class="tb_basic">
+    <table summary="주간회의자료" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="*" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">조회월</th>
+                <td class="left">
+                    <input type="text" id="search_date" value="{{ search_date }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<p class="title">{{ month_m2|slice:":4" }}년{{ month_m2|slice:"4:" }}월 ~ {{ month_m0|slice:":4" }}년{{ month_m0|slice:"4:" }}월</p>
+<div class="scroll">
+<div class="tb_scroll">
+    <table summary="주간회의자료" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="80px" />
+            <col width="100px" />
+            <col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" />
+            <col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" />
+            <col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" /><col width="50px" />
+        </colgroup>
+        <thead>
+            <tr>
+                <th rowspan="2">필드</th>
+                <th rowspan="2">구장</th>
+                <th colspan="6">{{ month_m2|slice:":4" }}년{{ month_m2|slice:"4:" }}월</th>
+                <th colspan="8">{{ month_m1|slice:":4" }}년{{ month_m1|slice:"4:" }}월</th>
+                <th colspan="8">{{ month_m0|slice:":4" }}년{{ month_m0|slice:"4:" }}월</th>
+            </tr>
+            <tr>
+                <th>목표</th><th>회원</th><th>클래스</th><th>신규</th><th>재가입</th><th>퇴단</th>
+                <th>목표</th><th>회원</th><th>증감(회원)</th><th>클래스</th><th>증감(클래스)</th><th>신규</th><th>재가입</th><th>퇴단</th>
+                <th>목표</th><th>회원</th><th>증감(회원)</th><th>클래스</th><th>증감(클래스)</th><th>신규</th><th>재가입</th><th>퇴단</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr{% if r.is_subtotal %} style="background-color:#c2d69a; font-weight:bold;"{% endif %}{% if r.is_total %} style="background-color:#ccffff; font-weight:bold;"{% endif %}>
+                <td>{{ r.code_desc }}</td>
+                <td class="left">{{ r.sta_name }}</td>
+                <td>{{ r.goal_m2|intcomma }}</td>
+                <td>{{ r.mcnt_m2|intcomma }}</td>
+                <td>{{ r.tocl_m2|intcomma }}</td>
+                <td>{{ r.new_m2|intcomma }}</td>
+                <td>{{ r.again_m2|intcomma }}</td>
+                <td>{{ r.end_m2|intcomma }}</td>
+                <td>{{ r.goal_m1|intcomma }}</td>
+                <td>{{ r.mcnt_m1|intcomma }}</td>
+                <td>{{ r.mcnt_diff_m1|intcomma }}</td>
+                <td>{{ r.tocl_m1|intcomma }}</td>
+                <td>{{ r.tocl_diff_m1|intcomma }}</td>
+                <td>{{ r.new_m1|intcomma }}</td>
+                <td>{{ r.again_m1|intcomma }}</td>
+                <td>{{ r.end_m1|intcomma }}</td>
+                <td>{{ r.goal_m0|intcomma }}</td>
+                <td>{{ r.mcnt_m0|intcomma }}</td>
+                <td>{{ r.mcnt_diff_m0|intcomma }}</td>
+                <td>{{ r.tocl_m0|intcomma }}</td>
+                <td>{{ r.tocl_diff_m0|intcomma }}</td>
+                <td>{{ r.new_m0|intcomma }}</td>
+                <td>{{ r.again_m0|intcomma }}</td>
+                <td>{{ r.end_m0|intcomma }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfreport_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function srch_snd() {
+    var sd = document.getElementById("p_start_dt").value;
+    if (sd == "") { alert("검색월을 입력해주세요."); return; }
+    location.href = "{% url 'office_report_anal_end' %}?p_start_dt=" + sd;
+}
+function exceldown() {
+    var sd = document.getElementById("p_start_dt").value;
+    if (sd == "") { alert("검색월을 입력해주세요."); return; }
+    location.href = "{% url 'office_report_anal_end_excel' %}?p_start_dt=" + sd;
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; REPORT &gt; 퇴단자 통계</div>
+<div class="h_55"></div>
+
+<p class="title">퇴단자 통계</p>
+<div class="tb_basic">
+    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="*" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">검색월</th>
+                <td class="left">
+                    <input type="text" id="p_start_dt" value="{{ p_start_dt }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+                    &nbsp;&nbsp;
+                    <a href="javascript:exceldown();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="scroll">
+<div class="tb_scroll">
+    <table summary="퇴단자통계" border="0" cellpadding="0" cellspacing="0">
+        <thead>
+            <tr>
+                <th>필드</th><th>구장</th><th>총인원</th>
+                {% for code, name in cancel_codes.items %}
+                <th>{{ name }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td>{{ r.code_desc }}</td>
+                <td class="left">{{ r.sta_name }}</td>
+                <td><b>{{ r.total }}</b></td>
+                {% for code, name in cancel_codes.items %}
+                <td>{{ r|dict_get:code }}</td>
+                {% endfor %}
+            </tr>
+            {% empty %}
+            <tr><td colspan="16" align="center">데이터가 없습니다.</td></tr>
+            {% endfor %}
+            <tr style="background-color:#ffcccc; font-weight:bold;">
+                <td colspan="2">총계</td>
+                <td><b>{{ totals.total }}</b></td>
+                {% for code, name in cancel_codes.items %}
+                <td>{{ totals|dict_get:code }}</td>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+</div>
+</div>
+{% endblock %}

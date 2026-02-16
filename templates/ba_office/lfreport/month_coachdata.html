@@ -1,0 +1,86 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfreport_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function srch_snd() {
+    var sd = document.getElementById("search_date").value;
+    if (sd == "") { alert("조회월을 입력해주세요."); return; }
+    location.href = "{% url 'office_report_month_coachdata' %}?search_date=" + sd;
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; REPORT &gt; 월별 코치 전체</div>
+<div class="h_55"></div>
+
+<p class="title">월별 코치 전체</p>
+<div class="tb_basic">
+    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="*" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">조회월</th>
+                <td class="left">
+                    <input type="text" id="search_date" value="{{ search_date }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+                    &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="scroll">
+<div class="tb_scroll">
+    <table summary="월별코치" border="0" cellpadding="0" cellspacing="0">
+        <thead>
+            <tr>
+                <th>구장</th><th>코치</th><th>KCP여부</th><th>결제방법</th>
+                <th>수강인원</th>
+                <th>수업료(1001)</th><th>차감(1002)</th>
+                <th>수강할인(1003)</th><th>결제할인(1003B)</th>
+                <th>피추천(1006)</th><th>다회(1007B)</th>
+                <th>수업료합계</th>
+                <th>차량(1009B)</th><th>교육용품(2001)</th><th>교육할인(2002)</th>
+                <th>기타합계</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td class="left">{{ r.sta_name }}</td>
+                <td>{{ r.coach_name }}</td>
+                <td>{{ r.kcp_yn }}</td>
+                <td>{{ r.pay_method }}</td>
+                <td>{{ r.cl_cnt }}</td>
+                <td class="right">{{ r.m1001|intcomma }}</td>
+                <td class="right">{{ r.m1002|intcomma }}</td>
+                <td class="right">{{ r.m1003|intcomma }}</td>
+                <td class="right">{{ r.m1003b|intcomma }}</td>
+                <td class="right">{{ r.m1006|intcomma }}</td>
+                <td class="right">{{ r.m1007b|intcomma }}</td>
+                <td class="right"><b>{{ r.tot_sum|intcomma }}</b></td>
+                <td class="right">{{ r.m1009b|intcomma }}</td>
+                <td class="right">{{ r.m2001|intcomma }}</td>
+                <td class="right">{{ r.m2002|intcomma }}</td>
+                <td class="right"><b>{{ r.etc_sum|intcomma }}</b></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="16" align="center">데이터가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</div>
+{% endblock %}

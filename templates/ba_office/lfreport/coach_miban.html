@@ -1,0 +1,93 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfreport_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function srch_snd() {
+    var ld = document.getElementById("lecture_dt").value;
+    if (ld == "") { alert("조회월을 입력해주세요."); return; }
+    location.href = "{% url 'office_report_coach_miban' %}?lecture_dt=" + ld;
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; REPORT &gt; 코치 실적 미반영 취소</div>
+<div class="h_55"></div>
+
+<p class="title">코치 실적 미반영 취소</p>
+<div class="tb_basic">
+    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="*" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">조회월</th>
+                <td class="left">
+                    <input type="text" id="lecture_dt" value="{{ lecture_dt }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+                    &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="scroll">
+<div class="tb_scroll">
+    <table summary="미반영취소" border="0" cellpadding="0" cellspacing="0">
+        <thead>
+            <tr>
+                <th>순번</th><th>필드</th><th>구장</th><th>클래스</th>
+                <th>자녀아이디</th><th>자녀명</th><th>수강상태</th>
+                <th>취소일자</th><th>취소코드</th><th>취소사유</th>
+                <th>결제금액</th><th>수업료</th><th>교육용품비</th>
+                <th>결제상태</th><th>결제방법</th>
+                <th>결제일자</th><th>수강기간</th><th>수업주기</th>
+                <th>시작월</th><th>종료월</th><th>수강월</th>
+                <th>등록자</th><th>등록일자</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td>{{ r.num }}</td>
+                <td>{{ r.code_desc }}</td>
+                <td class="left">{{ r.sta_name }}</td>
+                <td class="left">{{ r.lecture_title }}</td>
+                <td>{{ r.child_id }}</td>
+                <td>{{ r.child_name }}</td>
+                <td>{{ r.lecture_stats_nm }}</td>
+                <td>{{ r.cancel_date_str }}</td>
+                <td>{{ r.cancel_code }}</td>
+                <td class="left">{{ r.cancel_desc }}</td>
+                <td class="right">{{ r.pay_price|intcomma }}</td>
+                <td class="right">{{ r.lec_price|intcomma }}</td>
+                <td class="right">{{ r.join_price|intcomma }}</td>
+                <td>{{ r.pay_stats_nm }}</td>
+                <td>{{ r.pay_method_nm }}</td>
+                <td>{{ r.pay_dt }}</td>
+                <td>{{ r.lec_period }}개월</td>
+                <td>주{{ r.lec_cycle }}회</td>
+                <td>{{ r.start_dt }}</td>
+                <td>{{ r.end_dt }}</td>
+                <td>{{ r.course_ym_str }}</td>
+                <td>{{ r.insert_id }}</td>
+                <td>{{ r.insert_dt_str }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="23" align="center">데이터가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</div>
+{% endblock %}

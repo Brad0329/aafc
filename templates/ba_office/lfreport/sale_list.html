@@ -1,0 +1,130 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfreport_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function srch_snd() {
+    var sd = document.getElementById("sch_lecture_month").value;
+    var sp = document.getElementById("sch_pay_stats").value;
+    if (sd == "") { alert("조회월을 입력해주세요."); return; }
+    location.href = "{% url 'office_report_sale_list' %}?sch_lecture_month=" + sd + "&sch_pay_stats=" + sp;
+}
+function exceldown() {
+    var sd = document.getElementById("sch_lecture_month").value;
+    var sp = document.getElementById("sch_pay_stats").value;
+    if (sd == "") { alert("조회월을 입력해주세요."); return; }
+    location.href = "{% url 'office_report_sale_list_excel' %}?sch_lecture_month=" + sd + "&sch_pay_stats=" + sp;
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; REPORT &gt; (결제월)전체_DATA</div>
+<div class="h_55"></div>
+
+<p class="title">(결제월)전체_DATA</p>
+<div class="tb_basic">
+    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="*" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">조회월</th>
+                <td class="left">
+                    <input type="text" id="sch_lecture_month" value="{{ sch_lecture_month }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                    <select id="sch_pay_stats">
+                        <option value="">전체</option>
+                        <option value="PY" {% if sch_pay_stats == "PY" %}selected{% endif %}>결제완료</option>
+                        <option value="PP" {% if sch_pay_stats == "PP" %}selected{% endif %}>결제대기</option>
+                        <option value="PQ" {% if sch_pay_stats == "PQ" %}selected{% endif %}>입금확인대기</option>
+                        <option value="PN" {% if sch_pay_stats == "PN" %}selected{% endif %}>결제취소</option>
+                        <option value="PZ" {% if sch_pay_stats == "PZ" %}selected{% endif %}>결제대기취소</option>
+                    </select>
+                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+                    &nbsp;&nbsp;
+                    <a href="javascript:exceldown();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a>
+                    &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{% if summary %}
+<p class="title">월별 결제현황 요약 ({{ sch_lecture_month|slice:":4" }}년)</p>
+<div class="tb_basic">
+    <table summary="요약" border="0" cellpadding="0" cellspacing="0">
+        <thead>
+            <tr>
+                <th>결제월</th><th>결제완료(PY)</th><th>결제대기(PP)</th><th>입금확인대기(PQ)</th><th>결제취소(PN)</th><th>결제대기취소(PZ)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in summary %}
+            <tr>
+                <td>{{ s.stand_dt }}</td>
+                <td class="right">{{ s.py_price|intcomma }}</td>
+                <td class="right">{{ s.pp_price|intcomma }}</td>
+                <td class="right">{{ s.pq_price|intcomma }}</td>
+                <td class="right">{{ s.pn_price|intcomma }}</td>
+                <td class="right">{{ s.pz_price|intcomma }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<p class="title">상세 리스트</p>
+<div class="scroll">
+<div class="tb_scroll">
+    <table summary="결제월전체DATA" border="0" cellpadding="0" cellspacing="0">
+        <thead>
+            <tr>
+                <th>순번</th><th>부모아이디</th><th>부모명</th><th>자녀아이디</th>
+                <th>핸드폰번호</th><th>자녀명</th><th>입단구분</th>
+                <th>수업주기</th><th>수강기간</th><th>수강상태</th><th>결제금액</th>
+                <th>결제상태</th><th>결제방법</th><th>결제일자</th>
+                <th>취소일자</th><th>취소코드</th><th>취소사유</th>
+                <th>시작월</th><th>종료월</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td>{{ r.num }}</td>
+                <td>{{ r.member_id }}</td>
+                <td>{{ r.member_name }}</td>
+                <td>{{ r.child_id }}</td>
+                <td>{{ r.mhtel }}</td>
+                <td>{{ r.child_name }}</td>
+                <td>{{ r.apply_gubun_nm }}</td>
+                <td>주{{ r.lec_cycle }}회</td>
+                <td>{{ r.lec_period }}개월</td>
+                <td>{{ r.lecture_stats_nm }}</td>
+                <td class="right">{{ r.pay_price|intcomma }}</td>
+                <td>{{ r.pay_stats_nm }}</td>
+                <td>{{ r.pay_method_nm }}</td>
+                <td>{{ r.pay_dt_str }}</td>
+                <td>{{ r.cancel_date_str }}</td>
+                <td>{{ r.cancel_code }}</td>
+                <td class="left">{{ r.cancel_desc }}</td>
+                <td>{{ r.start_dt }}</td>
+                <td>{{ r.end_dt }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="19" align="center">데이터가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</div>
+{% endblock %}

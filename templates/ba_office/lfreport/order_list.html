@@ -1,0 +1,106 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfreport_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function srch_snd() {
+    var st = document.getElementById("p_start_dt").value;
+    var ed = document.getElementById("p_end_dt").value;
+    var gt = document.getElementById("goods_title").value;
+    if (st == "" || ed == "") { alert("조회기간을 입력해주세요."); return; }
+    var url = "{% if is_dedup %}{% url 'office_report_order_list_dedup' %}{% else %}{% url 'office_report_order_list' %}{% endif %}";
+    url += "?p_start_dt=" + st + "&p_end_dt=" + ed;
+    if (gt) url += "&goods_title=" + encodeURIComponent(gt);
+    location.href = url;
+}
+function exceldown() {
+    var st = document.getElementById("p_start_dt").value;
+    var ed = document.getElementById("p_end_dt").value;
+    var gt = document.getElementById("goods_title").value;
+    if (st == "" || ed == "") { alert("조회기간을 입력해주세요."); return; }
+    var url = "{% if is_dedup %}{% url 'office_report_order_list_dedup_excel' %}{% else %}{% url 'office_report_order_list_excel' %}{% endif %}";
+    url += "?p_start_dt=" + st + "&p_end_dt=" + ed;
+    if (gt) url += "&goods_title=" + encodeURIComponent(gt);
+    location.href = url;
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; REPORT &gt; 쇼핑몰 주문현황{% if is_dedup %}(중복제거){% endif %}</div>
+<div class="h_55"></div>
+
+<p class="title">쇼핑몰 주문현황{% if is_dedup %}(중복제거){% endif %}</p>
+<div class="tb_basic">
+    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="*" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">조회기간</th>
+                <td class="left">
+                    <input type="text" id="p_start_dt" value="{{ p_start_dt }}" size="10" maxlength="8" placeholder="YYYYMMDD" />
+                    ~
+                    <input type="text" id="p_end_dt" value="{{ p_end_dt }}" size="10" maxlength="8" placeholder="YYYYMMDD" />
+                    상품명: <input type="text" id="goods_title" value="{{ goods_title }}" size="15" />
+                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+                    &nbsp;&nbsp;
+                    <a href="javascript:exceldown();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a>
+                    &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="scroll">
+<div class="tb_scroll">
+    <table summary="주문현황" border="0" cellpadding="0" cellspacing="0">
+        <thead>
+            <tr>
+                <th>순번</th><th>주문번호</th><th>상품명</th><th>수량</th><th>가격</th>
+                <th>옵션</th><th>주문일자</th><th>결제일자</th><th>결제방법</th>
+                <th>취소여부</th><th>취소일자</th>
+                <th>주문자</th><th>주문자연락처</th><th>메모</th>
+                <th>수령인</th><th>수령인연락처</th><th>수령인주소</th>
+                <th>자녀아이디</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td>{{ r.num }}</td>
+                <td>{{ r.order_no }}</td>
+                <td class="left">{{ r.goods_title }}</td>
+                <td>{{ r.ea }}</td>
+                <td class="right">{{ r.price|intcomma }}</td>
+                <td class="left">{% for opt in r.options %}{{ opt.0 }}:{{ opt.1 }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                <td>{{ r.insert_dt }}</td>
+                <td>{{ r.pay_dt }}</td>
+                <td>{{ r.payway }}</td>
+                <td>{{ r.is_cancel }}</td>
+                <td>{{ r.cancel_dt }}</td>
+                <td>{{ r.ord_name }}</td>
+                <td>{{ r.ord_phone }}</td>
+                <td class="left">{{ r.ord_memo }}</td>
+                <td>{{ r.rcv_name }}</td>
+                <td>{{ r.rcv_phone }}</td>
+                <td class="left">{{ r.rcv_address }}</td>
+                <td>{{ r.child_id }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="18" align="center">데이터가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</div>
+{% endblock %}

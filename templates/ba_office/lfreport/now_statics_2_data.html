@@ -1,0 +1,57 @@
+{% load humanize %}
+<p class="title">검색 결과 (Total: {{ total_count|intcomma }}건)</p>
+<div class="scroll">
+<div class="tb_scroll">
+    <table summary="현재원" border="0" cellpadding="0" cellspacing="0">
+        <thead>
+            <tr>
+                <th>순번</th><th>NO_SEQ</th><th>자녀아이디</th><th>자녀명</th><th>학교</th><th>나이</th>
+                <th>핸드폰</th><th>이메일</th><th>입단구분</th><th>구장</th><th>권역</th>
+                <th>클래스명</th><th>수강상태</th><th>결제금액</th><th>총금액</th>
+                <th>수업료</th><th>교육용품비</th><th>결제상태</th><th>결제방법</th>
+                <th>결제일자</th><th>수강기간</th><th>수업주기</th><th>시작월</th>
+                <th>종료월</th><th>수강월</th><th>수강금액</th><th>등록자</th><th>등록일자</th>
+                <th>주소1</th><th>주소2</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td>{{ r.num }}</td>
+                <td>{{ r.no_seq }}</td>
+                <td>{{ r.child_id }}</td>
+                <td>{{ r.child_name }}</td>
+                <td>{{ r.school }}</td>
+                <td>{{ r.age }}</td>
+                <td>{{ r.mhtel }}</td>
+                <td>{{ r.email }}</td>
+                <td>{{ r.apply_gubun_nm }}</td>
+                <td class="left">{{ r.sta_name }}</td>
+                <td>{{ r.code_desc }}</td>
+                <td class="left">{{ r.lecture_title }}</td>
+                <td>{{ r.lecture_stats_nm }}</td>
+                <td class="right">{{ r.pay_price|intcomma }}</td>
+                <td class="right">{{ r.total_amt|intcomma }}</td>
+                <td class="right">{{ r.lec_price|intcomma }}</td>
+                <td class="right">{{ r.join_price|intcomma }}</td>
+                <td>{{ r.pay_stats_nm }}</td>
+                <td>{{ r.pay_method_nm }}</td>
+                <td>{{ r.pay_dt_str }}</td>
+                <td>{{ r.lec_period }}개월</td>
+                <td>주{{ r.lec_cycle }}회</td>
+                <td>{{ r.start_dt }}</td>
+                <td>{{ r.end_dt }}</td>
+                <td>{{ r.course_ym_str }}</td>
+                <td class="right">{{ r.course_ym_amt|intcomma }}</td>
+                <td>{{ r.insert_id }}</td>
+                <td>{{ r.insert_dt_str }}</td>
+                <td class="left">{{ r.address1 }}</td>
+                <td class="left">{{ r.address2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="30" align="center">데이터가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</div>

@@ -1,0 +1,80 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfreport_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function srch_snd() {
+    var ld = document.getElementById("lecture_dt").value;
+    if (ld == "") { alert("조회월을 입력해주세요."); return; }
+    location.href = "{% url 'office_report_now_statics_1' %}?lecture_dt=" + ld;
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; REPORT &gt; 조회월 수강 통계</div>
+<div class="h_55"></div>
+
+<p class="title">조회월 수강 통계</p>
+<div class="tb_basic">
+    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="*" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">조회월</th>
+                <td class="left">
+                    <input type="text" id="lecture_dt" value="{{ lecture_dt }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+                    &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="tb_basic">
+    <table summary="수강통계" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="12%" />
+            <col width="15%" />
+            <col width="25%" />
+            <col width="8%" />
+            <col width="10%" />
+            <col width="10%" />
+            <col width="10%" />
+            <col width="10%" />
+        </colgroup>
+        <thead>
+            <tr>
+                <th>필드(권역)</th><th>구장</th><th>클래스</th>
+                <th>정원</th><th>수강확정</th><th>수강예정</th><th>일시중지</th><th>퇴단</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr{% if r.row_type == "subtotal_code" %} style="background-color:#d0d0d0; font-weight:bold;"{% endif %}{% if r.row_type == "total" %} style="background-color:#ffff00; font-weight:bold;"{% endif %}>
+                <td>{{ r.codegrp }}</td>
+                <td class="left">{{ r.sta_name }}</td>
+                <td class="left">{{ r.lecture_title }}</td>
+                <td>{{ r.stu_cnt|intcomma }}</td>
+                <td>{{ r.sugang_yes|intcomma }}</td>
+                <td>{{ r.sugang_wait|intcomma }}</td>
+                <td>{{ r.sugang_pause|intcomma }}</td>
+                <td>{{ r.sugang_end|intcomma }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" align="center">데이터가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
