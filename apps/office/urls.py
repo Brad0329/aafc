@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import views_report as rpt
+from . import views_portal as portal
 
 urlpatterns = [
     path('', views.main_view, name='office_main'),
@@ -217,4 +218,19 @@ urlpatterns = [
     path('report/ajax/local/', rpt.ajax_report_local, name='office_report_ajax_local'),
     path('report/ajax/stadium/', rpt.ajax_report_stadium, name='office_report_ajax_stadium'),
     path('report/ajax/course/', rpt.ajax_report_course, name='office_report_ajax_course'),
+
+    # ── 포탈관리 ──────────────────────────────────────────
+    # 팝업관리
+    path('portal/popup/', portal.popup_list, name='office_popup_list'),
+    path('portal/popup/write/', portal.popup_write, name='office_popup_write'),
+    path('portal/popup/del/', portal.popup_del, name='office_popup_del'),
+
+    # 게시판관리
+    path('portal/board/', portal.board_list, name='office_board_list'),
+    path('portal/board/content/', portal.board_content, name='office_board_content'),
+    path('portal/board/write/', portal.board_write, name='office_board_write'),
+    path('portal/board/reply/', portal.board_reply, name='office_board_reply'),
+    path('portal/board/del/', portal.board_del, name='office_board_del'),
+    path('portal/board/comment/add/', portal.board_comment_add, name='office_board_comment_add'),
+    path('portal/board/comment/del/', portal.board_comment_del, name='office_board_comment_del'),
 ]

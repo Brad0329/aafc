@@ -86,3 +86,30 @@ class BoardFile(models.Model):
 
     def __str__(self):
         return self.bs_img or self.bs_file or f'파일 {self.id}'
+
+
+class Popup(models.Model):
+    """팝업 (lf_popup)"""
+    pop_title = models.CharField('팝업제목', max_length=200)
+    pop_begin_date = models.CharField('게시시작일', max_length=10, blank=True)
+    pop_end_date = models.CharField('게시종료일', max_length=10, blank=True)
+    pop_img = models.CharField('팝업이미지', max_length=200, blank=True)
+    pop_url = models.CharField('링크URL', max_length=500, blank=True)
+    pop_width = models.CharField('너비', max_length=10, blank=True)
+    pop_height = models.CharField('높이', max_length=10, blank=True)
+    pop_left = models.CharField('좌측위치', max_length=10, blank=True)
+    pop_top = models.CharField('상단위치', max_length=10, blank=True)
+    pop_urltype = models.CharField('링크타입', max_length=1, default='I')
+    pop_gbn = models.CharField('팝업형식', max_length=1, default='P')
+    pop_yn = models.CharField('활성여부', max_length=1, default='Y')
+    insert_dt = models.DateTimeField('등록일', auto_now_add=True)
+    insert_id = models.CharField('등록자ID', max_length=20, blank=True)
+
+    class Meta:
+        db_table = 'board_popup'
+        verbose_name = '팝업'
+        verbose_name_plural = '팝업'
+        ordering = ['-id']
+
+    def __str__(self):
+        return self.pop_title

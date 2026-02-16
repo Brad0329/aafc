@@ -1,0 +1,106 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block extra_js %}
+<script type="text/javascript" src="https://cdn.ckeditor.com/4.22.1/standard/ckeditor.js"></script>
+{% endblock %}
+
+{% block left_menu %}
+{% include "ba_office/includes/portal_left.html" %}
+{% endblock %}
+
+{% block content %}
+<script language="javascript">
+    function sendChk() {
+        if (chec_fun(reg_form.b_title, "제목") == false) { return; }
+
+        var con = confirm("답변하시겠습니까?");
+        if (con == true) {
+            reg_form.submit();
+        }
+    }
+
+    function cancel() {
+        location.href = "{% url 'office_board_list' %}?board={{ board_id }}";
+    }
+</script>
+
+<div class="navi">HOME  &gt;  포탈관리  &gt;  {{ board_title }}</div>
+<div class="h_55"></div>
+
+<p class="title">{{ board_title }} - 답변</p>
+
+<!-- 답변 등록 폼 -->
+<div class="tb_basic">
+    <form name="reg_form" method="post" enctype="multipart/form-data" action="{% url 'office_board_reply' %}">
+    {% csrf_token %}
+    <input type="hidden" name="mode" value="reply">
+    <input type="hidden" name="seq" value="{{ parent.b_seq }}">
+    <input type="hidden" name="board" value="{{ board_id }}">
+    <table summary="게시글 답변" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="35%" />
+            <col width="15%" />
+            <col width="35%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">공지여부</th>
+                <td class="left" colspan="3">
+                    <select name="sel_notice_yn" class="select">
+                        <option value="N" selected>일반</option>
+                        <option value="Y">공지</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">제목</th>
+                <td class="left" colspan="3"><input type="text" name="b_title" value="[RE]{{ parent.b_title }}" maxlength="50" style="width:600px;"></td>
+            </tr>
+            <tr>
+                <th scope="col">작성자</th>
+                <td class="left"><input type="text" name="b_writer" value="{{ writer_name }}" maxlength="30" style="width:150px;"></td>
+                <th scope="col">작성일</th>
+                <td class="left"><input type="text" name="b_regdate" value="{{ cur_date }}" maxlength="30" style="width:150px;"></td>
+            </tr>
+            <tr>
+                <th scope="col">내용</th>
+                <td class="left" colspan="3">
+                    <textarea name="b_content" id="b_content"></textarea>
+                    <script type="text/javascript">
+                        CKEDITOR.replace('b_content', {
+                            resize_enabled: false,
+                            enterMode: CKEDITOR.ENTER_BR,
+                            shiftEnterMode: CKEDITOR.ENTER_P,
+                            toolbarCanCollapse: true,
+                            removePlugins: "elementspath",
+                            removeButtons: "Save",
+                            readOnly: false,
+                            height: 400
+                        });
+                    </script>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">이미지파일</th>
+                <td class="left" colspan="3">
+                    <input type="file" name="attachImg1" class="input" style="width:600px;">
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">첨부파일</th>
+                <td class="left" colspan="3">
+                    <input type="file" name="attachPds1" class="input" style="width:600px;">
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    </form>
+</div>
+
+<div class="btn_right">
+    <a href="javascript:sendChk();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+    <a href="{% url 'office_board_list' %}?board={{ board_id }}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+{% endblock %}

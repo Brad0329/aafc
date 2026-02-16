@@ -1,0 +1,102 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load office_tags %}
+
+{% block left_menu %}
+{% include "ba_office/includes/portal_left.html" %}
+{% endblock %}
+
+{% block content %}
+<script language="javascript">
+    function board_del(seq, gbn) {
+        var con = confirm("삭제하시겠습니까?");
+        if (con) {
+            location.href = "{% url 'office_board_del' %}?board=" + gbn + "&seq=" + seq;
+        }
+    }
+</script>
+
+<div class="navi">HOME  &gt;  포탈관리  &gt;  {{ board_title }}</div>
+<div class="h_55"></div>
+
+<p class="title">{{ board_title }} - 리스트</p>
+
+<div class="tb_basic">
+    <table summary="게시판 목록" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="7%" />
+            <col width="*" />
+            <col width="10%" />
+            <col width="7%" />
+            <col width="10%" />
+            <col width="7%" />
+            <col width="7%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">순번</th>
+                <th scope="col">제목</th>
+                <th scope="col">작성자</th>
+                <th scope="col">추천</th>
+                <th scope="col">등록일</th>
+                <th scope="col">조회</th>
+                <th scope="col">삭제여부</th>
+            </tr>
+            {% for notice in notices %}
+            <tr>
+                <td><span class="font_red12b">[공지]</span></td>
+                <td class="left">
+                    <a href="{% url 'office_board_content' %}?board={{ board_id }}&seq={{ notice.b_seq }}">{{ notice.b_title }}</a>
+                    {% if notice.commt_cnt > 0 %}&nbsp;<font color="green">[{{ notice.commt_cnt }}]</font>{% else %}[0]{% endif %}
+                    {% if notice.is_new %}<img src="{% static 'ba_office/images/ico_new.gif' %}" alt="new">{% endif %}
+                </td>
+                <td>{{ notice.insert_name }}</td>
+                <td>{{ notice.b_commend }}</td>
+                <td>{{ notice.insert_dt }}</td>
+                <td>{{ notice.b_hit }}</td>
+                <td class="end">{% if notice.del_chk == "Y" %}<font color="red">삭제</font>{% else %}정상{% endif %}</td>
+            </tr>
+            {% endfor %}
+            {% for board in page_obj %}
+            <tr>
+                <td>{{ board.row_num }}</td>
+                <td class="left">
+                    <a href="{% url 'office_board_content' %}?board={{ board_id }}&seq={{ board.b_seq }}">{% if board.is_reply %}<img src="{% static 'ba_office/images/ico_a.gif' %}">{% endif %}&nbsp;{{ board.b_title }}</a>
+                    {% if board.commt_cnt > 0 %}&nbsp;<font color="green">[{{ board.commt_cnt }}]</font>{% else %}[0]{% endif %}
+                    {% if board.is_new %}<img src="{% static 'ba_office/images/ico_new.gif' %}" alt="new">{% endif %}
+                </td>
+                <td>{{ board.insert_name }}</td>
+                <td>{{ board.b_commend }}</td>
+                <td>{{ board.insert_dt }}</td>
+                <td>{{ board.b_hit }}</td>
+                <td class="end">{% if board.del_chk == "Y" %}<font color="red">삭제</font>{% else %}정상{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td align="center" colspan="7">등록 Data가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="btn_right"><a href="{% url 'office_board_write' %}?board={{ board_id }}"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a></div>
+
+{% if page_obj.has_other_pages %}
+<div class="paging">
+    {% if page_obj.has_previous %}
+    <a href="?board={{ board_id }}&skey={{ skey }}&sword={{ sword }}&page=1">&laquo;</a>
+    <a href="?board={{ board_id }}&skey={{ skey }}&sword={{ sword }}&page={{ page_obj.previous_page_number }}">&lt;</a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <strong>{{ num }}</strong>
+        {% elif num > page_obj.number|add:"-5" and num < page_obj.number|add:"5" %}
+        <a href="?board={{ board_id }}&skey={{ skey }}&sword={{ sword }}&page={{ num }}">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <a href="?board={{ board_id }}&skey={{ skey }}&sword={{ sword }}&page={{ page_obj.next_page_number }}">&gt;</a>
+    <a href="?board={{ board_id }}&skey={{ skey }}&sword={{ sword }}&page={{ page_obj.paginator.num_pages }}">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

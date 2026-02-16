@@ -1,0 +1,82 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/portal_left.html" %}
+{% endblock %}
+
+{% block content %}
+<script language="javascript">
+    function popup_del(popup_id) {
+        var con = confirm("삭제하시겠습니까?");
+        if (con) {
+            location.href = "{% url 'office_popup_del' %}?popup_id=" + popup_id;
+        }
+    }
+</script>
+
+<div class="navi">HOME  &gt;  포탈관리  &gt;  팝업관리</div>
+<div class="h_55"></div>
+
+<p class="title">팝업관리 - 리스트</p>
+
+<div class="tb_basic">
+    <table summary="팝업정보" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="8%" />
+            <col width="20%" />
+            <col />
+            <col width="12%" />
+            <col width="12%" />
+            <col width="12%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">순번</th>
+                <th scope="col">팝업제목</th>
+                <th scope="col">게시기간</th>
+                <th scope="col">팝업구분</th>
+                <th scope="col">상태</th>
+                <th scope="col">관리</th>
+            </tr>
+            {% for popup in page_obj %}
+            <tr>
+                <td>{{ popup.row_num }}</td>
+                <td>{{ popup.pop_title }}</td>
+                <td>{{ popup.pop_begin_date }}~{{ popup.pop_end_date }}</td>
+                <td>{% if popup.pop_gbn == "D" %}Div Layer{% else %}popup{% endif %}</td>
+                <td>{% if popup.pop_yn == "Y" %}활성{% else %}비활성{% endif %}</td>
+                <td>
+                    <a href="{% url 'office_popup_write' %}?popup_id={{ popup.id }}"><img src="{% static 'ba_office/images/btn_edit.gif' %}" alt="수정" /></a>
+                    <a href="javascript:popup_del('{{ popup.id }}');"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td align="center" colspan="6">등록 Data가 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="btn_right"><a href="{% url 'office_popup_write' %}"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a></div>
+
+{% if page_obj.has_other_pages %}
+<div class="paging">
+    {% if page_obj.has_previous %}
+    <a href="?page=1">&laquo;</a>
+    <a href="?page={{ page_obj.previous_page_number }}">&lt;</a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <strong>{{ num }}</strong>
+        {% elif num > page_obj.number|add:"-5" and num < page_obj.number|add:"5" %}
+        <a href="?page={{ num }}">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}">&gt;</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

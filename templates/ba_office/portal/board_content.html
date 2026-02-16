@@ -1,0 +1,152 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/portal_left.html" %}
+{% endblock %}
+
+{% block content %}
+<script language="javascript">
+    function del(seq, gbn) {
+        var con = confirm("삭제하시겠습니까?");
+        if (con == true) {
+            location.href = "{% url 'office_board_del' %}?board=" + gbn + "&seq=" + seq;
+        }
+    }
+
+    function comment_reg() {
+        if (chec_fun(comment_form.comment_name, "작성자") == false) { return; }
+        if (chec_fun(comment_form.comment_content, "댓글") == false) { return; }
+
+        var con = confirm("댓글등록하시겠습니까?");
+        if (con == true) {
+            comment_form.submit();
+        }
+    }
+
+    function comment_del(gbn, c_seq, seq) {
+        var con = confirm("삭제하시겠습니까?");
+        if (con == true) {
+            location.href = "{% url 'office_board_comment_del' %}?board=" + gbn + "&c_seq=" + c_seq + "&seq=" + seq;
+        }
+    }
+</script>
+
+<div class="navi">HOME  &gt;  포탈관리  &gt;  {{ board_title }}</div>
+<div class="h_55"></div>
+
+<p class="title">{{ board_title }} - 뷰</p>
+
+<!-- 게시글 상세 -->
+<div class="tb_basic">
+    <table summary="게시글 상세" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="10%" />
+            <col width="40%" />
+            <col width="10%" />
+            <col width="40%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">제목</th>
+                <td class="left">{{ board.b_title }}</td>
+                <th scope="col">작성일</th>
+                <td class="left">{{ board.insert_dt }}</td>
+            </tr>
+            <tr>
+                <th scope="col">작성자</th>
+                <td class="left">{{ board.insert_name }}</td>
+                <th scope="col">조회</th>
+                <td class="left">{{ board.b_hit }}</td>
+            </tr>
+            {% if file_pdfs %}
+            <tr>
+                <th scope="col">첨부파일</th>
+                <td class="left" colspan="3">
+                    {% for f in file_pdfs %}
+                    <a href="/media/fcdata/board/{{ f.bs_file }}" download>{{ f.bs_file }}</a><br>
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endif %}
+            <tr>
+                <th scope="col">내용</th>
+                <td class="left" colspan="3">
+                    {% for f in file_images %}
+                    <div class="pic_view"><img src="/media/fcdata/board/{{ f.bs_img }}" width="800"></div>
+                    <div class="btn_down"><a href="/media/fcdata/board/{{ f.bs_img }}" download><img src="{% static 'ba_office/images/btn_down.gif' %}" style="cursor:pointer;" /></a></div><br>
+                    {% endfor %}
+                    {{ board.b_content|safe }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="btn_left">
+    <a href="{% url 'office_board_reply' %}?board={{ board_id }}&seq={{ board.b_seq }}&page={{ page }}"><img src="{% static 'ba_office/images/btn_reply.gif' %}" alt="답변" /></a>
+    <a href="{% url 'office_board_write' %}?board={{ board_id }}&seq={{ board.b_seq }}&page={{ page }}"><img src="{% static 'ba_office/images/btn_modify.gif' %}" alt="수정" /></a>
+    <img src="{% static 'ba_office/images/btn_delete.gif' %}" alt="삭제" onclick="del('{{ board.b_seq }}','{{ board_id }}');" style="cursor:pointer;" />
+</div>
+<div class="btn_right">
+    <a href="{% url 'office_board_list' %}?board={{ board_id }}&page={{ page }}"><img src="{% static 'ba_office/images/btn_list.gif' %}" alt="목록" /></a>
+</div>
+
+<div class="h_55"></div>
+
+<!-- 댓글 등록 -->
+<div class="tb_basic">
+    <form name="comment_form" method="post" action="{% url 'office_board_comment_add' %}">
+    {% csrf_token %}
+    <input type="hidden" name="board" value="{{ board_id }}">
+    <input type="hidden" name="seq" value="{{ board.b_seq }}">
+    <table summary="댓글등록" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="10%" />
+            <col width="20%" />
+            <col width="10%" />
+            <col width="60%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">작성자</th>
+                <td class="left"><input type="text" name="comment_name" value="{{ request.session.office_user.office_name }}" maxlength="" style="width:130px;"></td>
+                <th scope="col">댓글</th>
+                <td class="left">
+                    <input type="text" name="comment_content" value="" maxlength="" style="width:400px;">
+                    <a href="javascript:comment_reg();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    </form>
+</div>
+
+<div class="h_20"></div>
+
+<!-- 댓글 리스트 -->
+<p class="title">댓글리스트</p>
+<div class="comment">
+    <table summary="댓글리스트" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="80%" />
+            <col width="20%" />
+        </colgroup>
+        <tbody>
+            {% for c in comments %}
+            <tr>
+                <td class="left"><strong>{{ c.insert_name }}({{ c.insert_id }})</strong></td>
+                <td class="left">{{ c.insert_dt|date:"Y-m-d H:i" }}</td>
+            </tr>
+            <tr>
+                <td class="left" colspan="2">{{ c.comment }} &nbsp;
+                    <a href="javascript:comment_del('{{ board_id }}','{{ c.id }}','{{ board.b_seq }}');"><img src="{% static 'ba_office/images/ico_x.gif' %}" alt="삭제" /></a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2" align="center">등록된 댓글이 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

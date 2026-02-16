@@ -1,0 +1,164 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block extra_js %}
+<script type="text/javascript" src="https://cdn.ckeditor.com/4.22.1/standard/ckeditor.js"></script>
+{% endblock %}
+
+{% block left_menu %}
+{% include "ba_office/includes/portal_left.html" %}
+{% endblock %}
+
+{% block content %}
+<script language="javascript">
+    function sendChk() {
+        if (chec_fun(reg_form.b_title, "제목") == false) { return; }
+
+        var con = confirm("{{ mode_title }}하시겠습니까?");
+        if (con == true) {
+            reg_form.submit();
+        }
+    }
+
+    function cancel() {
+        location.href = "{% url 'office_board_list' %}?board={{ board_id }}";
+    }
+
+    function checkDelAttach(cb, elmId) {
+        var f = document.reg_form;
+        if (cb.checked) {
+            f[elmId].disabled = true;
+            f[elmId].style.backgroundColor = "#F0F0F0";
+        } else {
+            f[elmId].style.backgroundColor = "";
+            f[elmId].disabled = false;
+        }
+    }
+</script>
+
+<div class="navi">HOME  &gt;  포탈관리  &gt;  {{ board_title }}</div>
+<div class="h_55"></div>
+
+<p class="title">{{ board_title }} - 등록/수정</p>
+
+<!-- 게시글 등록/수정 폼 -->
+<form name="reg_form" method="post" enctype="multipart/form-data" action="{% url 'office_board_write' %}">
+{% csrf_token %}
+<input type="hidden" name="mode" value="{{ mode }}">
+<input type="hidden" name="seq" value="{% if board %}{{ board.b_seq }}{% endif %}">
+<input type="hidden" name="board" value="{{ board_id }}">
+<input type="hidden" name="img_cnt" value="1">
+<input type="hidden" name="pds_cnt" value="5">
+
+<div class="tb_basic">
+    <table summary="게시글 등록/수정" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="15%" />
+            <col width="35%" />
+            <col width="15%" />
+            <col width="35%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">게시판 구분</th>
+                <td class="left" colspan="3">
+                    <select name="sel_b_gbn" class="select">
+                        <option value="Y" {% if board_id == "Y" %}selected{% endif %}>공지/소식</option>
+                        <option value="E" {% if board_id == "E" %}selected{% endif %}>이벤트</option>
+                        <option value="ST" {% if board_id == "ST" %}selected{% endif %}>공부하는 AAFC</option>
+                        <option value="PR" {% if board_id == "PR" %}selected{% endif %}>학부모다이어리</option>
+                        <option value="N" {% if board_id == "N" %}selected{% endif %}>AAFC 행사안내</option>
+                        <option value="P" {% if board_id == "P" %}selected{% endif %}>포토갤러리</option>
+                        <option value="U8" {% if board_id == "U8" %}selected{% endif %}>U-8</option>
+                        <option value="U10" {% if board_id == "U10" %}selected{% endif %}>U-10</option>
+                        <option value="U12" {% if board_id == "U12" %}selected{% endif %}>U-12</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">공지여부</th>
+                <td class="left" colspan="3">
+                    <select name="sel_notice_yn" class="select">
+                        <option value="N" {% if not board or board.b_notice_yn == "N" %}selected{% endif %}>일반</option>
+                        <option value="Y" {% if board and board.b_notice_yn == "Y" %}selected{% endif %}>공지</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="col">제목</th>
+                <td class="left" colspan="3"><input type="text" name="b_title" value="{% if board %}{{ board.b_title }}{% endif %}" maxlength="50" style="width:600px;"></td>
+            </tr>
+            <tr>
+                <th scope="col">작성자</th>
+                <td class="left"><input type="text" name="b_writer" value="{{ writer_name }}" maxlength="30" style="width:150px;"></td>
+                <th scope="col">작성일</th>
+                <td class="left"><input type="text" name="b_regdate" value="{{ cur_date }}" maxlength="30" style="width:150px;"></td>
+            </tr>
+            <tr>
+                <th scope="col">내용</th>
+                <td class="left" colspan="3">
+                    <textarea name="b_content" id="b_content">{% if board %}{{ board.b_content }}{% endif %}</textarea>
+                    <script type="text/javascript">
+                        CKEDITOR.replace('b_content', {
+                            resize_enabled: false,
+                            enterMode: CKEDITOR.ENTER_BR,
+                            shiftEnterMode: CKEDITOR.ENTER_P,
+                            toolbarCanCollapse: true,
+                            removePlugins: "elementspath",
+                            removeButtons: "Save",
+                            readOnly: false,
+                            height: 400
+                        });
+                    </script>
+                </td>
+            </tr>
+            {% for f in existing_files %}
+            {% if f.bs_img %}
+            <tr>
+                <input type="hidden" name="bs_seq_Img{{ forloop.counter }}" value="{{ f.id }}">
+                <input type="hidden" name="orgAttachImg{{ forloop.counter }}" value="{{ f.bs_img }}">
+                <th scope="col">이미지{{ forloop.counter }}</th>
+                <td class="left" colspan="3">
+                    <input type="file" name="attachImg{{ forloop.counter }}" class="input" style="width:600px;">
+                    (<input type="checkbox" name="isDelAttachImg{{ forloop.counter }}" value="T" onclick="checkDelAttach(this, 'attachImg{{ forloop.counter }}')">삭제)
+                    <br><img src="/media/fcdata/board/{{ f.bs_img }}" width="300">
+                </td>
+            </tr>
+            {% endif %}
+            {% if f.bs_file %}
+            <tr>
+                <input type="hidden" name="bs_seq_Pds{{ forloop.counter }}" value="{{ f.id }}">
+                <input type="hidden" name="orgAttachPds{{ forloop.counter }}" value="{{ f.bs_file }}">
+                <th scope="col">첨부파일{{ forloop.counter }}</th>
+                <td class="left" colspan="3">
+                    <input type="file" name="attachPds{{ forloop.counter }}" class="input" style="width:600px;">
+                    (<input type="checkbox" name="isDelAttachPds{{ forloop.counter }}" value="T" onclick="checkDelAttach(this, 'attachPds{{ forloop.counter }}')">삭제)
+                    <br><span style="cursor:pointer; text-decoration:underline;">{{ f.bs_file }}</span>
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+            <tr>
+                <th scope="col">이미지파일1</th>
+                <td class="left" colspan="3">
+                    <input type="file" name="attachImg1" class="input" style="width:600px;">
+                </td>
+            </tr>
+            {% for i in "12345"|make_list %}
+            <tr>
+                <th scope="col">첨부파일{{ i }}</th>
+                <td class="left" colspan="3">
+                    <input type="file" name="attachPds{{ i }}" class="input" style="width:600px;">
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</form>
+
+<div class="btn_right">
+    <a href="javascript:sendChk();">{% if mode == "edit" %}<img src="{% static 'ba_office/images/btn_modify.gif' %}" alt="수정" />{% else %}<img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" />{% endif %}</a>
+    <a href="{% url 'office_board_list' %}?board={{ board_id }}&page={{ page }}"><img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" /></a>
+</div>
+{% endblock %}
