@@ -494,22 +494,34 @@ def report_sale_list(request):
 
 
 def _get_sale_summary(cur_year):
-    """결제월 요약 - 월별 결제상태별 금액"""
-    qs = Enrollment.objects.filter(
-        del_chk='N'
-    ).extra(
-        where=["COALESCE(TO_CHAR(pay_dt, 'YYYY'), TO_CHAR(insert_dt, 'YYYY')) = %s"],
-        params=[cur_year]
-    ).extra(
-        select={'stand_dt': "COALESCE(TO_CHAR(pay_dt, 'YYYYMM'), TO_CHAR(insert_dt, 'YYYYMM'))"}
-    ).values('stand_dt').annotate(
-        py_price=Sum(Case(When(pay_stats='PY', then='pay_price'), default=0, output_field=IntegerField())),
-        pp_price=Sum(Case(When(pay_stats='PP', then='pay_price'), default=0, output_field=IntegerField())),
-        pq_price=Sum(Case(When(pay_stats='PQ', then='pay_price'), default=0, output_field=IntegerField())),
-        pn_price=Sum(Case(When(pay_stats='PN', then='pay_price'), default=0, output_field=IntegerField())),
-        pz_price=Sum(Case(When(pay_stats='PZ', then='pay_price'), default=0, output_field=IntegerField())),
-    ).order_by('stand_dt')
-    return list(qs)
+    """결제월 요약 - 월별 결제상태별 금액 (KST 기준)"""
+    sql = """
+    SELECT stand_dt,
+           SUM(CASE WHEN pay_stats = 'PY' THEN pay_price ELSE 0 END) AS py_price,
+           SUM(CASE WHEN pay_stats = 'PP' THEN pay_price ELSE 0 END) AS pp_price,
+           SUM(CASE WHEN pay_stats = 'PQ' THEN pay_price ELSE 0 END) AS pq_price,
+           SUM(CASE WHEN pay_stats = 'PN' THEN pay_price ELSE 0 END) AS pn_price,
+           SUM(CASE WHEN pay_stats = 'PZ' THEN pay_price ELSE 0 END) AS pz_price
+    FROM (
+        SELECT pay_stats, pay_price,
+               COALESCE(
+                   TO_CHAR(pay_dt AT TIME ZONE 'Asia/Seoul', 'YYYYMM'),
+                   TO_CHAR(insert_dt AT TIME ZONE 'Asia/Seoul', 'YYYYMM')
+               ) AS stand_dt
+        FROM enrollment_enrollment
+        WHERE del_chk = 'N'
+          AND COALESCE(
+                  TO_CHAR(pay_dt AT TIME ZONE 'Asia/Seoul', 'YYYY'),
+                  TO_CHAR(insert_dt AT TIME ZONE 'Asia/Seoul', 'YYYY')
+              ) = %s
+    ) a
+    GROUP BY stand_dt
+    ORDER BY stand_dt
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql, [cur_year])
+        columns = [col[0] for col in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
 
 def _get_sale_list_data(sch_month, sch_pay_stats=''):
@@ -666,18 +678,19 @@ def _get_sale_day_data(stdt, eddt):
     today = date.today()
     data = []
     for r in result:
-        birth = r.get('child_birth')
-        if birth:
+        birth = r.get('child_birth') or ''
+        if birth and len(birth) >= 4:
             try:
-                age = today.year - birth.year
+                age = today.year - int(birth[:4])
                 if age < 0:
                     age = 0
-            except Exception:
+            except (ValueError, TypeError):
                 age = 99
         else:
             age = 99
         tax_type = '비과세' if age < 13 else '과세'
         pay_dt = r['pay_dt']
+        birth_str = f'{birth[:4]}-{birth[4:6]}-{birth[6:8]}' if birth and len(birth) >= 8 else ''
         data.append({
             **r,
             'num': r['rnum'],
@@ -687,7 +700,7 @@ def _get_sale_day_data(stdt, eddt):
             'pay_stats_nm': _get_pay_stats_display(r['pay_stats']),
             'pay_method_nm': _get_pay_method_display(r['pay_method']),
             'pay_dt_str': pay_dt.strftime('%Y-%m-%d') if pay_dt else '',
-            'birth_str': birth.strftime('%Y-%m-%d') if birth else '',
+            'birth_str': birth_str,
         })
     return data
 
@@ -821,11 +834,11 @@ def _get_now_data(sta_code, lecture_dt):
     today = date.today()
     data = []
     for r in result:
-        birth = r.get('child_birth')
-        if birth:
+        birth = r.get('child_birth') or ''
+        if birth and len(birth) >= 4:
             try:
-                age = today.year - birth.year + 1
-            except Exception:
+                age = today.year - int(birth[:4]) + 1
+            except (ValueError, TypeError):
                 age = 0
         else:
             age = 0
@@ -834,11 +847,12 @@ def _get_now_data(sta_code, lecture_dt):
         pay_dt = r.get('pay_dt')
         insert_dt = r.get('insert_dt')
         course_ym = r.get('course_ym')
+        birth_str = f'{birth[:4]}-{birth[4:6]}-{birth[6:8]}' if birth and len(birth) >= 8 else ''
         data.append({
             **r,
             'num': r['rnum'],
             'age': age, 'gender_nm': gender_nm,
-            'birth_str': birth.strftime('%Y-%m-%d') if birth else '',
+            'birth_str': birth_str,
             'apply_gubun_nm': _get_apply_gubun_display(r['apply_gubun']),
             'lecture_stats_nm': _get_lecture_stats_display(r['lecture_stats']),
             'pay_stats_nm': _get_pay_stats_display(r['pay_stats']),
@@ -1178,8 +1192,8 @@ def _get_end_student_data(p_start_dt):
     today = date.today()
     data = []
     for r in result:
-        birth = r.get('child_birth')
-        age = (today.year - birth.year + 1) if birth else 0
+        birth = r.get('child_birth') or ''
+        age = (today.year - int(birth[:4]) + 1) if birth and len(birth) >= 4 else 0
         cancel_code = str(r.get('cancel_code') or '')
         cancel_type = resn_codes.get(int(cancel_code), '') if cancel_code.isdigit() else ''
         is_mucu = (r.get('pay_method') or '') in CSR_METHODS
@@ -1460,8 +1474,8 @@ def report_now_statics_2_load(request):
     today = date.today()
     data = []
     for i, r in enumerate(result, 1):
-        birth = r.get('child_birth')
-        age = (today.year - birth.year + 1) if birth else 0
+        birth = r.get('child_birth') or ''
+        age = (today.year - int(birth[:4]) + 1) if birth and len(birth) >= 4 else 0
         pay_dt = r.get('pay_dt')
         insert_dt = r.get('insert_dt')
         course_ym = r.get('course_ym')
