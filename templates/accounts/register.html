@@ -5,17 +5,6 @@
 
 {% block extra_css %}
 <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
-<script type="text/javascript">
-function fn_zipcode(){
-    new daum.Postcode({
-        oncomplete: function(data) {
-            document.getElementById('id_zipcode').value = data.zonecode;
-            document.getElementById('id_address1').value = data.address;
-            document.getElementById('id_address2').focus();
-        }
-    }).open();
-}
-</script>
 {% endblock %}
 
 {% block content %}
@@ -25,12 +14,30 @@ function fn_zipcode(){
             <ul>
                 <li><a href="{% url 'accounts:login' %}">로그인</a></li>
                 <li class="present"><a href="{% url 'accounts:register' %}">회원가입</a></li>
+                <li><a href="#">아이디 찾기</a></li>
+                <li><a href="#">비밀번호 찾기</a></li>
+                <li><a href="#">개인정보처리방침</a></li>
+                <li><a href="#">이용약관</a></li>
             </ul>
         </div>
         <div class="sub_contents">
             <h2 class="sub_tit">회원가입<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;회원&nbsp;&nbsp;>&nbsp;&nbsp;<b>회원가입</b></span></h2>
 
-            <form method="post" id="register_form">
+            <!-- 약관동의 (ASP join_01.asp) -->
+            <div class="policy_chk">
+                <ul>
+                    <li><label><input type="checkbox" id="chk_use" onclick="eachChk();"/>[필수] 이용약관에 동의합니다.</label></li>
+                    <li><label><input type="checkbox" id="chk_pri" onclick="eachChk();"/>[필수] 개인정보 수집 이용안내.</label></li>
+                    <li><label><input type="checkbox" id="chk_sutak" onclick="eachChk();"/>[필수] 개인정보 처리 위탁안내.</label></li>
+                    <li><label><input type="checkbox" id="chk_14" onclick="eachChk();"/>[필수] 만 14세 미만 아동의 개인정보 수집 및 이용안내.</label></li>
+                    <li><label><input type="checkbox" id="chk_insu" onclick="eachChk();"/>[필수] 상해보험 관련 안내.</label></li>
+                    <li><label><input type="checkbox" id="chk_mark" onclick="eachChk();"/>[필수] 개인정보 수집·이용 및 SMS(결제, 수업, 구장) 정보 수신 안내.</label></li>
+                </ul>
+            </div>
+            <div class="chk_btn center"><label><input type="checkbox" id="chk_all_ag" onclick="allChk();"/>전체동의</label></div>
+
+            <!-- 회원정보 입력 (ASP join_02.asp) -->
+            <form name="regform" method="post" id="register_form">
                 {% csrf_token %}
                 {% if form.non_field_errors %}
                 <p style="color:red;">
@@ -38,82 +45,128 @@ function fn_zipcode(){
                 </p>
                 {% endif %}
 
-                <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_06.png' %}" alt=""/>회원정보</h3>
+                <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_06.png' %}" alt=""/>회원정보 입력</h3>
                 <div class="join_info">
                     <table summary="">
                         <tbody>
                             <tr>
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>아이디 <span style="color:red;">*</span></th>
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>이름</th>
                                 <td>
-                                    <input type="text" name="username" id="id_username" maxlength="150" value="{{ form.username.value|default:'' }}"/>
+                                    <input type="text" name="name" id="id_name" maxlength="30" value="{{ form.name.value|default:'' }}" class="w_normal"/>
+                                    {% for error in form.name.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>아이디</th>
+                                <td>
+                                    <input type="text" name="username" id="id_username" maxlength="16" value="{{ form.username.value|default:'' }}" class="w_normal"/>
+                                    <span class="necessary">영문/숫자를 6~12자 이내로 공백없이 입력하십시오.</span>
                                     {% for error in form.username.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
                                 </td>
                             </tr>
                             <tr>
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>비밀번호 <span style="color:red;">*</span></th>
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>비밀번호</th>
                                 <td>
-                                    <input type="password" name="password1" id="id_password1"/>
+                                    <input type="password" name="password1" id="id_password1" maxlength="16" class="w_normal"/>
+                                    <span class="necessary red">영문/숫자를 8~16자 이내로 공백없이 입력하십시오.</span>
                                     {% for error in form.password1.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
                                 </td>
                             </tr>
                             <tr>
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>비밀번호 확인 <span style="color:red;">*</span></th>
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>비밀번호 확인</th>
                                 <td>
-                                    <input type="password" name="password2" id="id_password2"/>
+                                    <input type="password" name="password2" id="id_password2" maxlength="16" class="w_normal"/>
+                                    <span class="necessary">비밀번호를 다시 한번 입력해주세요.</span>
                                     {% for error in form.password2.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
                                 </td>
                             </tr>
-                            <tr>
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>이름 <span style="color:red;">*</span></th>
-                                <td><input type="text" name="name" id="id_name" maxlength="60" value="{{ form.name.value|default:'' }}"/></td>
+                            <tr class="contact">
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>휴대폰</th>
+                                <td>
+                                    <input type="text" name="phone" id="id_phone" maxlength="14" value="{{ form.phone.value|default:'' }}" placeholder="010-0000-0000"/>
+                                    {% for error in form.phone.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
+                                </td>
                             </tr>
-                            <tr>
+                            <tr class="email">
                                 <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>이메일</th>
-                                <td><input type="text" name="email" id="id_email" maxlength="200" value="{{ form.email.value|default:'' }}"/></td>
+                                <td>
+                                    <input type="text" name="email" id="id_email" maxlength="200" value="{{ form.email.value|default:'' }}"/>
+                                    {% for error in form.email.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
+                                </td>
                             </tr>
-                            <tr>
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>휴대전화 <span style="color:red;">*</span></th>
-                                <td><input type="text" name="phone" id="id_phone" maxlength="14" value="{{ form.phone.value|default:'' }}" placeholder="010-0000-0000"/></td>
-                            </tr>
-                            <tr>
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>우편번호</th>
-                                <td><input type="text" name="zipcode" id="id_zipcode" maxlength="7" value="{{ form.zipcode.value|default:'' }}" readonly style="width:80px; display:inline-block;"/> <a href="javascript:fn_zipcode();" style="cursor:pointer;"><img src="{% static 'images/sub/address_btn.png' %}" alt="주소검색" style="vertical-align:middle;"/></a></td>
-                            </tr>
-                            <tr>
+                            <tr class="none">
                                 <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주소</th>
-                                <td><input type="text" name="address1" id="id_address1" maxlength="100" value="{{ form.address1.value|default:'' }}" readonly/></td>
+                                <td><input type="text" name="zipcode" id="id_zipcode" maxlength="7" value="{{ form.zipcode.value|default:'' }}" readonly class="w_normal"/><a href="javascript:fn_zipcode();"><img src="{% static 'images/sub/address_btn.png' %}" alt="주소검색"/></a></td>
+                            </tr>
+                            <tr class="none">
+                                <th>&nbsp;</th>
+                                <td><input type="text" name="address1" id="id_address1" maxlength="100" value="{{ form.address1.value|default:'' }}" readonly class="w_max"/></td>
                             </tr>
                             <tr>
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>상세주소</th>
-                                <td><input type="text" name="address2" id="id_address2" maxlength="100" value="{{ form.address2.value|default:'' }}"/></td>
+                                <th>&nbsp;</th>
+                                <td><input type="text" name="address2" id="id_address2" maxlength="100" value="{{ form.address2.value|default:'' }}" class="w_max"/></td>
                             </tr>
                             <tr>
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>SMS수신 동의</th>
-                                <td>
-                                    <select name="sms_consent" id="id_sms_consent">
-                                        <option value="Y" {% if form.sms_consent.value == 'Y' %}selected{% endif %}>동의</option>
-                                        <option value="N" {% if form.sms_consent.value == 'N' %}selected{% endif %}>미동의</option>
-                                    </select>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>메일수신 동의</th>
-                                <td>
-                                    <select name="mail_consent" id="id_mail_consent">
-                                        <option value="Y" {% if form.mail_consent.value == 'Y' %}selected{% endif %}>동의</option>
-                                        <option value="N" {% if form.mail_consent.value == 'N' %}selected{% endif %}>미동의</option>
-                                    </select>
-                                </td>
+                                <th colspan="2">회원가입 후 마이아카데미에서 자녀정보를 등록하여 주세요</th>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <div class="join_btn">
-                    <a href="javascript:document.getElementById('register_form').submit();">
-                        <img src="{% static 'images/sub/citation_btn.png' %}" alt="회원가입"/>
-                    </a>
-                </div>
             </form>
+            <div class="join_btn">
+                <a href="/"><img src="{% static 'images/sub/join_cancel_bts.png' %}" alt="취소"/></a><a href="javascript:member_write();"><img src="{% static 'images/sub/join_bts.png' %}" alt="가입"/></a>
+            </div>
         </div>
     </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function fn_zipcode(){
+        new daum.Postcode({
+            oncomplete: function(data) {
+                document.getElementById('id_zipcode').value = data.zonecode;
+                document.getElementById('id_address1').value = data.address;
+                document.getElementById('id_address2').focus();
+            }
+        }).open();
+    }
+
+    function allChk() {
+        var checked = $("#chk_all_ag").is(":checked");
+        $("#chk_use, #chk_pri, #chk_sutak, #chk_14, #chk_insu, #chk_mark").prop("checked", checked);
+    }
+
+    function eachChk() {
+        var all = $("#chk_use").is(":checked") && $("#chk_pri").is(":checked") &&
+                  $("#chk_sutak").is(":checked") && $("#chk_14").is(":checked") &&
+                  $("#chk_insu").is(":checked") && $("#chk_mark").is(":checked");
+        $("#chk_all_ag").prop("checked", all);
+    }
+
+    function member_write() {
+        if(!$("#chk_use").is(":checked")){ alert("이용약관에 동의해주세요"); return; }
+        if(!$("#chk_pri").is(":checked")){ alert("개인정보 수집 및 이용에 동의해주세요"); return; }
+        if(!$("#chk_sutak").is(":checked")){ alert("개인정보 처리 위탁에 동의해주세요"); return; }
+        if(!$("#chk_14").is(":checked")){ alert("만 14세 미만 아동의 개인정보 수집 및 이용안내에 동의해주세요"); return; }
+        if(!$("#chk_insu").is(":checked")){ alert("상해보험 가입안내에 동의해주세요"); return; }
+        if(!$("#chk_mark").is(":checked")){ alert("개인정보 수집·이용 및 SMS 정보 수신 안내에 동의해주세요"); return; }
+
+        if($("#id_name").val() == ""){ alert("이름을 입력하세요"); $("#id_name").focus(); return; }
+        if($("#id_username").val() == ""){ alert("아이디를 입력하세요"); $("#id_username").focus(); return; }
+        if($("#id_username").val().length < 6){ alert("아이디는 6자이상 입력하세요"); $("#id_username").focus(); return; }
+        if($("#id_password1").val() == ""){ alert("비밀번호를 입력하세요"); $("#id_password1").focus(); return; }
+        if($("#id_password2").val() == ""){ alert("비밀번호 확인을 입력하세요"); $("#id_password2").focus(); return; }
+        if($("#id_password1").val() != $("#id_password2").val()){ alert("비밀번호를 확인하여 주세요"); $("#id_password2").val(""); $("#id_password2").focus(); return; }
+
+        var password = $("#id_password1").val();
+        if(!/^[a-zA-Z0-9]{8,}$/.test(password)){ alert('비밀번호는 숫자와 영문자 조합으로 8자리 이상을 사용해야 합니다.'); return; }
+
+        if($("#id_phone").val() == ""){ alert("휴대폰을 입력하세요"); $("#id_phone").focus(); return; }
+
+        if(confirm("등록 하시겠습니까?")){
+            document.getElementById('register_form').submit();
+        }
+    }
+</script>
 {% endblock %}

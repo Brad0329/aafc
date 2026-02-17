@@ -465,6 +465,9 @@ def apply_step3_view(request):
     if not data:
         return redirect('enrollment:apply_step1')
 
+    # 프로모션 확인 여부
+    pro_confirm = int(request.POST.get('pro_confirm', 0) or 0)
+
     # 할인 값 수집
     eq_discount = int(request.POST.get('EQ_Discount', 0) or 0)
     tu_discount = int(request.POST.get('Tu_Discount', 0) or 0)
@@ -489,12 +492,16 @@ def apply_step3_view(request):
     data['discount2_id'] = tu_discount_id
     data['discount3_id'] = py_discount_id
     data['discount6_id'] = o2_discount_id
+    data['pro_confirm'] = pro_confirm
     request.session['enrollment_data'] = data
 
     total_lecture_price = data['total_lecture_price']
     join_price = data['join_price']
     lec_cycle = data['lec_cycle']
     lec_period = data['lec_period']
+    syear = data['syear']
+    smonth = data['smonth']
+    recommend_id = data.get('recommend_id', '')
 
     total_discount = (
         eq_discount +
@@ -512,6 +519,52 @@ def apply_step3_view(request):
     sta_name = sta.sta_name if sta else ''
     child = MemberChild.objects.filter(child_id=data['child_id']).first()
     good_name = f"{sta_name}^{request.user.name}^{child.name if child else ''}^[입단신청]"
+
+    # 표시용 이름
+    local_name = CodeValue.objects.filter(
+        group__grpcode='LOCD', subcode=data['local_code']
+    ).values_list('code_name', flat=True).first() or ''
+
+    # 강좌별 상세 재계산
+    lecture_details = []
+    lecture_codes = data.get('lecture_codes', [])
+    start_days = data.get('start_days', {})
+    for code in lecture_codes:
+        try:
+            lec = Lecture.objects.get(lecture_code=int(code), use_gbn='Y')
+        except Lecture.DoesNotExist:
+            continue
+        sday = int(start_days.get(code, 1) or 1)
+        total_count = 0
+        for offset in range(lec_period):
+            m = smonth + offset
+            y = syear
+            while m > 12:
+                m -= 12
+                y += 1
+            if offset == 0:
+                count = LectureSelDay.objects.filter(
+                    lecture_code=int(code), syear=y, smonth=m, sday__gte=sday
+                ).count()
+            else:
+                count = LectureSelDay.objects.filter(
+                    lecture_code=int(code), syear=y, smonth=m
+                ).count()
+            total_count += count
+        price = lec.lec_price * total_count
+        lecture_details.append({
+            'code': code,
+            'title': lec.lecture_title,
+            'lec_price': lec.lec_price,
+            'count': total_count,
+            'total_price': price,
+        })
+
+    # 수강월 표시
+    end_year, end_month = _calc_end_dt(syear, smonth, lec_period)
+    lecture_month = f'{syear}년 {smonth:02d}월'
+    if lec_period > 1:
+        lecture_month += f' ~ {end_year}년 {end_month:02d}월'
 
     data['payment_price'] = payment_price
     data['order_idxx'] = order_idxx
@@ -540,10 +593,17 @@ def apply_step3_view(request):
         'order_idxx': order_idxx,
         'good_name': good_name,
         'sta_name': sta_name,
+        'local_name': local_name,
         'child': child,
         'kcp_site_cd': kcp_site_cd,
         'allow_installment': allow_installment,
         'user': request.user,
+        'lec_cycle': lec_cycle,
+        'lec_period': lec_period,
+        'lecture_details': lecture_details,
+        'lecture_month': lecture_month,
+        'recommend_id': recommend_id,
+        'pro_confirm': pro_confirm,
         'menu': 'apply',
     })
 
@@ -554,12 +614,37 @@ def apply_step3_view(request):
 
 @login_required
 def payment_history_view(request):
-    """결제내역 조회"""
+    """결제/수강내역 조회"""
     enrollments = Enrollment.objects.filter(
         member=request.user, del_chk='N',
     ).select_related('child').order_by('-id')
 
-    paginator = Paginator(enrollments, 10)
+    # 강좌명 조회: enrollment별 bill_code='1001'인 course의 lecture_title
+    lecture_map = {}
+    enrollment_ids = list(enrollments.values_list('id', flat=True))
+    if enrollment_ids:
+        courses = EnrollmentCourse.objects.filter(
+            enrollment_id__in=enrollment_ids, bill_code='1001'
+        ).values_list('enrollment_id', 'lecture_code')
+        # lecture_code → lecture_title 매핑
+        lec_codes = set(c[1] for c in courses)
+        lec_titles = dict(
+            Lecture.objects.filter(
+                lecture_code__in=lec_codes
+            ).values_list('lecture_code', 'lecture_title')
+        )
+        for eid, lcode in courses:
+            title = lec_titles.get(lcode, '')
+            if title:
+                lecture_map.setdefault(eid, []).append(title)
+
+    # enrollment 객체에 lecture_title 속성 부여
+    enriched = []
+    for e in enrollments:
+        e.lecture_titles = lecture_map.get(e.id, [])
+        enriched.append(e)
+
+    paginator = Paginator(enriched, 10)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 

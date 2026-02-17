@@ -9,7 +9,7 @@
         <div class="sub_menu">
             <ul>
                 <li class="present"><a href="{% url 'accounts:mypage' %}">마이페이지</a></li>
-                <li><a href="{% url 'enrollment:payment_history' %}">결제내역</a></li>
+                <li><a href="{% url 'enrollment:payment_history' %}">결제/수강내역</a></li>
                 <li><a href="{% url 'points:point_list' %}">마이포인트</a></li>
                 <li><a href="{% url 'notifications:notification_list' %}">알림장</a></li>
                 <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
@@ -38,7 +38,7 @@
                             <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>이메일</th>
                             <td>{{ user.email }}</td>
                         </tr>
-                        <tr>
+                        <tr class="none">
                             <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주소</th>
                             <td>{{ user.zipcode }}</td>
                         </tr>
@@ -92,10 +92,6 @@
                 <a href="{% url 'accounts:child_edit' child.pk %}"><img src="{% static 'images/sub/info_bts.png' %}" alt="정보수정"/></a>
             </div>
             {% empty %}
-            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_07.png' %}" alt=""/>자녀정보</h3>
-            <div class="join_info">
-                <p style="padding:20px; text-align:center;">등록된 자녀가 없습니다.</p>
-            </div>
             {% endfor %}
 
         </div>

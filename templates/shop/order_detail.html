@@ -14,7 +14,7 @@
             </ul>
         </div>
         <div class="sub_contents">
-            <h2 class="sub_tit">주문/배송조회<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;쇼핑몰&nbsp;&nbsp;>&nbsp;&nbsp;<b>주문상세</b></span></h2>
+            <h2 class="sub_tit">주문/배송조회<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;쇼핑몰&nbsp;&nbsp;>&nbsp;&nbsp;<b>주문/배송조회</b></span></h2>
 
             <!-- 주문 상품 -->
             <div class="lookup_info">
@@ -22,7 +22,7 @@
                     <li>상품명</li>
                     <li>가격</li>
                     <li>수량</li>
-                    <li>옵션</li>
+                    <li>포인트</li>
                     <li>합계</li>
                 </ul>
 
@@ -31,14 +31,14 @@
                     <div class="lookup_cont_01">
                         <div class="img">
                             {% if item.goods_img %}
-                            <img src="/fcdata/shop_goods/{{ item.goods_img }}" style="width:100%;height:100%;position:absolute;top:0;left:0;"/>
+                            <img src="/fcdata/shop_goods/{{ item.goods_img }}" width="64"/>
                             {% endif %}
                         </div>
                         <div class="txt">
                             <h3 class="name">{{ item.goods_title }}</h3>
-                            {% if item.option_txt %}
-                            <p class="size">{{ item.option_txt }}</p>
-                            {% endif %}
+                            {% for opt in item.options.all %}
+                            <p class="size">{{ opt.title }}:{{ opt.item }}</p>
+                            {% endfor %}
                         </div>
                     </div>
                     <div class="lookup_cont_02">
@@ -47,17 +47,15 @@
                     </div>
                     <div class="lookup_cont_03">
                         <span class="mobile">수량 : </span>
-                        {{ item.ea }} 개
+                        <input type="text" name="" value="{{ item.ea }}" readonly/> 개
                     </div>
                     <div class="lookup_cont_04">
-                        <span class="mobile">옵션 : </span>
-                        {% for opt in item.options.all %}
-                        {{ opt.title }}:{{ opt.item }}{% if not forloop.last %}, {% endif %}
-                        {% endfor %}
+                        <span class="mobile">포인트 : </span>
+                        <span class="yellow">{{ item.add_cmoney|default:"0" }} P</span>
                     </div>
                     <div class="lookup_cont_05">
                         <span class="mobile">합계 : </span>
-                        <span class="red">{{ item.subtotal|intcomma }}원</span>
+                        <span class="red">{{ item.subtotal|intcomma }} 원</span>
                     </div>
                 </div>
                 {% endfor %}
@@ -70,18 +68,18 @@
                     <thead>
                         <tr>
                             <th>항목</th>
-                            <th>택배사</th>
-                            <th>송장번호</th>
-                            <th>배송비</th>
+                            <th>내용</th>
+                            <th>금액</th>
+                            <th>상품명</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for del in deliveries %}
                         <tr>
-                            <td>배송 {{ forloop.counter }}</td>
+                            <td>배송비</td>
+                            <td>{% if del.delivery_fee > 0 %}선불{% else %}무료배송{% endif %}</td>
+                            <td>{% if del.delivery_fee > 0 %}+ {{ del.delivery_fee|intcomma }} 원{% else %}무료{% endif %}</td>
                             <td>{{ del.delivery_name|default:"-" }}</td>
-                            <td>{{ del.delivery_no|default:"-" }}</td>
-                            <td>{% if del.delivery_fee > 0 %}{{ del.delivery_fee|intcomma }}원{% else %}무료{% endif %}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -90,44 +88,24 @@
             {% endif %}
 
             <!-- 결제정보 -->
-            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_09.png' %}" alt=""/>결제정보</h3>
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_09.png' %}" alt=""/>결제정보<span>※ 결제하신 방법 및 결제 금액을 확인해주세요.</span></h3>
             <div class="join_info">
                 <table summary="">
                     <tbody>
-                        <tr>
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주문번호</th>
-                            <td><b>{{ order.order_no }}</b></td>
-                        </tr>
-                        <tr>
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주문일시</th>
-                            <td>{{ order.reg_date|date:"Y-m-d H:i" }}</td>
-                        </tr>
                         <tr>
                             <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>결제방법</th>
                             <td><b>{{ order.pay_method|default:order.payway }}</b></td>
                         </tr>
                         <tr>
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>상품금액</th>
-                            <td>{{ order.total_order_price|intcomma }}원</td>
-                        </tr>
-                        <tr>
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>배송비</th>
-                            <td>{{ order.total_delivery_fee|intcomma }}원</td>
-                        </tr>
-                        <tr>
                             <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>결제금액</th>
-                            <td><b><font color="red">{{ order.settle_price|intcomma }}원</font></b></td>
-                        </tr>
-                        <tr>
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주문상태</th>
-                            <td><b>{{ order.get_state_display }}</b></td>
+                            <td><b><font color="red">{{ order.settle_price|intcomma }}  원</font></b></td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- 배송 정보 -->
-            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_01.png' %}" alt=""/>배송정보</h3>
+            <!-- 주문자 확인 -->
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_07.png' %}" alt=""/>주문자 확인<span>※ 주문자의 정보를 확인해주세요.</span></h3>
             <div class="join_info">
                 <table summary="">
                     <tbody>
@@ -136,24 +114,37 @@
                             <td>{{ order.ord_name }}</td>
                         </tr>
                         <tr class="contact">
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주문자 연락처</th>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>연락처</th>
                             <td>{{ order.ord_mobile }}</td>
                         </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 배송정보 확인 -->
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_01.png' %}" alt=""/>배송정보 확인<span>※ 최종 배송지가 정확한지 확인해주세요. </span></h3>
+            <div class="join_info">
+                <table summary="">
+                    <tbody>
                         <tr>
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>수령인</th>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주문자</th>
                             <td>{{ order.rcv_name }}</td>
                         </tr>
                         <tr class="contact">
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>수령인 연락처</th>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>연락처</th>
                             <td>{{ order.rcv_mobile }}</td>
                         </tr>
                         <tr>
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>배송주소</th>
-                            <td>({{ order.rcv_post }}) {{ order.rcv_addr }} {{ order.rcv_addr_detail }}</td>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>우편번호</th>
+                            <td>{{ order.rcv_post }}</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주소</th>
+                            <td><p style="line-height:18px;">{{ order.rcv_addr }}<br>{{ order.rcv_addr_detail }}</p></td>
                         </tr>
                         {% if order.order_memo %}
                         <tr>
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>배송메모</th>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>요청사항</th>
                             <td>{{ order.order_memo }}</td>
                         </tr>
                         {% endif %}
@@ -161,8 +152,8 @@
                 </table>
             </div>
 
-            <div style="text-align:center;padding:30px 0;">
-                <a href="{% url 'shop:order_list' %}" style="display:inline-block;padding:12px 30px;background:#002b69;color:white;font-weight:600;border-radius:5px;">목록으로</a>
+            <div class="join_btn right">
+                <a href="{% url 'shop:order_list' %}"><img src="{% static 'images/sub/list_bts.png' %}" alt=""/></a>
             </div>
 
         </div>

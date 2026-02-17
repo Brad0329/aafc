@@ -11,48 +11,37 @@ class LoginForm(AuthenticationForm):
 class RegisterForm(UserCreationForm):
     class Meta:
         model = Member
-        fields = ['username', 'name', 'email', 'phone', 'zipcode', 'address1', 'address2',
-                  'sms_consent', 'mail_consent']
+        fields = ['username', 'name', 'email', 'phone', 'zipcode', 'address1', 'address2']
         labels = {
             'username': '아이디',
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['sms_consent'].widget = forms.Select(
-            choices=[('Y', '동의'), ('N', '미동의')]
-        )
-        self.fields['mail_consent'].widget = forms.Select(
-            choices=[('Y', '동의'), ('N', '미동의')]
-        )
 
 
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = Member
-        fields = ['name', 'email', 'phone', 'tel', 'zipcode', 'address1', 'address2',
+        fields = ['email', 'phone', 'tel', 'zipcode', 'address1', 'address2',
                   'sms_consent', 'mail_consent']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['sms_consent'].widget = forms.Select(
-            choices=[('Y', '동의'), ('N', '미동의')]
+        self.fields['sms_consent'].widget = forms.RadioSelect(
+            choices=[('Y', '동의함'), ('N', '동의안함')]
         )
-        self.fields['mail_consent'].widget = forms.Select(
-            choices=[('Y', '동의'), ('N', '미동의')]
+        self.fields['mail_consent'].widget = forms.RadioSelect(
+            choices=[('Y', '동의함'), ('N', '동의안함')]
         )
 
 
 class MemberChildForm(forms.ModelForm):
     class Meta:
         model = MemberChild
-        fields = ['name', 'birth', 'gender', 'school', 'grade',
-                  'height', 'weight', 'size', 'phone']
+        fields = ['name', 'birth', 'gender', 'school', 'grade']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['gender'].widget = forms.Select(
-            choices=[('', '선택'), ('M', '남'), ('F', '여')]
+            choices=[('M', '남자'), ('F', '여자')]
         )
 
 

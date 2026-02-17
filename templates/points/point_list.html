@@ -10,30 +10,22 @@
         <div class="sub_menu">
             <ul>
                 <li><a href="{% url 'accounts:mypage' %}">마이페이지</a></li>
-                <li><a href="{% url 'enrollment:payment_history' %}">결제내역</a></li>
+                <li><a href="{% url 'enrollment:payment_history' %}">결제/수강내역</a></li>
                 <li class="present"><a href="{% url 'points:point_list' %}">마이포인트</a></li>
                 <li><a href="{% url 'notifications:notification_list' %}">알림장</a></li>
                 <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
             </ul>
         </div>
         <div class="sub_contents">
-            <h2 class="sub_tit">마이포인트<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;마이아카데미&nbsp;&nbsp;>&nbsp;&nbsp;<b>마이포인트</b></span></h2>
+            <h2 class="sub_tit">마이포인트<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;마이페이지&nbsp;&nbsp;>&nbsp;&nbsp;<b>마이포인트</b></span></h2>
 
-            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_09.png' %}" alt=""/>포인트 현황</h3>
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_09.png' %}" alt=""/>마이포인트</h3>
             <div class="join_info">
                 <table summary="">
                     <tbody>
                         <tr>
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>보유 포인트</th>
-                            <td><b style="color:#2b68af;font-size:18px;">{{ point_balance|intcomma }}</b> P</td>
-                        </tr>
-                        <tr>
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>총 적립</th>
-                            <td>{{ total_save|intcomma }} P</td>
-                        </tr>
-                        <tr>
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>총 사용</th>
-                            <td>{{ total_use|intcomma }} P</td>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>포인트 합계</th>
+                            <td><b style="color:#2b68af;font-size:18px;">{{ point_balance|intcomma }}</b> 점</td>
                         </tr>
                     </tbody>
                 </table>

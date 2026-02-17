@@ -9,35 +9,94 @@
         <div class="sub_menu">
             <ul>
                 <li class="present"><a href="{% url 'accounts:mypage' %}">마이페이지</a></li>
-                <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
+                <li><a href="{% url 'enrollment:payment_history' %}">결제/수강내역</a></li>
+                <li><a href="{% url 'points:point_list' %}">마이포인트</a></li>
+                <li><a href="{% url 'notifications:notification_list' %}">알림장</a></li>
+                <li><a href="#">회원탈퇴</a></li>
             </ul>
         </div>
         <div class="sub_contents">
-            <h2 class="sub_tit">{{ title }}<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;MyPage&nbsp;&nbsp;>&nbsp;&nbsp;<b>{{ title }}</b></span></h2>
+            <h2 class="sub_tit">{{ title }}<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;마이페이지&nbsp;&nbsp;>&nbsp;&nbsp;<b>{{ title }}</b></span></h2>
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_06.png' %}" alt=""/>자녀정보</h3>
 
-            <form method="post" id="child_form">
+            <form name="regform" method="post" id="child_form">
                 {% csrf_token %}
-                <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_07.png' %}" alt=""/>자녀정보</h3>
-                <div class="join_info">
-                    <table summary="">
-                        <tbody>
-                            {% for field in form %}
-                            <tr>
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>{{ field.label }}</th>
-                                <td>
-                                    {{ field }}
-                                    {% for error in field.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="join_btn">
-                    <a href="javascript:document.getElementById('child_form').submit();"><img src="{% static 'images/sub/info_bts.png' %}" alt="저장"/></a>
-                    <a href="{% url 'accounts:mypage' %}" style="margin-left:5px; cursor:pointer;">취소</a>
-                </div>
+            <div class="join_info">
+                <table summary="">
+                    <tbody>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>자녀명</th>
+                            <td>
+                                {% if is_edit %}
+                                    {{ child.name }}
+                                    <input type="hidden" name="name" value="{{ child.name }}"/>
+                                {% else %}
+                                    <input type="text" name="name" id="id_name" maxlength="10" value="{{ form.name.value|default:'' }}" class="w_normal"/>
+                                    {% for error in form.name.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>생년월일</th>
+                            <td>
+                                <input type="text" name="birth" id="id_birth" maxlength="8" value="{{ form.birth.value|default:'' }}" class="w_normal" placeholder="예: 20090101"/>
+                                {% for error in form.birth.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>학교명</th>
+                            <td>
+                                <input type="text" name="school" id="id_school" maxlength="16" value="{{ form.school.value|default:'' }}" class="w_normal"/>
+                                {% for error in form.school.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>학년</th>
+                            <td>
+                                <input type="text" name="grade" id="id_grade" maxlength="3" value="{{ form.grade.value|default:'' }}" class="w_normal"/>
+                                {% for error in form.grade.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>성별</th>
+                            <td>
+                                <select name="gender" id="id_gender" class="w_normal">
+                                    <option value="M" {% if form.gender.value == 'M' %}selected{% endif %}>남자</option>
+                                    <option value="F" {% if form.gender.value == 'F' %}selected{% endif %}>여자</option>
+                                </select>
+                                {% for error in form.gender.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
             </form>
+            <div class="join_btn">
+                <a href="{% url 'accounts:mypage' %}"><img src="{% static 'images/sub/cancel_bts.png' %}" alt="취소"/></a>
+                {% if is_edit %}
+                <a href="javascript:member_write();"><img src="{% static 'images/sub/info_bts.png' %}" alt="수정"/></a>
+                {% else %}
+                <a href="javascript:member_write();"><img src="{% static 'images/sub/add_child.jpg' %}" alt="등록"/></a>
+                {% endif %}
+            </div>
         </div>
     </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function member_write() {
+        {% if not is_edit %}
+        if($("#id_name").val() == ""){ alert("자녀명을 입력하여 주세요"); $("#id_name").focus(); return; }
+        {% endif %}
+        if($("#id_birth").val() == ""){ alert("생년월일을 입력하여 주세요"); $("#id_birth").focus(); return; }
+        if($("#id_birth").val().length != 8){ alert("생년월일은 8자리형태로 해주십시요 (ex: 20090101)"); $("#id_birth").focus(); return; }
+        if($("#id_school").val() == ""){ alert("학교명을 입력하여 주세요"); $("#id_school").focus(); return; }
+
+        var msg = {% if is_edit %}"수정 하시겠습니까?"{% else %}"자녀정보를 등록 하시겠습니까?"{% endif %};
+        if(confirm(msg)){
+            document.getElementById('child_form').submit();
+        }
+    }
+</script>
 {% endblock %}

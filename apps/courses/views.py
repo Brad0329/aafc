@@ -1,6 +1,9 @@
 from collections import OrderedDict
+from datetime import date
+from django.db.models import Count
 from django.shortcuts import render, get_object_or_404
 from apps.common.models import CodeValue
+from apps.enrollment.models import EnrollmentCourse, WaitStudent
 from .models import Stadium, Coach, StadiumCoach, Lecture
 
 
@@ -33,6 +36,16 @@ def stadium_list_view(request):
     })
 
 
+def _get_current_month_date():
+    """ASP와 동일: day>22이면 다음달 1일"""
+    today = date.today()
+    if today.day > 22:
+        if today.month == 12:
+            return date(today.year + 1, 1, 1)
+        return date(today.year, today.month + 1, 1)
+    return date(today.year, today.month, 1)
+
+
 def stadium_detail_view(request, sta_code):
     """구장 상세 (AJAX partial)"""
     stadium = get_object_or_404(Stadium, sta_code=sta_code, use_gbn='Y')
@@ -41,6 +54,20 @@ def stadium_detail_view(request, sta_code):
     lectures = Lecture.objects.filter(
         stadium=stadium, use_gbn='Y'
     ).order_by('class_gbn', 'lecture_day', 'lecture_time')
+
+    # 현재원 집계 (ASP: course_stats IN ('LY','LP','PN'), bill_code='1001')
+    cur_month_date = _get_current_month_date()
+    lecture_codes = [lec.lecture_code for lec in lectures]
+
+    enrollment_counts = {}
+    if lecture_codes:
+        qs = EnrollmentCourse.objects.filter(
+            lecture_code__in=lecture_codes,
+            course_stats__in=['LY', 'LP', 'PN'],
+            course_ym=cur_month_date,
+            bill_code='1001'
+        ).values('lecture_code').annotate(cnt=Count('id'))
+        enrollment_counts = {row['lecture_code']: row['cnt'] for row in qs}
 
     # class_gbn별 그룹핑
     lecture_groups = OrderedDict()
@@ -53,6 +80,7 @@ def stadium_detail_view(request, sta_code):
             'time': lec.lecture_time,
             'age': lec.lec_age,
             'capacity': lec.stu_cnt,
+            'cur_cnt': enrollment_counts.get(lec.lecture_code, 0),
         })
 
     # 담당 코치
@@ -105,4 +133,11 @@ def waytocome_view(request):
     """찾아오시는 길 페이지"""
     return render(request, 'courses/waytocome.html', {
         'menu': 'waytocome',
+    })
+
+
+def why_soccer_view(request):
+    """왜 축구인가? 페이지"""
+    return render(request, 'courses/why_soccer.html', {
+        'menu': 'why_soccer',
     })

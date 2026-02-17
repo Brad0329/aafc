@@ -13,4 +13,5 @@ urlpatterns = [
     path('greeting/', views.greeting_view, name='greeting'),
     path('emblem/', views.emblem_view, name='emblem'),
     path('waytocome/', views.waytocome_view, name='waytocome'),
+    path('why-soccer/', views.why_soccer_view, name='why_soccer'),
 ]

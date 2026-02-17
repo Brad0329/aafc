@@ -18,7 +18,10 @@ def register_view(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            user = form.save(commit=False)
+            user.sms_consent = 'Y'
+            user.mail_consent = 'N'
+            user.save()
             login(request, user)
             messages.success(request, '회원가입이 완료되었습니다.')
             return redirect('/')
@@ -35,7 +38,7 @@ def logout_view(request):
 
 @login_required
 def mypage_view(request):
-    children = request.user.children.all()
+    children = request.user.children.filter(status='N')
     return render(request, 'accounts/mypage.html', {'children': children})
 
 
@@ -64,7 +67,7 @@ def child_add_view(request):
             return redirect('accounts:mypage')
     else:
         form = MemberChildForm()
-    return render(request, 'accounts/child_form.html', {'form': form, 'title': '자녀 등록'})
+    return render(request, 'accounts/child_form.html', {'form': form, 'title': '자녀정보추가'})
 
 
 @login_required
@@ -78,7 +81,9 @@ def child_edit_view(request, pk):
             return redirect('accounts:mypage')
     else:
         form = MemberChildForm(instance=child)
-    return render(request, 'accounts/child_form.html', {'form': form, 'title': '자녀 수정'})
+    return render(request, 'accounts/child_form.html', {
+        'form': form, 'title': '자녀정보수정', 'is_edit': True, 'child': child
+    })
 
 
 @login_required

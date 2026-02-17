@@ -15,20 +15,22 @@
         </div>
         <div class="sub_contents">
             <h2 class="sub_tit">상품구매<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;쇼핑몰&nbsp;&nbsp;>&nbsp;&nbsp;<b>상품구매</b></span></h2>
-
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_09.png' %}" alt=""/>주문결제</h3>
             <div class="goods_buy_top">
                 <p><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>고객님께서 <span>주문하신 상품내역을 변경하시거나 삭제</span>하실 수가 없습니다.</p>
-                <p><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주문 취소 및 변경은 <span>마이페이지 &gt; 주문/배송조회</span>에서 가능합니다.</p>
+                <p><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>장바구니에 담긴 상품은 로그아웃 시 삭제됩니다.</p>
+                <p><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>판매가 종료된 상품은장바구니에서 삭제될 수도 있으며, 구매하실 수 없습니다.</p>
             </div>
 
             <!-- 주문 상품 목록 -->
             <div class="goods_buy_info">
                 <ul class="g_b_i_tit">
                     <li>상품명</li>
-                    <li>가격</li>
+                    <li>가격/포인트</li>
                     <li>수량</li>
-                    <li>배송비</li>
+                    <li>결제방법</li>
                     <li>합계</li>
+                    <li>선택</li>
                 </ul>
 
                 {% for data in items_data %}
@@ -36,7 +38,7 @@
                     <div class="g_b_i_cont_01">
                         <div class="img">
                             {% if data.cart.product.gd_img_s %}
-                            <img src="/fcdata/shop_goods/{{ data.cart.product.gd_img_s }}" style="width:100%;height:100%;position:absolute;top:0;left:0;"/>
+                            <img src="/fcdata/shop_goods/{{ data.cart.product.gd_img_s }}" width="64"/>
                             {% endif %}
                         </div>
                         <div class="txt">
@@ -53,19 +55,21 @@
                     </div>
                     <div class="g_b_i_cont_02">
                         <span class="mobile">가격 : </span>
-                        {{ data.cart.product.gd_price|intcomma }}원
+                        <span class="none">{{ data.cart.product.gd_price|intcomma }} 원</span>
                     </div>
                     <div class="g_b_i_cont_03">
                         <span class="mobile">수량 : </span>
-                        {{ data.cart.ea }} 개
+                        <input type="text" name="chkEa" value="{{ data.cart.ea }}" readonly/> 개
                     </div>
                     <div class="g_b_i_cont_04">
-                        <span class="mobile">배송비 : </span>
-                        {% if data.delivery_fee > 0 %}{{ data.delivery_fee|intcomma }}원{% else %}무료{% endif %}
+                        <span class="mobile">결제방법 : </span>카드, 계좌이체 결제가능
                     </div>
                     <div class="g_b_i_cont_05">
                         <span class="mobile">합계 : </span>
                         <span class="red">{{ data.item_total|intcomma }}원</span>
+                    </div>
+                    <div class="g_b_i_cont_06">
+                        <p><a href="javascript:void(0);"><img src="{% static 'images/sub/g_b_delete.jpg' %}" alt=""/></a></p>
                     </div>
                 </div>
                 {% endfor %}
@@ -77,11 +81,11 @@
                 <table summary="">
                     <tbody>
                         <tr>
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>상품금액</th>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>금액</th>
                             <td>{{ total_price|intcomma }} 원</td>
                         </tr>
                         <tr>
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>배송비</th>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>총 추가비용 / 할인금액</th>
                             <td>{{ total_delivery|intcomma }} 원</td>
                         </tr>
                         <tr>
@@ -93,7 +97,7 @@
             </div>
 
             <!-- 주문자 확인 -->
-            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_07.png' %}" alt=""/>주문자 확인<span style="font-size:12px;font-weight:normal;color:#888;margin-left:10px;">※ 주문자의 정보를 확인해주세요.</span></h3>
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_07.png' %}" alt=""/>주문자 확인<span>※ 주문자의 정보를 확인해주세요.</span></h3>
             <div class="join_info">
                 <table summary="">
                     <tbody>
@@ -136,17 +140,21 @@
             </div>
 
             <!-- 배송정보 -->
-            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_01.png' %}" alt=""/>배송정보 확인</h3>
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_01.png' %}" alt=""/>배송정보 확인<span>※ 최종 배송지가 정확한지 확인해주세요. </span></h3>
             <div class="join_info">
                 <table summary="">
                     <tbody>
                         <tr>
                             <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주문자 동일</th>
-                            <td><input type="checkbox" id="isSameOrdInfo" onclick="copyInfo(this);"/></td>
+                            <td><input type="checkbox" name="isSameOrdInfo" onclick="copyInfo(this);"/></td>
                         </tr>
                         <tr>
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>수령인</th>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주문자</th>
                             <td><input type="text" name="rcv_name" id="rcv_name" value="" maxlength="30" class="w_normal"/></td>
+                        </tr>
+                        <tr class="email">
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>이메일</th>
+                            <td><input type="text" name="rcv_email" id="rcv_email" value="" maxlength="30"/></td>
                         </tr>
                         <tr class="contact">
                             <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>연락처</th>
@@ -164,9 +172,9 @@
                             <th>&nbsp;</th>
                             <td><input type="text" name="rcv_addr_detail" id="rcv_addr_detail" value="" maxlength="30" class="w_max"/></td>
                         </tr>
-                        <tr>
-                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>배송메모</th>
-                            <td><input type="text" name="order_memo" id="order_memo" value="" class="w_max"/></td>
+                        <tr class="contact">
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>요청사항</th>
+                            <td><textarea name="order_memo" id="order_memo" class="w_max"></textarea></td>
                         </tr>
                     </tbody>
                 </table>
@@ -180,9 +188,8 @@
                         <tr>
                             <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>결제방법</th>
                             <td>
-                                <label><input type="radio" name="payway" value="CARD" checked/> 신용카드 </label>
-                                <label><input type="radio" name="payway" value="BANK"/> 실시간 계좌이체 </label>
-                                <label><input type="radio" name="payway" value="ZEROPAY"/> 제로페이 </label>
+                                <label><input type="radio" name="payway" value="CARD" checked/>신용카드 </label>
+                                <label><input type="radio" name="payway" value="BANK"/>실시간 계좌이체 </label>
                             </td>
                         </tr>
                     </tbody>
@@ -190,7 +197,7 @@
             </div>
 
             <!-- 결제 버튼 -->
-            <div class="join_btn" style="text-align:center;padding:30px 0;">
+            <div class="join_btn">
                 <a href="javascript:orderChk();"><img src="{% static 'images/sub/payment_btn.png' %}" alt="결제하기"/></a>
                 <a href="{% url 'shop:goods_list' %}"><img src="{% static 'images/sub/cancel_bts.png' %}" alt="취소"/></a>
             </div>

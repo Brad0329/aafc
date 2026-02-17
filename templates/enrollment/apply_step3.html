@@ -1,69 +1,83 @@
 {% extends "base.html" %}
 {% load static %}
+{% load humanize %}
 
-{% block title %}입단신청 - 결제 - AAFC{% endblock %}
+{% block title %}입단신청 - AAFC{% endblock %}
 
 {% block content %}
     <div id="sub_contents">
-        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_top join"><img src="{% static 'images/sub/sub_top_m_join.jpg' %}" alt=""/></div>
         <div class="sub_menu">
             <ul>
                 <li class="present"><a href="{% url 'enrollment:apply_step1' %}">입단신청</a></li>
             </ul>
         </div>
         <div class="sub_contents">
-            <h2 class="sub_tit">입단신청 - 결제<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;<b>입단신청</b>&nbsp;&nbsp;>&nbsp;&nbsp;결제</span></h2>
-
-            <!-- 청구 요약 -->
-            <h3 class="member_tit">결제 정보</h3>
-            <table class="join_info" summary="">
-                <colgroup><col width="25%"/><col width="75%"/></colgroup>
-                <tbody>
-                    <tr>
-                        <th>구장</th>
-                        <td>{{ sta_name }}</td>
-                    </tr>
-                    <tr>
-                        <th>자녀</th>
-                        <td>{{ child.name }}</td>
-                    </tr>
-                    <tr>
-                        <th>신청자</th>
-                        <td>{{ user.name }}</td>
-                    </tr>
-                    <tr>
-                        <th>교육용품비</th>
-                        <td>{{ join_price|floatformat:0 }}원</td>
-                    </tr>
-                    <tr>
-                        <th>수강료</th>
-                        <td>{{ total_lecture_price|floatformat:0 }}원</td>
-                    </tr>
-                    {% if total_discount > 0 %}
-                    <tr>
-                        <th>할인</th>
-                        <td style="color:#e57373;">-{{ total_discount|floatformat:0 }}원
-                            {% if eq_discount > 0 %}<br/><small>교육용품할인: -{{ eq_discount|floatformat:0 }}원</small>{% endif %}
-                            {% if tu_discount > 0 %}<br/><small>수강료할인: -{{ tu_discount|floatformat:0 }}원</small>{% endif %}
-                            {% if py_discount > 0 %}<br/><small>결제금액할인: -{{ py_discount|floatformat:0 }}원</small>{% endif %}
-                            {% if o2_discount > 0 %}<br/><small>다회할인: -{{ o2_discount|floatformat:0 }}원</small>{% endif %}
-                        </td>
-                    </tr>
-                    {% endif %}
-                    <tr>
-                        <th style="font-size:15px;font-weight:bold;">총 결제금액</th>
-                        <td style="font-size:18px;font-weight:bold;color:#2b68af;">{{ payment_price|floatformat:0 }}원</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <!-- 결제수단 선택 -->
-            <h3 class="member_tit">결제수단 선택</h3>
-            <div class="edu_select">
-                <ul class="depth_1">
-                    <li><input type="radio" name="pay_method" value="100000000000" checked/> 신용카드</li>
-                    <li><input type="radio" name="pay_method" value="010000000000"/> 계좌이체</li>
-                </ul>
+            <h2 class="sub_tit">입단신청<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;<b>입단신청</b></span></h2>
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_09.png' %}" alt=""/>입단신청</h3>
+            <div class="edu_info">
+                <table summary="">
+                    <tbody>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>구장명</th>
+                            <td>{{ local_name }} > {{ sta_name }}</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>과정명</th>
+                            <td>{% for lec in lecture_details %}{{ lec.title }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>자녀명</th>
+                            <td>{{ child.name }}({{ child.child_id }})</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>신청자</th>
+                            <td>{{ user.name }}({{ user.username }})</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>수강기간</th>
+                            <td>{{ lec_period }}개월</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>수강월(교육횟수)</th>
+                            <td>{{ lecture_month }}</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>교육용품비</th>
+                            <td>{{ join_price|intcomma }}원<div class="info_blue">- 신규입단자는 첫달에 교육용품비 {{ join_price|intcomma }}원 부과됩니다.
+                            <br/>- 재입단 또는 일시정지 후 재신청하실때 교육용품비가 적용될 경우 사무실로 연락주시기 바랍니다.
+                            <br/>- 용품 지급은 첫 수업 때 샘플 유니폼을 입어보고, 그 다음 2주차에 지급됩니다.</div></td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>수강료</th>
+                            <td>
+                                {% for lec in lecture_details %}
+                                <p>{{ lec.title }}<span><b class="bar">/</b><b class="m_bar">&#9654;</b>기본료 <b class="blue">{{ lec.lec_price|intcomma }}</b>원 X 횟수 <b class="blue">{{ lec.count }}</b> = 합계 <b class="red">{{ lec.total_price|intcomma }}원</b></span></p>
+                                {% if not forloop.last %}<br/>{% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>프로모션</th>
+                            <td><div id="area_pro"></div></td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>추천인 아이디</th>
+                            <td>{{ recommend_id }}</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>결제금액</th>
+                            <td>{{ payment_price|intcomma }}원<div class="info_red">※ 교육용품비 + 수강료 {% if pro_confirm == 1 %} - 프로모션 {% endif %} = 총 결제금액</div></td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>결제방법</th>
+                            <td>
+                                <label><input type="radio" name="p_payway" value="C" checked/>신용카드</label>
+                                <label><input type="radio" name="p_payway" value="R"/>계좌이체</label>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
             <!-- KCP 결제 폼 -->
@@ -96,10 +110,8 @@
                 <input type="hidden" name="va_date" value=""/>
             </form>
 
-            <!-- 버튼 -->
             <div class="join_btn">
-                <button type="button" onclick="doPayment()" class="btn_join">결제하기</button>
-                <button type="button" onclick="history.back()" class="btn_cancel">이전단계</button>
+                <a href="{% url 'enrollment:apply_step1' %}"><img src="{% static 'images/sub/cancel_bts.png' %}" alt="취소"/></a><a href="javascript:snd_chk()"><img src="{% static 'images/sub/payment_btn.png' %}" alt="결제하기"/></a>
             </div>
         </div>
     </div>
@@ -107,22 +119,32 @@
 
 {% block extra_js %}
 <script type="text/javascript">
-$("input[name='pay_method']").on("change", function() {
-    $("#use_pay_method").val($(this).val());
+$(document).ready(function() {
+    {% if pro_confirm == 1 %}
+    $("#area_pro").load("{% url 'enrollment:ajax_promotions' %}?child_id={{ child.child_id }}&end_chk={{ data.end_chk }}&lec_cycle={{ lec_cycle }}&lec_period={{ lec_period }}&lecture_codes={% for lec in lecture_details %}{{ lec.code }}{% if not forloop.last %},{% endif %}{% endfor %}&step3=1");
+    {% else %}
+    $("#area_pro").hide();
+    {% endif %}
 });
 
-function doPayment() {
-    if (!confirm("결제를 진행하시겠습니까?\n결제금액: {{ payment_price|floatformat:0 }}원")) {
+$("input[name='p_payway']").on("change", function() {
+    var val = $(this).val();
+    if (val == "C") {
+        $("#use_pay_method").val("100000000000");
+    } else {
+        $("#use_pay_method").val("010000000000");
+    }
+});
+
+function snd_chk() {
+    if (!confirm("결제를 진행하시겠습니까?\n결제금액: {{ payment_price|intcomma }}원")) {
         return;
     }
 
     {% comment %}
     실제 운영 시 KCP JS SDK를 통한 결제 팝업 호출.
     테스트 환경에서는 바로 결과 처리 페이지로 전송합니다.
-    KCP 연동 완료 후 이 부분을 KCP m_Completepayment() 호출로 교체합니다.
     {% endcomment %}
-
-    // 테스트용: 직접 폼 제출 (실제 KCP 결제 없이 성공 처리)
     var form = document.order_info;
     form.res_cd.value = "0000";
     form.res_msg.value = "정상처리";

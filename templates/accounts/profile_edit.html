@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}프로필 수정 - AAFC{% endblock %}
+{% block title %}정보수정 - AAFC{% endblock %}
+
+{% block extra_css %}
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+{% endblock %}
 
 {% block content %}
     <div id="sub_contents">
@@ -9,38 +13,113 @@
         <div class="sub_menu">
             <ul>
                 <li class="present"><a href="{% url 'accounts:mypage' %}">마이페이지</a></li>
-                <li><a href="{% url 'enrollment:payment_history' %}">결제내역</a></li>
+                <li><a href="{% url 'enrollment:payment_history' %}">결제/수강내역</a></li>
                 <li><a href="{% url 'points:point_list' %}">마이포인트</a></li>
                 <li><a href="{% url 'notifications:notification_list' %}">알림장</a></li>
-                <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
+                <li><a href="#">회원탈퇴</a></li>
             </ul>
         </div>
         <div class="sub_contents">
-            <h2 class="sub_tit">정보수정<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;MyPage&nbsp;&nbsp;>&nbsp;&nbsp;<b>정보수정</b></span></h2>
+            <h2 class="sub_tit">정보수정<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;마이페이지&nbsp;&nbsp;>&nbsp;&nbsp;<b>정보수정</b></span></h2>
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_06.png' %}" alt=""/>회원정보 수정</h3>
 
-            <form method="post" id="profile_form">
+            <form name="regform" method="post" id="profile_form">
                 {% csrf_token %}
-                <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_06.png' %}" alt=""/>회원정보 수정</h3>
-                <div class="join_info">
-                    <table summary="">
-                        <tbody>
-                            {% for field in form %}
-                            <tr>
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>{{ field.label }}</th>
-                                <td>
-                                    {{ field }}
-                                    {% for error in field.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="join_btn">
-                    <a href="javascript:document.getElementById('profile_form').submit();"><img src="{% static 'images/sub/info_bts.png' %}" alt="정보수정"/></a>
-                    <a href="{% url 'accounts:mypage' %}" style="margin-left:5px; cursor:pointer;">취소</a>
-                </div>
+            <div class="join_info">
+                <table summary="">
+                    <tbody>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>회원명</th>
+                            <td>{{ user.name }}</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>아이디</th>
+                            <td>{{ user.username }}</td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>비밀번호</th>
+                            <td>
+                                <a href="{% url 'accounts:password_change' %}" style="color:#1e406e; text-decoration:underline;">비밀번호 변경하기</a>
+                            </td>
+                        </tr>
+                        <tr class="contact">
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>연락처</th>
+                            <td>
+                                <input type="text" name="tel" id="id_tel" maxlength="14" value="{{ form.tel.value|default:'' }}"/>
+                                {% for error in form.tel.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
+                            </td>
+                        </tr>
+                        <tr class="contact">
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>휴대폰</th>
+                            <td>
+                                <input type="text" name="phone" id="id_phone" maxlength="14" value="{{ form.phone.value|default:'' }}"/>
+                                {% for error in form.phone.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
+                            </td>
+                        </tr>
+                        <tr class="email">
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>이메일</th>
+                            <td>
+                                <input type="text" name="email" id="id_email" value="{{ form.email.value|default:'' }}" maxlength="200"/>
+                                {% for error in form.email.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
+                            </td>
+                        </tr>
+                        <tr class="none">
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주소</th>
+                            <td><input type="text" name="zipcode" id="id_zipcode" class="w_normal" value="{{ form.zipcode.value|default:'' }}" readonly/><a href="javascript:fn_zipcode();"><img src="{% static 'images/sub/address_btn.png' %}" alt="주소검색"/></a></td>
+                        </tr>
+                        <tr class="none">
+                            <th>&nbsp;</th>
+                            <td><input type="text" name="address1" id="id_address1" maxlength="100" value="{{ form.address1.value|default:'' }}" class="w_max" readonly/></td>
+                        </tr>
+                        <tr>
+                            <th>&nbsp;</th>
+                            <td><input type="text" name="address2" id="id_address2" maxlength="100" value="{{ form.address2.value|default:'' }}" class="w_max"/></td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>SMS수신 동의</th>
+                            <td>
+                                <label><input type="radio" name="sms_consent" value="Y" {% if user.sms_consent == 'Y' %}checked{% endif %} />동의함</label>
+                                <label><input type="radio" name="sms_consent" value="N" {% if user.sms_consent == 'N' %}checked{% endif %} />동의안함</label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>메일수신 동의</th>
+                            <td>
+                                <label><input type="radio" name="mail_consent" value="Y" {% if user.mail_consent == 'Y' %}checked{% endif %} />동의함</label>
+                                <label><input type="radio" name="mail_consent" value="N" {% if user.mail_consent == 'N' %}checked{% endif %} />동의안함</label>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
             </form>
+            <div class="join_btn">
+                <a href="{% url 'accounts:mypage' %}"><img src="{% static 'images/sub/cancel_bts.png' %}" alt="취소"/></a><a href="javascript:member_write();"><img src="{% static 'images/sub/info_bts.png' %}" alt="수정"/></a>
+            </div>
         </div>
     </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function fn_zipcode(){
+        new daum.Postcode({
+            oncomplete: function(data) {
+                $("#id_zipcode").val(data.zonecode);
+                $("#id_address1").val(data.roadAddress);
+            }
+        }).open();
+    }
+
+    function member_write() {
+        if($("#id_phone").val() == ""){ alert("휴대폰을 입력하세요"); $("#id_phone").focus(); return; }
+        if($("#id_zipcode").val() == ""){ alert("우편번호를 입력하여 주세요"); $("#id_zipcode").focus(); return; }
+        if($("#id_address1").val() == ""){ alert("주소를 입력하여 주세요"); return; }
+        if($("#id_address2").val() == ""){ alert("상세주소를 입력하여 주세요"); $("#id_address2").focus(); return; }
+
+        if(confirm("수정 하시겠습니까?")){
+            document.getElementById('profile_form').submit();
+        }
+    }
+</script>
 {% endblock %}

@@ -5,14 +5,19 @@
 
 {% block content %}
     <div id="sub_contents">
-        <div class="sub_top {{ config.sub_top }}"><img src="{% static 'images/sub/sub_top_m_community.jpg' %}" alt=""/></div>
+        {% if is_classic %}
+        <div class="sub_top academy"><img src="{% static 'images/sub/sub_top_m_academy.jpg' %}" alt=""/></div>
+        {% else %}
+        <div class="sub_top community"><img src="{% static 'images/sub/sub_top_m_community.jpg' %}" alt=""/></div>
+        {% endif %}
         {% if is_classic %}
         <div class="sub_menu">
             <ul>
                 <li><a href="{% url 'courses:stadium_list' %}">구장안내</a></li>
                 <li><a href="{% url 'courses:coach_list' %}">코칭스태프</a></li>
                 <li><a href="{% url 'courses:program' %}">교육 프로그램</a></li>
-                <li class="present"><a href="{% url 'board:view' board_id='U8' b_seq=199 %}">클래식반</a></li>
+                <li class="present"><a href="/board/U8/">클래식반</a></li>
+                <li><a href="{% url 'courses:why_soccer' %}">왜 축구인가?</a></li>
             </ul>
         </div>
         {% else %}

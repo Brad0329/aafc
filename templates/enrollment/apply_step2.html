@@ -1,21 +1,22 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}입단신청 - 프로모션 확인 - AAFC{% endblock %}
+{% block title %}입단신청 - AAFC{% endblock %}
 
 {% block content %}
     <div id="sub_contents">
-        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        <div class="sub_top join"><img src="{% static 'images/sub/sub_top_m_join.jpg' %}" alt=""/></div>
         <div class="sub_menu">
             <ul>
                 <li class="present"><a href="{% url 'enrollment:apply_step1' %}">입단신청</a></li>
             </ul>
         </div>
         <div class="sub_contents">
-            <h2 class="sub_tit">입단신청 - 프로모션 확인<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;<b>입단신청</b>&nbsp;&nbsp;>&nbsp;&nbsp;프로모션 확인</span></h2>
+            <h2 class="sub_tit">입단신청<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;<b>입단신청</b></span></h2>
 
-            <form id="frmStep2" method="post" action="{% url 'enrollment:apply_step3' %}">
+            <form name="pro_frm" id="frmStep2" method="post" action="{% url 'enrollment:apply_step3' %}">
                 {% csrf_token %}
+                <input type="hidden" name="pro_confirm" id="pro_confirm" value="0"/>
                 <input type="hidden" name="EQ_Discount" id="EQ_Discount" value="0"/>
                 <input type="hidden" name="EQ_Discount_id" id="EQ_Discount_id" value=""/>
                 <input type="hidden" name="Tu_Discount" id="Tu_Discount" value="0"/>
@@ -27,61 +28,105 @@
                 <input type="hidden" name="O2_Discount" id="O2_Discount" value="0"/>
                 <input type="hidden" name="O2_Discount_id" id="O2_Discount_id" value=""/>
 
-                <!-- 선택 내역 확인 -->
-                <h3 class="member_tit">선택 내역 확인</h3>
-                <table class="join_info" summary="">
-                    <colgroup><col width="20%"/><col width="80%"/></colgroup>
+                <!-- 나의 선택 강좌 -->
+                <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_14.png' %}" alt=""/>나의 선택 강좌</h3>
+                <table summary="" class="edu_apply_pc">
+                    <colgroup>
+                        <col width="22%"/>
+                        <col width="15%"/>
+                        <col width="*"/>
+                        <col width="12%"/>
+                        <col width="12%"/>
+                        <col width="12%"/>
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>권역명</th>
+                            <th>구장명</th>
+                            <th>강좌명</th>
+                            <th>수강기간</th>
+                            <th>수업시작일</th>
+                            <th class="last">수업횟수</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         <tr>
-                            <th>자녀</th>
-                            <td>{{ child.name }}</td>
-                        </tr>
-                        <tr>
-                            <th>권역 / 구장</th>
-                            <td>{{ local_name }} / {{ sta_name }}</td>
-                        </tr>
-                        <tr>
-                            <th>수강횟수 / 기간</th>
-                            <td>주 {{ lec_cycle }}회 / {{ lec_period }}개월</td>
-                        </tr>
-                        <tr>
-                            <th>시작월</th>
+                            <td>{{ local_name }}</td>
+                            <td>{{ sta_name }}</td>
+                            <td>{% for lec in lecture_details %}{{ lec.title }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                            <td>{{ lec_period }}개월</td>
                             <td>{{ sym|slice:":4" }}년 {{ sym|slice:"4:6" }}월</td>
+                            <td class="last">주 {{ lec_cycle }}회</td>
                         </tr>
-                        {% for lec in lecture_details %}
+                    </tbody>
+                </table>
+                <table summary="" class="edu_apply_mobile">
+                    <colgroup>
+                        <col width="18%"/>
+                        <col width="30%"/>
+                        <col width="20%"/>
+                        <col width="*"/>
+                    </colgroup>
+                    <tbody>
                         <tr>
-                            <th>강좌 {{ forloop.counter }}</th>
-                            <td>{{ lec.title }} ({{ lec.day_display }} {{ lec.time }}) - {{ lec.start_day }}일 시작 / {{ lec.count }}회 / {{ lec.total_price|floatformat:0 }}원</td>
-                        </tr>
-                        {% endfor %}
-                        {% if recommend_id %}
-                        <tr>
-                            <th>추천인</th>
-                            <td>{{ recommend_id }}</td>
-                        </tr>
-                        {% endif %}
-                        <tr>
-                            <th>교육용품비</th>
-                            <td>{% if end_chk > 0 %}면제 (재입단){% else %}{{ join_price|floatformat:0 }}원{% endif %}</td>
+                            <th>권역명</th>
+                            <td colspan="3" class="last">{{ local_name }}</td>
                         </tr>
                         <tr>
-                            <th>수강료 합계</th>
-                            <td><b>{{ total_lecture_price|floatformat:0 }}원</b></td>
+                            <th>강좌명</th>
+                            <td colspan="3" class="last">{% for lec in lecture_details %}{{ lec.title }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                        </tr>
+                        <tr>
+                            <th>수강기간</th>
+                            <td>{{ lec_period }}개월</td>
+                            <th>수업시작일</th>
+                            <td class="last">{{ sym|slice:":4" }}년 {{ sym|slice:"4:6" }}월</td>
+                        </tr>
+                        <tr>
+                            <th>수업횟수</th>
+                            <td>주 {{ lec_cycle }}회</td>
+                            <th>구장명</th>
+                            <td class="last">{{ sta_name }}</td>
                         </tr>
                     </tbody>
                 </table>
 
-                <!-- 프로모션/할인 -->
-                <h3 class="member_tit">프로모션 / 할인</h3>
-                <div id="area_promotion">
-                    <p>할인내역을 불러오는 중...</p>
+                <!-- 프로모션 적용 확인 -->
+                <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_15.png' %}" alt=""/>프로모션 적용 확인</h3>
+                <table summary="" class="edu_apply_01">
+                    <colgroup><col width="20%"/><col width="20%"/><col width="*"/></colgroup>
+                    <thead>
+                        <tr>
+                            <th>할인유형</th>
+                            <th>할인내역</th>
+                            <th class="last">설명</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td rowspan="3">교육용품할인</td>
+                            <td>해당구장재학생할인</td>
+                            <td class="last">신청구장의 재학생의 경우 용품비 할인</td>
+                        </tr>
+                        <tr>
+                            <td>단체할인</td>
+                            <td class="last">단체로 가입시 용품비 할인</td>
+                        </tr>
+                        <tr>
+                            <td>형제할인</td>
+                            <td class="last">형제가 수업을 신청하는 경우 용품비 할인</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="edu_promotion">
+                    <p>- 프로모션은 중복할인 되지 않으며 중복적용 되는 경우 높은 할인금액이 반영됩니다.</p>
+                    <p>- 프로모션을 적용받기 위해서는 구단 사무실 (1811-7909) 으로 전화주셔서 프로모션 등록하여 주시기 바랍니다.</p>
+                    <p>- 프로모션 적용 확인 버튼을 클릭하시어 프로모션 적용여부를 확인 하십시오.</p>
+                    <a href="javascript:pro_show();" id="div_button"><img src="{% static 'images/sub/promotion_btn.png' %}" alt="프로모션 적용 확인"/></a>
                 </div>
+                <div id="area_pro"></div>
 
-                <!-- 버튼 -->
-                <div class="join_btn">
-                    <button type="button" onclick="goStep3()" class="btn_join">결제하기</button>
-                    <button type="button" onclick="history.back()" class="btn_cancel">이전단계</button>
-                </div>
+                <div class="edu_next_step"><a href="javascript:goNext();"><img src="{% static 'images/sub/next_step_btn.jpg' %}" alt="다음단계"/></a></div>
             </form>
         </div>
     </div>
@@ -89,27 +134,16 @@
 
 {% block extra_js %}
 <script type="text/javascript">
-$(document).ready(function() {
-    // 프로모션 로드
+function pro_show() {
     var codes = [];
     {% for lec in lecture_details %}
     codes.push("{{ lec.code }}");
     {% endfor %}
 
-    $.ajax({
-        url: "{% url 'enrollment:ajax_promotions' %}",
-        data: {
-            child_id: "{{ child.child_id }}",
-            end_chk: "{{ end_chk }}",
-            lec_cycle: "{{ lec_cycle }}",
-            lec_period: "{{ lec_period }}",
-            lecture_codes: codes.join(",")
-        },
-        success: function(data) {
-            $("#area_promotion").html(data);
-        }
-    });
-});
+    $("#area_pro").load("{% url 'enrollment:ajax_promotions' %}?child_id={{ child.child_id }}&end_chk={{ end_chk }}&lec_cycle={{ lec_cycle }}&lec_period={{ lec_period }}&lecture_codes=" + codes.join(","));
+    $("#div_button").hide();
+    $("#pro_confirm").val("1");
+}
 
 function applyDiscount(type, amount, discountId) {
     if (type == 'eq') {
@@ -127,7 +161,7 @@ function applyDiscount(type, amount, discountId) {
     }
 }
 
-function goStep3() {
+function goNext() {
     $("#frmStep2").submit();
 }
 </script>

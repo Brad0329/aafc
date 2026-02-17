@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
+{% load humanize %}
 
-{% block title %}결제내역 - AAFC{% endblock %}
+{% block title %}결제/수강내역 - AAFC{% endblock %}
 
 {% block content %}
     <div id="sub_contents">
@@ -9,70 +10,156 @@
         <div class="sub_menu">
             <ul>
                 <li><a href="{% url 'accounts:mypage' %}">마이페이지</a></li>
-                <li class="present"><a href="{% url 'enrollment:payment_history' %}">결제내역</a></li>
+                <li class="present"><a href="{% url 'enrollment:payment_history' %}">결제/수강내역</a></li>
                 <li><a href="{% url 'points:point_list' %}">마이포인트</a></li>
                 <li><a href="{% url 'notifications:notification_list' %}">알림장</a></li>
                 <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
             </ul>
         </div>
         <div class="sub_contents">
-            <h2 class="sub_tit">결제내역<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;마이아카데미&nbsp;&nbsp;>&nbsp;&nbsp;<b>결제내역</b></span></h2>
+            <h2 class="sub_tit">결제/수강내역<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;마이페이지&nbsp;&nbsp;>&nbsp;&nbsp;<b>결제/수강내역</b></span></h2>
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_09.png' %}" alt=""/>결제 및 수강내역</h3>
 
-            <table class="join_info" summary="">
-                <colgroup><col width="8%"/><col width="12%"/><col width="12%"/><col width="15%"/><col width="13%"/><col width="13%"/><col width="12%"/><col width="15%"/></colgroup>
+            <!-- PC 테이블 -->
+            <table summary="" class="payment_pc">
+                <colgroup>
+                    <col width="13%"/>
+                    <col width="18%"/>
+                    <col width="*"/>
+                    <col width="13%"/>
+                    <col width="15%"/>
+                    <col width="15%"/>
+                </colgroup>
                 <thead>
                     <tr>
-                        <th>번호</th>
-                        <th>자녀</th>
-                        <th>결제방법</th>
+                        <th>결제일자</th>
+                        <th>수강년월</th>
+                        <th>과정명</th>
+                        <th>자녀명</th>
                         <th>결제금액</th>
-                        <th>시작월</th>
-                        <th>종료월</th>
                         <th>결제상태</th>
-                        <th>수강상태</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for enrollment in page_obj %}
                     <tr>
-                        <td>{{ enrollment.id }}</td>
-                        <td>{{ enrollment.child.name }}</td>
-                        <td>{{ enrollment.get_pay_method_display }}</td>
-                        <td>{{ enrollment.pay_price|floatformat:0 }}원</td>
-                        <td>{{ enrollment.start_dt|slice:":4" }}.{{ enrollment.start_dt|slice:"4:6" }}</td>
-                        <td>{{ enrollment.end_dt|slice:":4" }}.{{ enrollment.end_dt|slice:"4:6" }}</td>
+                        <td>{% if enrollment.pay_dt %}{{ enrollment.pay_dt|date:"Y-m-d" }}{% endif %}</td>
                         <td>
-                            {% if enrollment.pay_stats == 'PY' %}
-                                <span style="color:#2b68af;">결제완료</span>
+                            {% if enrollment.start_dt == enrollment.end_dt %}
+                                {{ enrollment.start_dt|slice:":4" }}. {{ enrollment.start_dt|slice:"4:6" }}
                             {% else %}
-                                <span style="color:#e57373;">미결제</span>
+                                {{ enrollment.start_dt|slice:":4" }}. {{ enrollment.start_dt|slice:"4:6" }}
+                                <br> ~ <br>
+                                {{ enrollment.end_dt|slice:":4" }}. {{ enrollment.end_dt|slice:"4:6" }}
                             {% endif %}
                         </td>
-                        <td>{{ enrollment.get_lecture_stats_display }}</td>
+                        <td><p>{% for t in enrollment.lecture_titles %}{{ t }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</p></td>
+                        <td>{{ enrollment.child.name }}</td>
+                        <td>{% if enrollment.pay_price %}{{ enrollment.pay_price|intcomma }}원{% endif %}</td>
+                        <td>
+                            {% if enrollment.pay_stats == 'PY' %}결제완료
+                            {% elif enrollment.pay_stats == 'PP' %}결제대기
+                            {% elif enrollment.pay_stats == 'PN' %}결제취소
+                            {% elif enrollment.pay_stats == 'PZ' %}결제대기<br/>취소
+                            {% elif enrollment.pay_stats == 'PQ' %}입금확인<br/>대기
+                            {% else %}미결제
+                            {% endif %}
+                        </td>
                     </tr>
                 {% empty %}
-                    <tr><td colspan="8">결제내역이 없습니다.</td></tr>
+                    <tr><td align="center" colspan="6">등록 Data가 없습니다.</td></tr>
                 {% endfor %}
                 </tbody>
             </table>
 
-            <!-- 페이지네이션 -->
+            <!-- 모바일 테이블 -->
+            <table summary="" class="payment_mobile">
+                <colgroup>
+                    <col width="18%"/>
+                    <col width="32%"/>
+                    <col width="18%"/>
+                    <col width="*"/>
+                </colgroup>
+                <tbody>
+                {% for enrollment in page_obj %}
+                    <tr>
+                        <th>결제일자</th>
+                        <td>{% if enrollment.pay_dt %}{{ enrollment.pay_dt|date:"Y-m-d" }}{% endif %}</td>
+                        <th>수강년월</th>
+                        <td class="last">
+                            {% if enrollment.start_dt == enrollment.end_dt %}
+                                {{ enrollment.start_dt|slice:":4" }}. {{ enrollment.start_dt|slice:"4:6" }}
+                            {% else %}
+                                {{ enrollment.start_dt|slice:":4" }}. {{ enrollment.start_dt|slice:"4:6" }}
+                                <br> ~ <br>
+                                {{ enrollment.end_dt|slice:":4" }}. {{ enrollment.end_dt|slice:"4:6" }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>과정명</th>
+                        <td colspan="3" class="last"><p>{% for t in enrollment.lecture_titles %}{{ t }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</p></td>
+                    </tr>
+                    <tr>
+                        <th>자녀명</th>
+                        <td>{{ enrollment.child.name }}</td>
+                        <th>결제금액</th>
+                        <td class="last">{% if enrollment.pay_price %}{{ enrollment.pay_price|intcomma }}원{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <th>결제상태</th>
+                        <td colspan="3" class="last">
+                            {% if enrollment.pay_stats == 'PY' %}결제완료
+                            {% elif enrollment.pay_stats == 'PP' %}결제대기
+                            {% elif enrollment.pay_stats == 'PN' %}결제취소
+                            {% elif enrollment.pay_stats == 'PZ' %}결제대기<br/>취소
+                            {% elif enrollment.pay_stats == 'PQ' %}입금확인<br/>대기
+                            {% else %}미결제
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td align="center" colspan="4">등록 Data가 없습니다.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- 페이징-PC -->
             {% if page_obj.has_other_pages %}
-            <div style="text-align:center;margin:20px 0;">
+            <ul class="paging">
                 {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}" style="margin:0 4px;">&laquo; 이전</a>
+                    <li><a href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
                 {% endif %}
                 {% for num in page_obj.paginator.page_range %}
                     {% if page_obj.number == num %}
-                        <b style="margin:0 4px;color:#2b68af;">{{ num }}</b>
+                        <li class="on"><a href="?page={{ num }}">{{ num }}</a></li>
                     {% else %}
-                        <a href="?page={{ num }}" style="margin:0 4px;">{{ num }}</a>
+                        <li><a href="?page={{ num }}">{{ num }}</a></li>
                     {% endif %}
                 {% endfor %}
                 {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}" style="margin:0 4px;">다음 &raquo;</a>
+                    <li><a href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>
                 {% endif %}
-            </div>
+            </ul>
+            {% endif %}
+
+            <!-- 페이징-모바일 -->
+            {% if page_obj.has_other_pages %}
+            <ul class="m_paging">
+                {% if page_obj.has_previous %}
+                    <li><a href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="on"><a href="?page={{ num }}">{{ num }}</a></li>
+                    {% else %}
+                        <li><a href="?page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                    <li><a href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+                {% endif %}
+            </ul>
             {% endif %}
         </div>
     </div>

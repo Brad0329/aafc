@@ -14,7 +14,7 @@
             </ul>
         </div>
         <div class="sub_contents">
-            <h2 class="sub_tit">상품리스트<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;쇼핑몰&nbsp;&nbsp;>&nbsp;&nbsp;<b>{{ product.gd_name }}</b></span></h2>
+            <h2 class="sub_tit">상품리스트<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;쇼핑몰&nbsp;&nbsp;>&nbsp;&nbsp;<b>상품상세</b></span></h2>
 
             <div class="good_view_sel">
                 <form name="Frm" method="post" action="{% url 'shop:cart_add' %}">
@@ -33,6 +33,10 @@
                     <div class="good_view_sel_r">
                         <h4>{{ product.gd_name }}</h4>
                         <table summary="">
+                            <colgroup>
+                                <col width="32%">
+                                <col width="*">
+                            </colgroup>
                             <tbody>
                                 {% if product.category %}
                                 <tr>
@@ -44,24 +48,24 @@
                                     <td><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>판매가격</td>
                                     <td>
                                         {% if product.gd_market_price and product.gd_market_price != product.gd_price %}
-                                        <strike>{{ product.gd_market_price|intcomma }}원</strike> →
+                                        <strike>{{ product.gd_market_price|intcomma }}원</strike>
+                                        {% else %}
+                                        {{ product.gd_price|intcomma }}원
                                         {% endif %}
-                                        <font color="red"><b>{{ product.gd_price|intcomma }}</b></font> 원
                                     </td>
                                 </tr>
-                                {% if product.gd_delivery_kind == '101' %}
                                 <tr>
-                                    <td><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>배송비</td>
-                                    <td>무료배송</td>
+                                    <td><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>회원할인가</td>
+                                    <td><font color="red">{{ product.gd_price|intcomma }}</font> 원</td>
                                 </tr>
-                                {% elif product.gd_delivery_kind == '102' %}
                                 <tr>
                                     <td><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>배송비</td>
-                                    <td>{{ product.gd_delivery_fee|intcomma }}원
-                                        {% if product.gd_delivery_limit > 0 %}({{ product.gd_delivery_limit|intcomma }}원 이상 무료){% endif %}
+                                    <td>
+                                        {% if product.gd_delivery_kind == '101' %}무료배송
+                                        {% elif product.gd_delivery_kind == '102' %}{{ product.gd_delivery_fee|intcomma }}원{% if product.gd_delivery_limit > 0 %} ({{ product.gd_delivery_limit|intcomma }}원 이상 무료){% endif %}
+                                        {% else %}무료배송{% endif %}
                                     </td>
                                 </tr>
-                                {% endif %}
 
                                 <!-- 옵션 -->
                                 {% for opt in options %}
@@ -84,33 +88,38 @@
 
                                 <tr>
                                     <td><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>수량</td>
-                                    <td><input type="text" name="ea" value="1" size="2" class="input_join" style="width:50px;height:35px;text-align:center;border:1px solid #ccc;"/> 개</td>
+                                    <td><input type="text" name="ea" value="1" size="2" class="input_join"/> 개</td>
                                 </tr>
                             </tbody>
                         </table>
-
-                        <div class="goods_btn_group" style="margin-top:30px;">
+                        <p>&nbsp;</p>
+                        <div class="goods_btn_group">
                             {% if product.gd_is_soldout != 'Y' %}
-                            <a href="javascript:submitOrder('cart');"><span class="btn_2" style="display:inline-block;cursor:pointer;">장바구니</span></a>
-                            <a href="javascript:submitOrder('buy');"><span class="btn_1" style="display:inline-block;cursor:pointer;">바로구매</span></a>
+                            <a href="javascript:submitOrder('cart');"><span class="btn_2">구매하기</span></a>
                             {% else %}
-                            <span class="btn_3" style="display:inline-block;">품절</span>
+                            <span class="btn_3">품절</span>
                             {% endif %}
-                            <a href="{% url 'shop:goods_list' %}"><span class="btn_3" style="display:inline-block;cursor:pointer;">목록보기</span></a>
+                            <a href="{% url 'shop:goods_list' %}"><span class="btn_3">목록보기</span></a>
                         </div>
                     </div>
                 </form>
             </div>
 
             <!-- 상품상세정보 -->
-            {% if product.gd_desc %}
             <div class="good_view_detail">
                 <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_01.png' %}" alt="">상품상세정보</h3>
-                <div style="border-top:1px solid #cecece;padding:30px 0;">
+                {% if product.gd_desc_img %}
+                <div class="img">
+                    <img src="/fcdata/shop_goods/{{ product.gd_desc_img }}" alt=""/>
+                </div>
+                {% endif %}
+                {% if product.gd_desc %}
+                <div>
                     {{ product.gd_desc|safe }}
                 </div>
+                {% endif %}
+                <p>&nbsp;</p>
             </div>
-            {% endif %}
 
             <!-- 반품/교환정보 -->
             {% if product.gd_change_policy %}
@@ -122,7 +131,7 @@
 
             <!-- 배송안내 -->
             {% if product.gd_delivery_policy %}
-            <div class="good_view_info" style="margin-top:10px;">
+            <div class="good_view_info">
                 <h3>배송안내</h3>
                 <p>{{ product.gd_delivery_policy|linebreaksbr }}</p>
             </div>

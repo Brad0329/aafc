@@ -9,7 +9,10 @@
         <div class="sub_menu">
             <ul>
                 <li class="present"><a href="{% url 'accounts:mypage' %}">마이페이지</a></li>
-                <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
+                <li><a href="{% url 'enrollment:payment_history' %}">결제/수강내역</a></li>
+                <li><a href="{% url 'points:point_list' %}">마이포인트</a></li>
+                <li><a href="{% url 'notifications:notification_list' %}">알림장</a></li>
+                <li><a href="#">회원탈퇴</a></li>
             </ul>
         </div>
         <div class="sub_contents">
@@ -20,11 +23,11 @@
                     <strong>{{ child.name }}</strong>을(를) 정말 삭제하시겠습니까?
                 </p>
             </div>
-            <div class="join_btn" style="text-align:center;">
+            <div class="join_btn">
                 <form method="post" style="display:inline;">
                     {% csrf_token %}
-                    <button type="submit" style="background:#1e406e; color:#fff; border:none; padding:10px 30px; cursor:pointer;">삭제</button>
-                    <a href="{% url 'accounts:mypage' %}" style="background:#868686; color:#fff; padding:10px 30px; text-decoration:none; margin-left:5px;">취소</a>
+                    <a href="{% url 'accounts:mypage' %}"><img src="{% static 'images/sub/cancel_bts.png' %}" alt="취소"/></a>
+                    <a href="javascript:document.forms[1].submit();"><img src="{% static 'images/sub/btn_del.gif' %}" alt="삭제"/></a>
                 </form>
             </div>
         </div>

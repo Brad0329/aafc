@@ -40,7 +40,7 @@
                     <th>요일</th>
                     <th>시간</th>
                     <th>대상</th>
-                    <th class="last">정원</th>
+                    <th class="last">정원(현재원)</th>
                 </tr>
             </thead>
             <tbody>
@@ -49,7 +49,7 @@
                     <td>{{ lec.day }}</td>
                     <td>{{ lec.time }}</td>
                     <td>&nbsp;&nbsp;&nbsp;{{ lec.age }}</td>
-                    <td class="last">{{ lec.capacity }}명</td>
+                    <td class="last">{{ lec.capacity }}명(<font color="blue">{{ lec.cur_cnt }}명</font>)</td>
                 </tr>
                 {% endfor %}
             </tbody>
