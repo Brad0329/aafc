@@ -12,6 +12,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    'django.contrib.sitemaps',
     # project apps
     'apps.accounts',
     'apps.enrollment',
@@ -89,6 +90,12 @@ AUTH_USER_MODEL = 'accounts.Member'
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+# 보안 설정
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
 
 # CKEditor 5
 CKEDITOR_5_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'

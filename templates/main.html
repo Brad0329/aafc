@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}AAFC - 유소년 축구 아카데미{% endblock %}
+
+{% block content %}
+<style type="text/css">
+    .main_quick_consult{display:block;}
+    .sub_quick_menu{display:none;}
+    @media screen and (min-width:720px) and (max-width:1023px){
+        .main_quick_consult{display:none;}
+    }
+    @media screen and (max-width:719px){
+        .main_quick_consult{display:none;}
+    }
+</style>
+
+<div id="main_contents">
+    <div class="main_wrap">
+        <!-- 슬라이더 -->
+        <div class="new_main_visual">
+            <div class="flexslider">
+                <ul class="slides">
+                    <li><img src="{% static 'images/main_img_20220509.png' %}" alt=""/></li>
+                    <li><img src="{% static 'images/main_img_20240822.png' %}" alt=""/></li>
+                    <li><img src="{% static 'images/main_img_20210408.png' %}" alt=""/></li>
+                    <li><img src="{% static 'images/main_img_20190208.png' %}" alt=""/></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="main_contents">
+            <!-- 퀵메뉴 + 상담폼 -->
+            <div class="new_main_sect_1">
+                <div class="left">
+                    <ul>
+                        <li><a href="{% url 'courses:greeting' %}"><img src="{% static 'images/new/n_main_quick_01_230306.png' %}" alt=""/></a></li>
+                        <li><a href="{% url 'courses:program' %}"><img src="{% static 'images/new/n_main_quick_02_230308.png' %}" alt=""/></a></li>
+                        <li><a href="{% url 'consult:consult' %}"><img src="{% static 'images/new/n_main_quick_03.png' %}" alt=""/></a></li>
+                        <li><a href="{% url 'enrollment:apply_step1' %}"><img src="{% static 'images/new/n_main_quick_04.png' %}" alt=""/></a></li>
+                        <li><img src="{% static 'images/new/n_main_quick_05_250227.png' %}" alt=""/></li>
+                        <li><img src="{% static 'images/new/n_main_quick_06_250227.png' %}" alt=""/></li>
+                        <li><img src="{% static 'images/new/n_main_quick_07_250224.png' %}" alt="" class="pc"/><img src="{% static 'images/new/n_main_quick_07_250224_t.png' %}" alt="" class="tablet"/></li>
+                    </ul>
+                </div>
+                <div class="right">
+                    <h4><b>상담문의</b><span>|</span>궁금하신 점은 상담예약을 해주시면 전화로 자세한 상담을 도와드리겠습니다.</h4>
+                    <div class="right_consult">
+                        <form name="q_form" id="q_form" method="post" action="">
+                        {% csrf_token %}
+                        <div class="r_c_left">
+                            <table summary="">
+                                <tbody>
+                                    <tr>
+                                        <th>이름</th>
+                                        <td><input type="text" name="jname" id="jname" maxlength="10" value=""/></td>
+                                    </tr>
+                                    <tr>
+                                        <th>연락처</th>
+                                        <td class="hpn"><input type="text" name="jphone1" id="jphone1" maxlength="3" value="010" readonly class="common"/><input type="text" name="jphone2" id="jphone2" maxlength="4" value=""/><input type="text" name="jphone3" id="jphone3" maxlength="4" value=""/></td>
+                                    </tr>
+                                    <tr>
+                                        <th>문의사항</th>
+                                        <td>
+                                            <select name="consult_gbn" id="consult_gbn">
+                                                <option value="A1">신규 입단문의</option>
+                                                <option value="B1">무료수업 체험</option>
+                                                <option value="C1">3회체험 수업권구입(1만원)</option>
+                                                <option value="D1">기타(쇼핑몰 및 기타)</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>지역선택</th>
+                                        <td>
+                                            <select name="jlocal" id="jlocal">
+                                                {% for region in regions %}
+                                                <option value="{{ region.reg_name }}">{{ region.reg_name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>개인정보 수집</th>
+                                        <td><input type="checkbox" name="qchk_box" id="qchk_box" value="Y"/>동의</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="r_c_right"><a href="javascript:free_join();">상담예약</a></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 인스타그램 -->
+            <div class="new_insta_con">
+                <div><a href="https://www.instagram.com/aafc.co.kr/" target="_blank"><p><img src="{% static 'images/new_insta_icon.png' %}" alt=""/>본사</p></a></div>
+                <div><a href="https://www.instagram.com/aafc.yooseok" target="_blank"><p><img src="{% static 'images/new_insta_icon.png' %}" alt=""/>유석초 &amp; 선수반</p></a></div>
+                <div><a href="https://www.instagram.com/aafc_footballclub/" target="_blank"><p><img src="{% static 'images/new_insta_icon.png' %}" alt=""/>충암초 &amp; 선수반</p></a></div>
+                <div><a href="https://www.instagram.com/aafc_kwangwoon/" target="_blank"><p><img src="{% static 'images/new_insta_icon.png' %}" alt=""/>광운초</p></a></div>
+                <div><a href="https://www.instagram.com/aafc.hwarang.u12_official/" target="_blank"><p><img src="{% static 'images/new_insta_icon.png' %}" alt=""/>북부 선수반</p></a></div>
+                <div><a href="https://www.instagram.com/aafc_ilsan/" target="_blank"><p><img src="{% static 'images/new_insta_icon.png' %}" alt=""/>일산백석</p></a></div>
+                <div><a href="https://www.instagram.com/aafc_daecheong/" target="_blank"><p><img src="{% static 'images/new_insta_icon.png' %}" alt=""/>대청초 &amp; 선수반</p></a></div>
+                <div><a href="https://www.instagram.com/aafc_gwangmyeong/" target="_blank"><p><img src="{% static 'images/new_insta_icon.png' %}" alt=""/>광명</p></a></div>
+                <div><a href="https://www.instagram.com/aafc_space_1/" target="_blank"><p><img src="{% static 'images/new_insta_icon.png' %}" alt=""/>남양주스페이스1</p></a></div>
+                <div><a href="https://www.instagram.com/aafc_ansan_seonbu/" target="_blank"><p><img src="{% static 'images/new_insta_icon.png' %}" alt=""/>안산선부</p></a></div>
+                <div><a href="https://www.instagram.com/aafc_siheung/" target="_blank"><p><img src="{% static 'images/new_insta_icon.png' %}" alt=""/>시흥</p></a></div>
+                <div><a href="https://www.instagram.com/aafc_cheongwon_/" target="_blank"><p><img src="{% static 'images/new_insta_icon.png' %}" alt=""/>청원초</p></a></div>
+            </div>
+
+            <!-- 게시판 4개 탭 -->
+            <div class="new_main_notice">
+                <div class="box">
+                    <h4><img src="{% static 'images/new/new_main_notice_t01_200629.png' %}" alt="공지사항"/></h4>
+                    <ul>
+                        {% for post in notices %}
+                        <li>
+                            <a href="{% url 'board:view' board_id='Y' b_seq=post.b_seq %}">{% if post.insert_dt >= three_days_ago %}<img src="{% static 'images/ico_new_20200327.gif' %}" style="vertical-align:middle;"/>{% endif %}{{ post.b_title|truncatechars:18 }}{% if post.comment_count %} [{{ post.comment_count }}]{% endif %}</a>
+                            <span>{{ post.insert_dt|truncatechars:10 }}</span>
+                        </li>
+                        {% empty %}
+                        <li>등록 공지사항이 없습니다.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="box">
+                    <h4><img src="{% static 'images/new/new_main_notice_t02.png' %}" alt="AAFC소식"/></h4>
+                    <ul>
+                        {% for post in news %}
+                        <li>
+                            <a href="{% url 'board:view' board_id='Y' b_seq=post.b_seq %}">{% if post.insert_dt >= three_days_ago %}<img src="{% static 'images/ico_new_20200327.gif' %}" style="vertical-align:middle;"/>{% endif %}{{ post.b_title|truncatechars:18 }}{% if post.comment_count %} [{{ post.comment_count }}]{% endif %}</a>
+                            <span>{{ post.insert_dt|truncatechars:10 }}</span>
+                        </li>
+                        {% empty %}
+                        <li>등록 소식이 없습니다.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="box">
+                    <h4><img src="{% static 'images/new/new_main_notice_t03_200629.png' %}" alt="공부하는AAFC"/></h4>
+                    <ul>
+                        {% for post in study %}
+                        <li>
+                            <a href="{% url 'board:view' board_id='ST' b_seq=post.b_seq %}">{% if post.insert_dt >= three_days_ago %}<img src="{% static 'images/ico_new_20200327.gif' %}" style="vertical-align:middle;"/>{% endif %}{{ post.b_title|truncatechars:18 }}{% if post.comment_count %} [{{ post.comment_count }}]{% endif %}</a>
+                            <span>{{ post.insert_dt|truncatechars:10 }}</span>
+                        </li>
+                        {% empty %}
+                        <li>등록 소식이 없습니다.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="box">
+                    <h4><img src="{% static 'images/new/new_main_notice_t04.png' %}" alt="이벤트"/></h4>
+                    <ul>
+                        {% for post in events %}
+                        <li>
+                            <a href="{% url 'board:view' board_id='Y' b_seq=post.b_seq %}">{% if post.insert_dt >= three_days_ago %}<img src="{% static 'images/ico_new_20200327.gif' %}" style="vertical-align:middle;"/>{% endif %}{{ post.b_title|truncatechars:18 }}{% if post.comment_count %} [{{ post.comment_count }}]{% endif %}</a>
+                            <span>{{ post.insert_dt|truncatechars:10 }}</span>
+                        </li>
+                        {% empty %}
+                        <li>등록 이벤트가 없습니다.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- YouTube -->
+        <div class="main_youtube">
+            <h3><img src="{% static 'images/new/main_youtube_ico.png' %}" alt=""/>AAFC <b>YouTube</b></h3>
+            <div class="list" id="yt_list"></div>
+        </div>
+
+    </div>
+</div>
+
+<!-- 팝업 -->
+{% for popup in popups %}
+<div class="layer_popup" id="popup_{{ popup.id }}" style="position:fixed; left:{{ popup.pop_left }}px; top:{{ popup.pop_top }}px; width:{{ popup.pop_width }}px; z-index:9999; display:block;">
+    {% if popup.pop_url %}
+    <a href="{{ popup.pop_url }}" {% if popup.pop_urltype == 'N' %}target="_blank"{% endif %}>
+        <img src="/media/fcdata/popup/{{ popup.pop_img }}" style="width:100%;"/>
+    </a>
+    {% else %}
+    <img src="/media/fcdata/popup/{{ popup.pop_img }}" style="width:100%;"/>
+    {% endif %}
+    <div style="background:#333; padding:5px; text-align:right; overflow:hidden;">
+        <label style="color:#fff; font-size:12px; cursor:pointer; float:left;">
+            <input type="checkbox" onclick="closePopupToday({{ popup.id }})"/> 오늘 하루 안보기
+        </label>
+        <a href="javascript:closePopup({{ popup.id }});" style="color:#fff; font-size:12px;">닫기</a>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://apis.google.com/js/api.js"></script>
+<script type="text/javascript">
+/* 상담 폼 검증 및 제출 */
+function free_join() {
+    if($("#qchk_box").is(":checked") == false){
+        alert("개인정보 수집에 동의해주세요");
+        $("#qchk_box").focus();
+        return;
+    }
+    if(!$("#jname").onVerification("default","이름을 입력하여 주세요.")){return;};
+    if(!$("#jphone2").onVerification("default","연락처를 입력하여 주세요.")){return;};
+    if(!$("#jphone2").onVerification("number","연락처를 숫자로 입력하여 주세요.")){return;};
+    if(!$("#jphone3").onVerification("default","연락처를 입력하여 주세요.")){return;};
+    if(!$("#jphone3").onVerification("number","연락처를 숫자로 입력하여 주세요.")){return;};
+
+    var con = confirm("상담을 신청하시겠습니까?");
+    if (con) {
+        $.ajax({
+            type: "POST",
+            url: "{% url 'ajax_main_consult' %}",
+            data: $("#q_form").serialize(),
+            dataType: "json",
+            success: function(data) {
+                alert(data.message);
+                if (data.success) {
+                    $("#q_form")[0].reset();
+                    $("#jphone1").val("010");
+                }
+            },
+            error: function() {
+                alert("처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+            }
+        });
+    }
+}
+
+/* YouTube API */
+var yt_id = "PLCA4ZW-2-G3uLAt-z-hDxzuecwDDwdgyz";
+var you_apikey = "AIzaSyDD5x61Dy8btupKhg6O8jckOnVf3iVAeQs";
+
+function fnGetList(sGetToken){
+    var sTargetUrl = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId="+yt_id+"&key="+you_apikey+"&maxResults=4";
+    if(sGetToken){
+        sTargetUrl += "&pageToken="+sGetToken;
+    }
+    $.ajax({
+        type: "POST",
+        url: sTargetUrl,
+        dataType: "jsonp",
+        success: function(jdata){
+            $(jdata.items).each(function(i){
+                $("#yt_list").append("<div class='box'><a href='https://youtu.be/"+this.snippet.resourceId.videoId+"' target='_blank'><div class='img'><img src='"+this.snippet.thumbnails.medium.url+"'></div></a></div>");
+            });
+        },
+        error: function(){}
+    });
+}
+fnGetList();
+
+/* 팝업 제어 */
+function closePopup(id) {
+    document.getElementById('popup_' + id).style.display = 'none';
+}
+function closePopupToday(id) {
+    var expires = new Date();
+    expires.setHours(23, 59, 59);
+    document.cookie = 'popup_' + id + '=hidden; expires=' + expires.toUTCString() + '; path=/';
+    closePopup(id);
+}
+
+/* 페이지 로드 시 쿠키 체크하여 팝업 숨김 */
+$(document).ready(function() {
+    $(".layer_popup").each(function() {
+        var id = $(this).attr('id').replace('popup_', '');
+        if (document.cookie.indexOf('popup_' + id + '=hidden') > -1) {
+            $(this).hide();
+        }
+    });
+});
+</script>
+{% endblock %}

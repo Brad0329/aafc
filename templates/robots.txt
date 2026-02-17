@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin/
+Disallow: /ba_office/
+Disallow: /media/
+Disallow: /ckeditor5/
+
+Sitemap: {{ scheme }}://{{ host }}/sitemap.xml
