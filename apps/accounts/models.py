@@ -39,6 +39,11 @@ class Member(AbstractUser):
         db_table = 'accounts_member'
         verbose_name = '회원'
         verbose_name_plural = '회원'
+        indexes = [
+            # 관리자 회원 검색 (name LIKE, phone LIKE)
+            models.Index(fields=['name'], name='idx_member_name'),
+            models.Index(fields=['phone'], name='idx_member_phone'),
+        ]
 
     def __str__(self):
         return f'{self.username} ({self.name})'
@@ -77,6 +82,10 @@ class MemberChild(models.Model):
         db_table = 'accounts_memberchild'
         verbose_name = '자녀'
         verbose_name_plural = '자녀'
+        indexes = [
+            # 수강생 목록 필터 (course_state='ING' 등)
+            models.Index(fields=['course_state'], name='idx_child_course_state'),
+        ]
 
     def __str__(self):
         return f'{self.name} ({self.parent_id})'

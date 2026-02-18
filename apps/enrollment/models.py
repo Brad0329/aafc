@@ -61,6 +61,15 @@ class Enrollment(models.Model):
         verbose_name = '입단신청'
         verbose_name_plural = '입단신청'
         ordering = ['-id']
+        indexes = [
+            # 목록 조회 필수 조건 (del_chk='N' AND lecture_stats=?)
+            models.Index(fields=['del_chk', 'lecture_stats'], name='idx_enroll_delchk_stats'),
+            # 상태 복합 필터 (lecture_stats IN (...) AND pay_stats=?)
+            models.Index(fields=['lecture_stats', 'pay_stats'], name='idx_enroll_lec_pay_stats'),
+            # 회원/자녀 기준 조회 (JOIN, 상세 조회)
+            models.Index(fields=['member_id'], name='idx_enroll_member'),
+            models.Index(fields=['child_id'], name='idx_enroll_child'),
+        ]
 
     def __str__(self):
         return f'#{self.id} {self.member_id} - {self.child_id}'
@@ -85,6 +94,16 @@ class EnrollmentCourse(models.Model):
         db_table = 'enrollment_enrollmentcourse'
         verbose_name = '수강과정'
         verbose_name_plural = '수강과정'
+        indexes = [
+            # 청구항목 필터 (bill_code IN ('1001','1003'))
+            models.Index(fields=['bill_code'], name='idx_ec_bill_code'),
+            # 월별 조회
+            models.Index(fields=['course_ym'], name='idx_ec_course_ym'),
+            # 강좌별 조회
+            models.Index(fields=['lecture_code'], name='idx_ec_lec_code'),
+            # 월별+강좌 복합 조회
+            models.Index(fields=['course_ym', 'lecture_code'], name='idx_ec_ym_lec'),
+        ]
 
     def __str__(self):
         return f'입단#{self.enrollment_id} {self.bill_code} {self.course_ym}'
@@ -108,6 +127,12 @@ class EnrollmentBill(models.Model):
         db_table = 'enrollment_enrollmentbill'
         verbose_name = '청구내역'
         verbose_name_plural = '청구내역'
+        indexes = [
+            # 청구항목 필터
+            models.Index(fields=['bill_code'], name='idx_bill_code'),
+            # 결제상태 필터 (일괄 업데이트 조건)
+            models.Index(fields=['pay_stats'], name='idx_bill_pay_stats'),
+        ]
 
     def __str__(self):
         return f'입단#{self.enrollment_id} {self.bill_code} {self.bill_amt}'
@@ -215,6 +240,12 @@ class WaitStudent(models.Model):
         db_table = 'enrollment_waitstudent'
         verbose_name = '대기자'
         verbose_name_plural = '대기자'
+        indexes = [
+            # 목록 필수 조건 (del_chk='N' AND trans_gbn='N')
+            models.Index(fields=['del_chk', 'trans_gbn'], name='idx_wait_delchk_trans'),
+            # 구장+강좌 필터
+            models.Index(fields=['sta_code', 'lecture_code'], name='idx_wait_sta_lec'),
+        ]
 
     def __str__(self):
         return f'{self.child_name} - 대기#{self.wait_seq}'
