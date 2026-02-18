@@ -18,34 +18,24 @@ function fn_search() {
 <div class="navi">HOME  &gt;  회원관리  &gt;  자녀정보</div>
 <div class="h_55"></div>
 
-<p class="title">자녀정보 - 리스트 (총 {{ total_count }}건)</p>
+<p class="title">자녀정보{% if is_searched %} - 리스트 (총 {{ total_count }}건){% endif %}</p>
 
 <form name="schform" method="get" action="{% url 'office_child_list' %}">
 <table border="0" cellpadding="3" cellspacing="0" style="margin-bottom:5px;">
     <tr>
-        <td>상태
-            <select name="status" class="select">
-                <option value="">전체</option>
-                <option value="N" {% if status == 'N' %}selected{% endif %}>정상</option>
-                <option value="S" {% if status == 'S' %}selected{% endif %}>중지</option>
-                <option value="O" {% if status == 'O' %}selected{% endif %}>탈퇴</option>
+        <td>
+            <select name="sch_type" class="select">
+                <option value="child_name" {% if sch_type == 'child_name' %}selected{% endif %}>자녀이름</option>
+                <option value="parent_name" {% if sch_type == 'parent_name' %}selected{% endif %}>부모이름</option>
             </select>
-        </td>
-        <td>&nbsp;
-            <select name="skey" class="select">
-                <option value="child_name" {% if skey == 'child_name' %}selected{% endif %}>자녀이름</option>
-                <option value="child_id" {% if skey == 'child_id' %}selected{% endif %}>자녀ID</option>
-                <option value="m.member_id" {% if skey == 'm.member_id' %}selected{% endif %}>부모ID</option>
-                <option value="member_name" {% if skey == 'member_name' %}selected{% endif %}>부모이름</option>
-                <option value="card_num" {% if skey == 'card_num' %}selected{% endif %}>카드번호</option>
-            </select>
-            <input type="text" name="sword" value="{{ sword }}" size="15" class="input" />
+            <input type="text" name="sch_keyword" value="{{ sch_keyword }}" size="15" class="input" />
         </td>
         <td>&nbsp;<a href="javascript:fn_search();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></td>
     </tr>
 </table>
 </form>
 
+{% if is_searched %}
 <div class="tb_basic">
     <table summary="자녀정보" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
@@ -90,7 +80,7 @@ function fn_search() {
                 <td>{% if c.child_id %}<a href="{% url 'office_child_detail' c.child_id %}" target="_blank"><img src="{% static 'ba_office/images/btn_detail.gif' %}" alt="상세" /></a>{% endif %}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="11" style="padding:20px;">등록된 자녀가 없습니다.</td></tr>
+            <tr><td colspan="11" style="padding:20px;">검색 결과가 없습니다.</td></tr>
             {% endfor %}
         </tbody>
     </table>
@@ -99,20 +89,23 @@ function fn_search() {
 {% if children.has_other_pages %}
 <div class="paging">
     {% if children.has_previous %}
-    <a href="?page=1&status={{ status }}&skey={{ skey }}&sword={{ sword }}&sch_member_id={{ sch_member_id }}">&laquo;</a>
-    <a href="?page={{ children.previous_page_number }}&status={{ status }}&skey={{ skey }}&sword={{ sword }}&sch_member_id={{ sch_member_id }}">&lt;</a>
+    <a href="?page=1&sch_type={{ sch_type }}&sch_keyword={{ sch_keyword }}">&laquo;</a>
+    <a href="?page={{ children.previous_page_number }}&sch_type={{ sch_type }}&sch_keyword={{ sch_keyword }}">&lt;</a>
     {% endif %}
     {% for num in children.paginator.page_range %}
         {% if children.number == num %}
         <strong>{{ num }}</strong>
         {% elif num > children.number|add:"-5" and num < children.number|add:"5" %}
-        <a href="?page={{ num }}&status={{ status }}&skey={{ skey }}&sword={{ sword }}&sch_member_id={{ sch_member_id }}">{{ num }}</a>
+        <a href="?page={{ num }}&sch_type={{ sch_type }}&sch_keyword={{ sch_keyword }}">{{ num }}</a>
         {% endif %}
     {% endfor %}
     {% if children.has_next %}
-    <a href="?page={{ children.next_page_number }}&status={{ status }}&skey={{ skey }}&sword={{ sword }}&sch_member_id={{ sch_member_id }}">&gt;</a>
-    <a href="?page={{ children.paginator.num_pages }}&status={{ status }}&skey={{ skey }}&sword={{ sword }}&sch_member_id={{ sch_member_id }}">&raquo;</a>
+    <a href="?page={{ children.next_page_number }}&sch_type={{ sch_type }}&sch_keyword={{ sch_keyword }}">&gt;</a>
+    <a href="?page={{ children.paginator.num_pages }}&sch_type={{ sch_type }}&sch_keyword={{ sch_keyword }}">&raquo;</a>
     {% endif %}
 </div>
+{% endif %}
+{% else %}
+<div style="padding:40px 0; text-align:center; color:#888;">검색 조건을 입력 후 조회하세요.</div>
 {% endif %}
 {% endblock %}

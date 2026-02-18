@@ -615,42 +615,51 @@ def office_alim_del(request, pk):
 @office_permission_required('M')
 def member_list(request):
     """회원 목록"""
-    sch_name = request.GET.get('sch_member_name', '').strip()
-    sch_id = request.GET.get('sch_member_id', '').strip()
+    sch_type = request.GET.get('sch_type', 'name')
+    sch_keyword = request.GET.get('sch_keyword', '').strip()
     sch_status = request.GET.get('sch_member_status', '')
     page = request.GET.get('page', '1')
 
-    qs = Member.objects.filter(is_superuser=False)
-    if sch_name:
-        qs = qs.filter(name__icontains=sch_name)
-    if sch_id:
-        qs = qs.filter(username__icontains=sch_id)
-    if sch_status:
-        qs = qs.filter(status=sch_status)
+    # 검색 조건이 하나라도 있을 때만 조회
+    is_searched = bool(sch_keyword or sch_status)
 
-    # 포인트, 자녀수 어노테이션
-    qs = qs.annotate(
-        add_point=Coalesce(
-            Sum('point_histories__app_point', filter=Q(point_histories__app_gbn='S')),
-            Value(0), output_field=IntegerField()
-        ),
-        min_point=Coalesce(
-            Sum('point_histories__app_point', filter=Q(point_histories__app_gbn='U')),
-            Value(0), output_field=IntegerField()
-        ),
-        child_count=Count('children', distinct=True),
-    ).order_by('-insert_dt', '-id')
-    # point = add_point - min_point (뷰에서 계산)
+    members = None
+    total_count = 0
 
-    paginator = Paginator(qs, 20)
-    members = paginator.get_page(page)
+    if is_searched:
+        qs = Member.objects.filter(is_superuser=False)
+        if sch_keyword:
+            if sch_type == 'phone':
+                qs = qs.filter(phone__icontains=sch_keyword)
+            else:
+                qs = qs.filter(name__icontains=sch_keyword)
+        if sch_status:
+            qs = qs.filter(status=sch_status)
+
+        # 포인트, 자녀수 어노테이션
+        qs = qs.annotate(
+            add_point=Coalesce(
+                Sum('point_histories__app_point', filter=Q(point_histories__app_gbn='S')),
+                Value(0), output_field=IntegerField()
+            ),
+            min_point=Coalesce(
+                Sum('point_histories__app_point', filter=Q(point_histories__app_gbn='U')),
+                Value(0), output_field=IntegerField()
+            ),
+            child_count=Count('children', distinct=True),
+        ).order_by('-insert_dt', '-id')
+
+        paginator = Paginator(qs, 20)
+        members = paginator.get_page(page)
+        total_count = paginator.count
 
     return render(request, 'ba_office/lfmember/member_list.html', {
         'members': members,
-        'sch_member_name': sch_name,
-        'sch_member_id': sch_id,
+        'is_searched': is_searched,
+        'sch_type': sch_type,
+        'sch_keyword': sch_keyword,
         'sch_member_status': sch_status,
-        'total_count': paginator.count,
+        'total_count': total_count,
     })
 
 
@@ -975,42 +984,35 @@ def member_childadd(request, member_id):
 @office_permission_required('M')
 def child_list(request):
     """자녀 목록"""
-    status = request.GET.get('status', '')
-    skey = request.GET.get('skey', '')
-    sword = request.GET.get('sword', '').strip()
-    sch_member_id = request.GET.get('sch_member_id', '').strip()
+    sch_type = request.GET.get('sch_type', 'child_name')
+    sch_keyword = request.GET.get('sch_keyword', '').strip()
     page = request.GET.get('page', '1')
 
-    qs = MemberChild.objects.select_related('parent').all()
+    # 검색 조건이 있을 때만 조회
+    is_searched = bool(sch_keyword)
 
-    if sch_member_id:
-        qs = qs.filter(parent__username=sch_member_id)
-    if status:
-        qs = qs.filter(status=status)
-    if skey and sword:
-        if skey == 'child_name':
-            qs = qs.filter(name__icontains=sword)
-        elif skey == 'child_id':
-            qs = qs.filter(child_id__icontains=sword)
-        elif skey == 'm.member_id':
-            qs = qs.filter(parent__username__icontains=sword)
-        elif skey == 'member_name':
-            qs = qs.filter(parent__name__icontains=sword)
-        elif skey == 'card_num':
-            qs = qs.filter(card_num__icontains=sword)
+    children = None
+    total_count = 0
 
-    qs = qs.order_by('-insert_dt', '-id')
+    if is_searched:
+        qs = MemberChild.objects.select_related('parent').all()
+        if sch_type == 'parent_name':
+            qs = qs.filter(parent__name__icontains=sch_keyword)
+        else:
+            qs = qs.filter(name__icontains=sch_keyword)
 
-    paginator = Paginator(qs, 15)
-    children = paginator.get_page(page)
+        qs = qs.order_by('-insert_dt', '-id')
+
+        paginator = Paginator(qs, 15)
+        children = paginator.get_page(page)
+        total_count = paginator.count
 
     return render(request, 'ba_office/lfmember/child_list.html', {
         'children': children,
-        'status': status,
-        'skey': skey,
-        'sword': sword,
-        'sch_member_id': sch_member_id,
-        'total_count': paginator.count,
+        'is_searched': is_searched,
+        'sch_type': sch_type,
+        'sch_keyword': sch_keyword,
+        'total_count': total_count,
     })
 
 
@@ -1252,37 +1254,41 @@ def memberpoint_list(request):
     sch_startdt = request.GET.get('sch_startdt', '')
     sch_enddt = request.GET.get('sch_enddt', '')
     sch_app_gbn = request.GET.get('sch_app_gbn', '')
-    sch_txt = request.GET.get('sch_txt', '')
     sch_val = request.GET.get('sch_val', '').strip()
     sch_desc_gbn = request.GET.get('sch_desc_gbn', '')
 
-    qs = PointHistory.objects.all().order_by('-insert_dt', '-id')
-    if sch_startdt:
-        qs = qs.filter(point_dt__gte=sch_startdt.replace('-', ''))
-    if sch_enddt:
-        qs = qs.filter(point_dt__lte=sch_enddt.replace('-', ''))
-    if sch_app_gbn:
-        qs = qs.filter(app_gbn=sch_app_gbn)
-    if sch_txt and sch_val:
-        if sch_txt == 'member_id':
-            qs = qs.filter(member_id__icontains=sch_val)
-        elif sch_txt == 'member_name':
-            qs = qs.filter(member_name__icontains=sch_val)
-    if sch_desc_gbn:
-        qs = qs.filter(point_desc__icontains=sch_desc_gbn)
+    # 검색 조건이 하나라도 있을 때만 조회
+    is_searched = bool(sch_startdt or sch_enddt or sch_app_gbn or sch_val or sch_desc_gbn)
 
-    paginator = Paginator(qs, 20)
-    histories = paginator.get_page(page)
+    histories = None
+    total_count = 0
+
+    if is_searched:
+        qs = PointHistory.objects.all().order_by('-insert_dt', '-id')
+        if sch_startdt:
+            qs = qs.filter(point_dt__gte=sch_startdt)
+        if sch_enddt:
+            qs = qs.filter(point_dt__lte=sch_enddt)
+        if sch_app_gbn:
+            qs = qs.filter(app_gbn=sch_app_gbn)
+        if sch_val:
+            qs = qs.filter(member_name__icontains=sch_val)
+        if sch_desc_gbn:
+            qs = qs.filter(point_desc__icontains=sch_desc_gbn)
+
+        paginator = Paginator(qs, 20)
+        histories = paginator.get_page(page)
+        total_count = paginator.count
 
     return render(request, 'ba_office/lfmember/memberpoint_list.html', {
         'histories': histories,
+        'is_searched': is_searched,
         'sch_startdt': sch_startdt,
         'sch_enddt': sch_enddt,
         'sch_app_gbn': sch_app_gbn,
-        'sch_txt': sch_txt,
         'sch_val': sch_val,
         'sch_desc_gbn': sch_desc_gbn,
-        'total_count': paginator.count,
+        'total_count': total_count,
     })
 
 

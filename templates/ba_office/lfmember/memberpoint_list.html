@@ -22,7 +22,7 @@ function fn_search() {
 <div class="navi">HOME  &gt;  회원관리  &gt;  회원포인트내역</div>
 <div class="h_55"></div>
 
-<p class="title">회원포인트내역 (총 {{ total_count }}건)</p>
+<p class="title">회원포인트내역{% if is_searched %} (총 {{ total_count }}건){% endif %}</p>
 
 <form name="schform" method="get" action="{% url 'office_memberpoint_list' %}">
 <table border="0" cellpadding="3" cellspacing="0" style="margin-bottom:5px;">
@@ -38,11 +38,7 @@ function fn_search() {
                 <option value="U" {% if sch_app_gbn == 'U' %}selected{% endif %}>사용</option>
             </select>
         </td>
-        <td>&nbsp;
-            <select name="sch_txt" class="select">
-                <option value="member_id" {% if sch_txt == 'member_id' %}selected{% endif %}>아이디</option>
-                <option value="member_name" {% if sch_txt == 'member_name' %}selected{% endif %}>회원명</option>
-            </select>
+        <td>&nbsp;회원명
             <input type="text" name="sch_val" value="{{ sch_val }}" size="12" class="input" />
         </td>
         <td>&nbsp;적립구분:
@@ -60,8 +56,8 @@ function fn_search() {
     </tr>
 </table>
 </form>
-<p>검색조건이(조회기간, 회원) 있어야 조회가 가능합니다.</p>
 
+{% if is_searched %}
 <div class="tb_basic">
     <table summary="포인트내역" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
@@ -79,7 +75,7 @@ function fn_search() {
         </colgroup>
         <tbody>
             <tr>
-                <th scope="col">적립번호</th>
+                <th scope="col">순번</th>
                 <th scope="col">적립일자</th>
                 <th scope="col">구분</th>
                 <th scope="col">회원명</th>
@@ -93,7 +89,7 @@ function fn_search() {
             </tr>
             {% for h in histories %}
             <tr>
-                <td>{{ h.id }}</td>
+                <td>{{ forloop.counter|page_index:histories.start_index }}</td>
                 <td>{{ h.point_dt }}</td>
                 <td>{% if h.app_gbn == 'S' %}<font color="blue">적립</font>{% else %}<font color="red">사용</font>{% endif %}</td>
                 <td>{{ h.member_name }}</td>
@@ -115,7 +111,7 @@ function fn_search() {
                 <td></td>
             </tr>
             {% empty %}
-            <tr><td colspan="11" style="padding:20px;">포인트 내역이 없습니다.</td></tr>
+            <tr><td colspan="11" style="padding:20px;">검색 결과가 없습니다.</td></tr>
             {% endfor %}
         </tbody>
     </table>
@@ -124,21 +120,24 @@ function fn_search() {
 {% if histories.has_other_pages %}
 <div class="paging">
     {% if histories.has_previous %}
-    <a href="?page=1&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_txt={{ sch_txt }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&laquo;</a>
-    <a href="?page={{ histories.previous_page_number }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_txt={{ sch_txt }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&lt;</a>
+    <a href="?page=1&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&laquo;</a>
+    <a href="?page={{ histories.previous_page_number }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&lt;</a>
     {% endif %}
     {% for num in histories.paginator.page_range %}
         {% if histories.number == num %}
         <strong>{{ num }}</strong>
         {% elif num > histories.number|add:"-5" and num < histories.number|add:"5" %}
-        <a href="?page={{ num }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_txt={{ sch_txt }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">{{ num }}</a>
+        <a href="?page={{ num }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">{{ num }}</a>
         {% endif %}
     {% endfor %}
     {% if histories.has_next %}
-    <a href="?page={{ histories.next_page_number }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_txt={{ sch_txt }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&gt;</a>
-    <a href="?page={{ histories.paginator.num_pages }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_txt={{ sch_txt }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&raquo;</a>
+    <a href="?page={{ histories.next_page_number }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&gt;</a>
+    <a href="?page={{ histories.paginator.num_pages }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&raquo;</a>
     {% endif %}
 </div>
+{% endif %}
+{% else %}
+<div style="padding:40px 0; text-align:center; color:#888;">검색 조건을 입력 후 조회하세요.</div>
 {% endif %}
 
 <div class="btn_right">
