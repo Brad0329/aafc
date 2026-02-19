@@ -126,6 +126,9 @@ urlpatterns = [
     path('lfstudent/wait/modify/<int:pk>/', views.wait_modify, name='office_wait_modify'),
     path('lfstudent/wait/delete/', views.wait_delete_proc, name='office_wait_delete'),
 
+    # 수강생관리 > 클래식반관리 (개발준비중)
+    path('lfstudent/classic/', views.under_development, {'page_title': '클래식반관리'}, name='office_classic_list'),
+
     # 수강생관리 > 수강생등록
     path('lfstudent/student/add/', views.student_add, name='office_student_add'),
     path('lfstudent/ajax/child-search/', views.ajax_child_search, name='office_ajax_child_search'),

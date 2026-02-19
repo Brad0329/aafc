@@ -1869,6 +1869,13 @@ def ajax_student_course(request):
 
 @office_login_required
 @office_permission_required('H')
+def under_development(request, page_title=''):
+    """개발준비중 페이지 (미구현 메뉴 공통)"""
+    return render(request, 'ba_office/under_development.html', {'page_title': page_title})
+
+
+@office_login_required
+@office_permission_required('H')
 def dues_setting(request):
     """기본금액관리 - 교육용품비/패키지금액 설정"""
     setting = Setting.objects.first()
@@ -1952,7 +1959,8 @@ def student_list(request):
     """수강생정보 목록 (ASP lfstudent_list.asp)"""
     # 검색 파라미터
     sch_ym = request.GET.get('sch_ym', _get_default_ym())
-    sch_code_desc = request.GET.get('sch_code_desc', '')
+    # [UX변경] 필드+구장 2단계→구장 직접선택 1단계. 원본: sch_code_desc = request.GET.get('sch_code_desc', '')
+    sch_code_desc = ''
     sch_sta_code = request.GET.get('sch_sta_code', '')
     sch_lecture_code = request.GET.get('sch_lecture_code', '')
     sch_lecture_stats = request.GET.get('sch_lecture_stats', '')
@@ -1960,8 +1968,8 @@ def student_list(request):
     sch_lecture_title = request.GET.get('sch_lecture_title', '')
     page = request.GET.get('page', '1')
 
-    # ASP와 동일: 필드명(code_desc) 선택 시에만 데이터 조회
-    searched = bool(sch_code_desc)
+    # [UX변경] 구장 선택이 조회 트리거. 원본: searched = bool(sch_code_desc)
+    searched = bool(sch_sta_code)
     students = None
     total_count = 0
     wait_students = []
@@ -1984,13 +1992,7 @@ def student_list(request):
             lecture_filter_codes = list(Lecture.objects.filter(
                 stadium__sta_code=int(sch_sta_code)
             ).values_list('lecture_code', flat=True))
-        elif sch_code_desc:
-            subcodes = list(CodeValue.objects.filter(
-                group__grpcode='LOCD', del_chk='N', code_desc=sch_code_desc
-            ).values_list('subcode', flat=True))
-            lecture_filter_codes = list(Lecture.objects.filter(
-                local_code__in=subcodes
-            ).values_list('lecture_code', flat=True))
+        # [UX변경] 원본: elif sch_code_desc: subcodes→lecture_filter_codes (필드→구장 cascade 제거)
 
         # 강좌명 텍스트 검색
         if sch_lecture_title:
@@ -2094,11 +2096,7 @@ def student_list(request):
 
         # 대기등록자 (ASP와 동일 필터 적용)
         wait_qs = WaitStudent.objects.filter(trans_gbn='N', del_chk='N')
-        if sch_code_desc:
-            sub_codes = list(CodeValue.objects.filter(
-                group__grpcode='LOCD', del_chk='N', code_desc=sch_code_desc
-            ).values_list('subcode', flat=True))
-            wait_qs = wait_qs.filter(local_code__in=sub_codes)
+        # [UX변경] 원본: if sch_code_desc: wait_qs.filter(local_code__in=sub_codes) (필드 필터 제거)
         if sch_sta_code:
             wait_qs = wait_qs.filter(sta_code=int(sch_sta_code))
         if sch_lecture_code:
@@ -2119,19 +2117,11 @@ def student_list(request):
                 w.course_state_display = COURSE_STATE_TEXT.get(
                     child_states.get(w.child_id, ''), '')
 
-    # 필드명(code_desc) 목록
-    code_descs = CodeValue.objects.filter(
-        group__grpcode='LOCD', del_chk='N'
-    ).values_list('code_desc', flat=True).distinct().order_by('code_desc')
+    # [UX변경] 원본: code_descs = CodeValue.objects.filter(group__grpcode='LOCD'...) (필드 목록 제거)
 
-    # 구장/강좌 목록 (선택된 필터 유지)
-    stadiums = []
+    # [UX변경] 구장 전체 직접 표시. 원본: stadiums=[], if sch_code_desc: filter by local_code
+    stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
     courses = []
-    if sch_code_desc:
-        subcodes = list(CodeValue.objects.filter(
-            group__grpcode='LOCD', del_chk='N', code_desc=sch_code_desc
-        ).values_list('subcode', flat=True))
-        stadiums = Stadium.objects.filter(use_gbn='Y', local_code__in=subcodes).order_by('sta_name')
     if sch_sta_code:
         courses = Lecture.objects.filter(stadium__sta_code=int(sch_sta_code)).order_by('lecture_title')
 
@@ -2141,11 +2131,9 @@ def student_list(request):
         'total_count': total_count,
         'wait_students': wait_students,
         'wait_count': wait_count,
-        'code_descs': code_descs,
         'stadiums': stadiums,
         'courses': courses,
         'sch_ym': sch_ym,
-        'sch_code_desc': sch_code_desc,
         'sch_sta_code': sch_sta_code,
         'sch_lecture_code': sch_lecture_code,
         'sch_lecture_stats': sch_lecture_stats,
@@ -2485,21 +2473,27 @@ def student_alim_proc(request):
 @office_permission_required('H')
 def master_list(request):
     """입단신청내역 목록"""
-    sch_code_desc = request.GET.get('sch_code_desc', '')
+    from datetime import date as _date
+    today_str = _date.today().strftime('%Y-%m-%d')
+
+    # [UX변경] 원본: sch_code_desc = request.GET.get('sch_code_desc', '') (필드 제거)
     sch_sta_code = request.GET.get('sch_sta_code', '')
     sch_apply_gubun = request.GET.get('sch_apply_gubun', '')
     sch_lecture_stats = request.GET.get('sch_lecture_stats', '')
     sch_pay_method = request.GET.get('sch_pay_method', '')
     sch_pay_stats = request.GET.get('sch_pay_stats', '')
-    sch_sdate = request.GET.get('sch_sdate', '')
-    sch_edate = request.GET.get('sch_edate', '')
+    sch_sdate = request.GET.get('sch_sdate', '') or today_str
+    sch_edate = request.GET.get('sch_edate', '') or today_str
     sch_skey = request.GET.get('sch_skey', 'child_name')
     sch_sword = request.GET.get('sch_sword', '')
     page = request.GET.get('page', '1')
 
+    # 날짜는 항상 기본값이 있으므로 searched는 날짜 포함 항상 True
+    searched = True
+
     qs = Enrollment.objects.filter(del_chk='N').select_related('member', 'child')
 
-    # 권역/구장 필터
+    # 구장 필터
     if sch_sta_code:
         lec_codes = Lecture.objects.filter(
             stadium__sta_code=int(sch_sta_code)
@@ -2508,17 +2502,7 @@ def master_list(request):
             lecture_code__in=lec_codes
         ).values_list('enrollment_id', flat=True).distinct()
         qs = qs.filter(id__in=enrollment_ids)
-    elif sch_code_desc:
-        subcodes = list(CodeValue.objects.filter(
-            group__grpcode='LOCD', del_chk='N', code_desc=sch_code_desc
-        ).values_list('subcode', flat=True))
-        lec_codes = Lecture.objects.filter(
-            local_code__in=subcodes
-        ).values_list('lecture_code', flat=True)
-        enrollment_ids = EnrollmentCourse.objects.filter(
-            lecture_code__in=lec_codes
-        ).values_list('enrollment_id', flat=True).distinct()
-        qs = qs.filter(id__in=enrollment_ids)
+    # [UX변경] 원본: elif sch_code_desc: local_code→lec_codes 필터 (필드→구장 cascade 제거)
 
     if sch_apply_gubun:
         qs = qs.filter(apply_gubun=sch_apply_gubun)
@@ -2529,11 +2513,18 @@ def master_list(request):
     if sch_pay_stats:
         qs = qs.filter(pay_stats=sch_pay_stats)
 
-    # 기간 필터
-    if sch_sdate:
-        qs = qs.filter(insert_dt__date__gte=sch_sdate)
-    if sch_edate:
-        qs = qs.filter(insert_dt__date__lte=sch_edate)
+    # 기간 필터 (ASP 동일: pay_stats=PY이면 pay_dt, lecture_stats=LN이면 cancel_date, 나머지는 insert_dt)
+    if sch_sdate or sch_edate:
+        if sch_pay_stats == 'PY':
+            date_field = 'pay_dt__date'
+        elif sch_lecture_stats == 'LN':
+            date_field = 'cancel_date__date'
+        else:
+            date_field = 'insert_dt__date'
+        if sch_sdate:
+            qs = qs.filter(**{f'{date_field}__gte': sch_sdate})
+        if sch_edate:
+            qs = qs.filter(**{f'{date_field}__lte': sch_edate})
 
     # 텍스트 검색
     if sch_sword:
@@ -2550,6 +2541,7 @@ def master_list(request):
 
     paginator = Paginator(qs, 30)
     masters = paginator.get_page(page)
+    total_count = paginator.count
 
     # 각 enrollment에 구장명 부여
     for e in masters:
@@ -2560,25 +2552,15 @@ def master_list(request):
         else:
             e.sta_name = ''
 
-    # 구장 목록 (선택 유지)
-    stadiums = []
-    if sch_code_desc:
-        subcodes = list(CodeValue.objects.filter(
-            group__grpcode='LOCD', del_chk='N', code_desc=sch_code_desc
-        ).values_list('subcode', flat=True))
-        stadiums = Stadium.objects.filter(use_gbn='Y', local_code__in=subcodes).order_by('sta_name')
-
-    # 필드명 목록
-    code_descs = CodeValue.objects.filter(
-        group__grpcode='LOCD', del_chk='N'
-    ).values_list('code_desc', flat=True).distinct().order_by('code_desc')
+    # [UX변경] 구장 전체 직접 표시. 원본: stadiums=[], if sch_code_desc: filter by local_code
+    stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
+    # [UX변경] 원본: code_descs = CodeValue.objects.filter(group__grpcode='LOCD'...) (필드 목록 제거)
 
     return render(request, 'ba_office/lfstudent/master_list.html', {
+        'searched': searched,
         'masters': masters,
-        'total_count': paginator.count,
-        'code_descs': code_descs,
+        'total_count': total_count,
         'stadiums': stadiums,
-        'sch_code_desc': sch_code_desc,
         'sch_sta_code': sch_sta_code,
         'sch_apply_gubun': sch_apply_gubun,
         'sch_lecture_stats': sch_lecture_stats,
@@ -2935,7 +2917,7 @@ def chghis_detail(request, pk):
 @office_permission_required('H')
 def attendance_view(request):
     """출결관리 - 검색/조회"""
-    sch_code_desc = request.GET.get('sch_code_desc', '')
+    # [UX변경] 원본: sch_code_desc = request.GET.get('sch_code_desc', '') (필드 제거)
     sch_sta_code = request.GET.get('sch_sta_code', '')
     sch_lecture_code = request.GET.get('sch_lecture_code', '')
     sch_mode = request.GET.get('sch_mode', '1')  # 1=출석체크, 2=조회용
@@ -2949,19 +2931,10 @@ def attendance_view(request):
     records = []
     searched = False
 
-    # 필드명 목록
-    code_descs = CodeValue.objects.filter(
-        group__grpcode='LOCD', del_chk='N'
-    ).values_list('code_desc', flat=True).distinct().order_by('code_desc')
-
-    # 구장/강좌 (선택 유지)
-    stadiums = []
+    # [UX변경] 원본: code_descs = CodeValue.objects.filter(group__grpcode='LOCD'...) (필드 목록 제거)
+    # [UX변경] 구장 전체 직접 표시. 원본: stadiums=[], if sch_code_desc: filter by local_code
+    stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
     courses = []
-    if sch_code_desc:
-        subcodes = list(CodeValue.objects.filter(
-            group__grpcode='LOCD', del_chk='N', code_desc=sch_code_desc
-        ).values_list('subcode', flat=True))
-        stadiums = Stadium.objects.filter(use_gbn='Y', local_code__in=subcodes).order_by('sta_name')
     if sch_sta_code:
         courses = Lecture.objects.filter(stadium__sta_code=int(sch_sta_code), use_gbn='Y').order_by('lecture_title')
 
@@ -3034,13 +3007,11 @@ def attendance_view(request):
                 r.child_name = child_map.get(r.child_id, '')
 
     return render(request, 'ba_office/lfstudent/attendance.html', {
-        'code_descs': code_descs,
         'stadiums': stadiums,
         'courses': courses,
         'students': students,
         'records': records,
         'searched': searched,
-        'sch_code_desc': sch_code_desc,
         'sch_sta_code': sch_sta_code,
         'sch_lecture_code': sch_lecture_code,
         'sch_mode': sch_mode,
@@ -3127,9 +3098,9 @@ def attendance_proc(request):
                 )
 
     # 원래 검색 조건으로 리다이렉트
-    sch_code_desc = request.POST.get('sch_code_desc', '')
+    # [UX변경] 원본: sch_code_desc = request.POST.get('sch_code_desc', '') (필드 제거)
     sch_sta_code = request.POST.get('sch_sta_code', '')
-    return redirect(f'/ba_office/lfstudent/attendance/?sch_mode=1&sch_lecture_code={lecture_code}&sch_date={att_date}&sch_code_desc={sch_code_desc}&sch_sta_code={sch_sta_code}')
+    return redirect(f'/ba_office/lfstudent/attendance/?sch_mode=1&sch_lecture_code={lecture_code}&sch_date={att_date}&sch_sta_code={sch_sta_code}')
 
 
 # ============================================================

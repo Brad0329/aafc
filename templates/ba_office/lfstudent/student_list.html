@@ -8,16 +8,7 @@
 
 {% block extra_js %}
 <script>
-function sel_stadium(code_desc) {
-    $.getJSON("{% url 'office_ajax_student_stadium' %}", {grplocal_code: code_desc}, function(data) {
-        var sel = document.srch_form.sch_sta_code;
-        sel.options.length = 1;
-        for (var i = 0; i < data.length; i++) {
-            sel.options[sel.options.length] = new Option(data[i].sta_name, data[i].sta_code);
-        }
-        document.srch_form.sch_lecture_code.options.length = 1;
-    });
-}
+// [UX변경] 원본: sel_stadium(code_desc) AJAX cascade 제거 (필드→구장 2단계)
 function sel_course(sta_code) {
     $.getJSON("{% url 'office_ajax_student_course' %}", {sta_code: sta_code}, function(data) {
         var sel = document.srch_form.sch_lecture_code;
@@ -53,6 +44,7 @@ function proc_add() {
     if (cnt == 0) { alert("처리할 수강생을 선택하세요."); return; }
 
     var procsel = document.getElementById("procsel").value;
+    if (!procsel) { alert("처리 방법을 선택하세요."); return; }
     var msg = "";
     var url = "";
     if (procsel == "D") {
@@ -102,18 +94,10 @@ function wait_Delete() {
 <div class="tb_basic">
 <form name="srch_form" method="get" action="{% url 'office_student_list' %}">
 <table summary="수강생정보" border="0" cellpadding="0" cellspacing="0">
-    <colgroup><col width="11%" /><col width="23%" /><col width="10%" /><col width="23%" /><col width="10%" /><col width="23%" /></colgroup>
+    {# [UX변경] 원본: 필드명+구장명+과정명 3열 6컬럼 → 구장명+과정명 2열 4컬럼 #}
+    <colgroup><col width="11%" /><col width="23%" /><col width="10%" /><col width="56%" /></colgroup>
     <tbody>
         <tr>
-            <th scope="col">필드명</th>
-            <td class="left">
-                <select name="sch_code_desc" class="select" onchange="sel_stadium(this.value);">
-                    <option value="">=필드선택=</option>
-                    {% for cd in code_descs %}
-                    <option value="{{ cd }}" {% if sch_code_desc == cd %}selected{% endif %}>{{ cd }}</option>
-                    {% endfor %}
-                </select>
-            </td>
             <th scope="col">구장명</th>
             <td class="left">
                 <select name="sch_sta_code" class="select" onchange="sel_course(this.value);">
@@ -174,6 +158,25 @@ function wait_Delete() {
 <div class="h_20"></div>
 
 {% if searched %}
+<p class="txt">아래에서 선택한 수강생을
+    <select id="procsel" class="select">
+        <option value="">==선택==</option>
+        <option value="D">익월 수강예정 대상자(기존)</option>
+        <option value="DN">익월 수강예정 대상자(개월선택)</option>
+        <option value="Y">수강확정</option>
+        <option value="T">수강확정+결제완료</option>
+        <option value="L">결제안내 LMS 전송</option>
+    </select>
+    처리합니다. <span style="color:blue;">(변경 후 하단 처리버튼 꼭 클릭)</span>
+</p>
+<p class="txt">재수강처리(수강개월선택)
+    <select id="sel_lec_period" class="select" style="width:80px;">
+        <option value="1">1개월</option>
+        <option value="2">2개월</option>
+        <option value="3">3개월</option>
+    </select>
+    처리합니다.
+</p>
 {% if total_count > 0 %}
 <br/><span style="color:#FF00FF;font-weight:bold;">아래 목록 중 분홍색은 재수강 대상자 입니다.</span>
 {% endif %}
@@ -234,19 +237,7 @@ function wait_Delete() {
 </div>
 
 <div class="btn_right">
-    <select id="procsel" class="select">
-        <option value="D">익월 수강예정 대상자(기존)</option>
-        <option value="DN">익월 수강예정 대상자(개월선택)</option>
-        <option value="Y">수강확정</option>
-        <option value="T">수강확정+결제완료</option>
-        <option value="L">결제안내 LMS 전송</option>
-    </select>
-    <select id="sel_lec_period" class="select" style="width:80px;">
-        <option value="1">1개월</option>
-        <option value="2">2개월</option>
-        <option value="3">3개월</option>
-    </select>
-    <a href="javascript:proc_add();"><img src="{% static 'ba_office/images/btn_check.gif' %}" alt="처리" /></a>
+    <a href="javascript:proc_add();"><img src="{% static 'ba_office/images/btn_han.gif' %}" alt="처리" /></a>
 </div>
 </form>
 
@@ -256,7 +247,7 @@ function wait_Delete() {
         {% if p == students.number %}
         <b>[{{ p }}]</b>
         {% else %}
-        <a href="?page={{ p }}&sch_ym={{ sch_ym }}&sch_code_desc={{ sch_code_desc }}&sch_sta_code={{ sch_sta_code }}&sch_lecture_code={{ sch_lecture_code }}&sch_lecture_stats={{ sch_lecture_stats }}&sch_pay_stats={{ sch_pay_stats }}&sch_lecture_title={{ sch_lecture_title }}">[{{ p }}]</a>
+        <a href="?page={{ p }}&sch_ym={{ sch_ym }}&sch_sta_code={{ sch_sta_code }}&sch_lecture_code={{ sch_lecture_code }}&sch_lecture_stats={{ sch_lecture_stats }}&sch_pay_stats={{ sch_pay_stats }}&sch_lecture_title={{ sch_lecture_title }}">[{{ p }}]</a>
         {% endif %}
     {% endfor %}
 </div>

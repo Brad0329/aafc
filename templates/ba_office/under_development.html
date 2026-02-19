@@ -1,0 +1,25 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfstudent_left.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME  &gt;  수강생관리  &gt;  {{ page_title }}</div>
+<div class="h_55"></div>
+
+<p class="title">{{ page_title }}</p>
+
+<div class="tb_basic">
+<table summary="{{ page_title }}" border="0" cellpadding="0" cellspacing="0">
+    <tbody>
+    <tr>
+        <td style="text-align:center; padding:60px 0; font-size:15px; color:#888;">
+            개발준비중
+        </td>
+    </tr>
+    </tbody>
+</table>
+</div>
+{% endblock %}
