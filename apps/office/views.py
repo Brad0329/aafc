@@ -1394,72 +1394,34 @@ def _get_consult_codes():
 @office_login_required
 @office_permission_required('C')
 def consult_list(request):
-    """상담 리스트"""
+    """상담 리스트 - 최근 1년 자동 로딩, 구장/담당코치 필터"""
+    from datetime import date, timedelta
+    from django.db.models import Prefetch
+
     page = request.GET.get('page', '1')
-    sch_local = request.GET.get('sch_local', '')
     sch_stadium = request.GET.get('sch_stadium', '')
-    sch_cont = request.GET.get('sch_cont', '')
-    sch_manage = request.GET.get('sch_manage', '')
-    sch_stat = request.GET.get('sch_stat', '')
-    sch_cust = request.GET.get('sch_cust', '')
-    sch_line = request.GET.get('sch_line', '')
-    sch_path = request.GET.get('sch_path', '')
     sch_coach = request.GET.get('sch_coach', '')
-    sch_member_gbn = request.GET.get('sch_member_gbn', '')
-    sch_txt = request.GET.get('sch_txt', '')
-    sch_val = request.GET.get('sch_val', '').strip()
 
-    qs = Consult.objects.filter(del_chk='N').order_by('-id')
+    # 최근 1년 기준
+    date_to = date.today()
+    date_from = date_to - timedelta(days=365)
 
-    if sch_local:
-        qs = qs.filter(local_code=sch_local)
+    qs = Consult.objects.filter(
+        del_chk='N',
+        consult_dt__date__gte=date_from,
+        consult_dt__date__lte=date_to,
+    ).order_by('-id')
+
     if sch_stadium:
         qs = qs.filter(sta_code=sch_stadium)
-    if sch_cont:
-        qs = qs.filter(answers__consult_category=int(sch_cont))
-    if sch_manage:
-        qs = qs.filter(manage_id=sch_manage)
-    if sch_stat:
-        qs = qs.filter(answers__stat_code=int(sch_stat))
-    if sch_cust:
-        qs = qs.filter(answers__cus_stat_code=int(sch_cust))
-    if sch_line:
-        qs = qs.filter(line_code=int(sch_line))
-    if sch_path:
-        qs = qs.filter(path_code=int(sch_path))
+
+    # 담당코치 필터: 코치 선택 시 해당 코치 OR 담당코치 없는 것
     if sch_coach:
-        qs = qs.filter(answers__coach_code=int(sch_coach))
-    if sch_member_gbn:
-        if sch_member_gbn == '1':
-            qs = qs.filter(consult_gbn='old')
-        elif sch_member_gbn == '2':
-            qs = qs.filter(Q(consult_gbn='new') | Q(consult_gbn='guest') | Q(consult_gbn=''))
-    if sch_txt and sch_val:
-        if sch_txt == 'member_id':
-            qs = qs.filter(member_id__icontains=sch_val)
-        elif sch_txt == 'member_name':
-            qs = qs.filter(member_name__icontains=sch_val)
-        elif sch_txt == 'child_id':
-            qs = qs.filter(child_id__icontains=sch_val)
-        elif sch_txt == 'child_name':
-            qs = qs.filter(child_name__icontains=sch_val)
-        elif sch_txt == 'consult_name':
-            qs = qs.filter(consult_name__icontains=sch_val)
-        elif sch_txt == 'stu_name':
-            qs = qs.filter(stu_name__icontains=sch_val)
-        elif sch_txt == 'consult_title':
-            qs = qs.filter(consult_title__icontains=sch_val)
-        elif sch_txt == 'consult_content':
-            qs = qs.filter(consult_content__icontains=sch_val)
-        elif sch_txt == 'consult_answer':
-            qs = qs.filter(answers__consult_answer__icontains=sch_val)
-        elif sch_txt == 'consult_tel':
-            qs = qs.filter(consult_tel__icontains=sch_val)
+        qs = qs.filter(
+            Q(answers__coach_code=int(sch_coach)) | Q(answers__isnull=True) | Q(answers__coach_code__isnull=True)
+        )
 
     qs = qs.distinct()
-
-    # 최신 답변 정보를 위해 prefetch
-    from django.db.models import Prefetch
     qs = qs.prefetch_related(
         Prefetch('answers', queryset=ConsultAnswer.objects.order_by('-id'))
     )
@@ -1467,22 +1429,19 @@ def consult_list(request):
     paginator = Paginator(qs, 20)
     consults = paginator.get_page(page)
 
-    # 코드명 매핑용 딕셔너리
+    # 코드명 매핑
     codes = _get_consult_codes()
     stat_dict = {c.subcode: c.code_name for c in codes['stat_codes']}
     cont_dict = {c.subcode: c.code_name for c in codes['cont_codes']}
     cust_dict = {c.subcode: c.code_name for c in codes['cust_codes']}
     line_dict = {c.subcode: c.code_name for c in codes['line_codes']}
 
-    # 구장명, 코치명 매핑
     sta_dict = {s.sta_code: s.sta_name for s in Stadium.objects.filter(use_gbn='Y')}
     coach_dict = {c.coach_code: c.coach_name for c in Coach.objects.filter(use_gbn='Y')}
     manage_dict = {u.office_id: u.office_name for u in OfficeUser.objects.filter(del_chk='N')}
 
-    # 각 상담에 표시용 데이터 추가
     for con in consults:
         latest = con.answers.first()
-        con.latest_answer = latest
         con.stat_name = stat_dict.get(latest.stat_code, '') if latest else ''
         con.cont_name = cont_dict.get(latest.consult_category, '') if latest else ''
         con.cust_name = cust_dict.get(latest.cus_stat_code, '') if latest else ''
@@ -1492,28 +1451,19 @@ def consult_list(request):
         con.manage_name = manage_dict.get(con.manage_id, '')
         con.member_gbn_name = '기존회원' if con.consult_gbn == 'old' else ('신규회원' if con.consult_gbn in ('new', 'guest') else '미가입자')
 
-    # 구장 목록 (선택된 권역에 따라)
     stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
-    if sch_local:
-        stadiums = stadiums.filter(local_code=int(sch_local))
     coaches = Coach.objects.filter(use_gbn='Y').order_by('coach_name')
-    managers = OfficeUser.objects.filter(del_chk='N').order_by('office_name')
 
-    ctx = {
+    return render(request, 'ba_office/lfconsult/consult_list.html', {
         'consults': consults,
         'total_count': paginator.count,
         'stadiums': stadiums,
         'coaches': coaches,
-        'managers': managers,
-        'sch_local': sch_local, 'sch_stadium': sch_stadium,
-        'sch_cont': sch_cont, 'sch_manage': sch_manage,
-        'sch_stat': sch_stat, 'sch_cust': sch_cust,
-        'sch_line': sch_line, 'sch_path': sch_path,
-        'sch_coach': sch_coach, 'sch_member_gbn': sch_member_gbn,
-        'sch_txt': sch_txt, 'sch_val': sch_val,
-    }
-    ctx.update(codes)
-    return render(request, 'ba_office/lfconsult/consult_list.html', ctx)
+        'sch_stadium': sch_stadium,
+        'sch_coach': sch_coach,
+        'date_from': date_from.strftime('%Y-%m-%d'),
+        'date_to': date_to.strftime('%Y-%m-%d'),
+    })
 
 
 # ============================================================
