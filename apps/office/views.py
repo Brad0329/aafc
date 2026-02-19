@@ -4783,16 +4783,11 @@ def train_list(request):
     """훈련일정 목록"""
     sel_year_code = request.GET.get('sel_year_code', '')
     sel_month_code = request.GET.get('sel_month_code', '')
-    sch_locd_code = request.GET.get('sch_locd_code', '')
+    # [UX변경] 원본: sch_locd_code = request.GET.get('sch_locd_code', '') (필드 제거)
     sch_sta_code = request.GET.get('sch_sta_code', '')
 
-    locd_list = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order')
+    # [UX변경] 구장 전체 직접 표시. 원본: locd_list + filtered_stadiums
     all_stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
-
-    # 필터링된 구장 (선택된 권역 기준)
-    filtered_stadiums = []
-    if sch_locd_code:
-        filtered_stadiums = all_stadiums.filter(local_code=int(sch_locd_code))
 
     # 연도 목록
     now = datetime.now()
@@ -4828,11 +4823,8 @@ def train_list(request):
         'searched': searched,
         'sel_year_code': sel_year_code,
         'sel_month_code': sel_month_code,
-        'sch_locd_code': sch_locd_code,
         'sch_sta_code': sch_sta_code,
-        'locd_list': locd_list,
         'all_stadiums': all_stadiums,
-        'filtered_stadiums': filtered_stadiums,
         'year_list': year_list,
     })
 
@@ -4843,7 +4835,9 @@ def train_write(request):
     """훈련일정 등록"""
     if request.method == 'POST':
         sta_code = int(request.POST.get('sch_sta_code', '0') or '0')
-        local_code = int(request.POST.get('sch_locd_code', '0') or '0')
+        # [UX변경] 원본: local_code = int(request.POST.get('sch_locd_code', '0') or '0') (필드 제거)
+        stadium_obj = Stadium.objects.filter(sta_code=sta_code).first()
+        local_code = stadium_obj.local_code if stadium_obj else 0
         training_dt_str = request.POST.get('train_date', '')
         training_desc = request.POST.get('train_content', '')
         insert_id = request.session.get('office_user', {}).get('office_id', '')
@@ -4854,16 +4848,14 @@ def train_write(request):
             training_dt = None
 
         if training_dt:
-            # 중복체크: 같은 sta_code + local_code + training_dt
+            # 중복체크: 같은 sta_code + training_dt
             exists = LectureTraining.objects.filter(
-                sta_code=sta_code, local_code=local_code, training_dt=training_dt
+                sta_code=sta_code, training_dt=training_dt
             ).exists()
             if exists:
-                locd_list = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order')
                 all_stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
                 return render(request, 'ba_office/lfcourse/train_write.html', {
                     'error': '이미 동일한 날짜에 등록된 훈련일정이 있습니다.',
-                    'locd_list': locd_list,
                     'all_stadiums': all_stadiums,
                 })
 
@@ -4878,10 +4870,9 @@ def train_write(request):
         return redirect('office_train_list')
 
     # GET
-    locd_list = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order')
+    # [UX변경] 원본: locd_list = CodeValue.objects.filter(group__grpcode='LOCD'...) (필드 제거)
     all_stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
     return render(request, 'ba_office/lfcourse/train_write.html', {
-        'locd_list': locd_list,
         'all_stadiums': all_stadiums,
     })
 
@@ -4894,7 +4885,9 @@ def train_modify(request, pk):
 
     if request.method == 'POST':
         train.sta_code = int(request.POST.get('sch_sta_code', '0') or '0')
-        train.local_code = int(request.POST.get('sch_locd_code', '0') or '0')
+        # [UX변경] 원본: train.local_code = int(request.POST.get('sch_locd_code', '0') or '0') (필드 제거)
+        stadium_obj = Stadium.objects.filter(sta_code=train.sta_code).first()
+        train.local_code = stadium_obj.local_code if stadium_obj else 0
         training_dt_str = request.POST.get('train_date', '')
         try:
             train.training_dt = datetime.strptime(training_dt_str, '%Y-%m-%d').date()
@@ -4905,15 +4898,12 @@ def train_modify(request, pk):
         return redirect('office_train_list')
 
     # GET
-    locd_list = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order')
+    # [UX변경] 원본: locd_list + filtered_stadiums (필드 제거)
     all_stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
-    filtered_stadiums = all_stadiums.filter(local_code=train.local_code) if train.local_code else []
     return render(request, 'ba_office/lfcourse/train_write.html', {
         'train': train,
         'mode': 'edit',
-        'locd_list': locd_list,
         'all_stadiums': all_stadiums,
-        'filtered_stadiums': filtered_stadiums,
     })
 
 

@@ -10,6 +10,7 @@
 function srch_snd() {
     if (chec_fun(srch_form.sel_year_code, "조회년도") == false) { return; }
     if (chec_fun(srch_form.sel_month_code, "조회월") == false) { return; }
+    // [UX변경] 원본: chec_fun(srch_form.sch_locd_code, "필드명") 검증 제거
     if (chec_fun(srch_form.sch_sta_code, "구장명") == false) { return; }
 
     document.srch_form.submit();
@@ -30,11 +31,7 @@ function lflectrain_del(train_code, train_dt) {
 <p class="title">훈련일정 - 리스트</p>
 <div class="tb_basic">
     <form name="srch_form" method="get" action="{% url 'office_train_list' %}">
-    <select name="hi_sta_code" class="select" style="display:none;">
-        {% for s in all_stadiums %}
-        <option value="{{ s.sta_code }}" title="{{ s.local_code }}">{{ s.sta_name }}</option>
-        {% endfor %}
-    </select>
+    {# [UX변경] 원본: hidden hi_sta_code + 필드명 select (필드→구장 2단계) 제거 #}
     <table summary="훈련일정" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
             <col width="15%" />
@@ -71,23 +68,13 @@ function lflectrain_del(train_code, train_dt) {
                 </td>
             </tr>
             <tr>
-                <th scope="col">필드명</th>
-                <td class="left">
-                    <select name="sch_locd_code" class="select" onchange="setSelect('srch_form.hi_sta_code', 'srch_form.sch_sta_code', this.value)">
-                        <option value="">==선택==</option>
-                        {% for cd in locd_list %}
-                        <option value="{{ cd.subcode }}" {% if sch_locd_code == cd.subcode|stringformat:"s" %}selected{% endif %}>{{ cd.code_name }}</option>
-                        {% endfor %}
-                    </select>
-                </td>
                 <th scope="col">구장명</th>
-                <td class="left">
+                <td class="left" colspan="3">
                     <select name="sch_sta_code" class="select">
-                        {% if sch_locd_code %}
-                        {% for s in filtered_stadiums %}
+                        <option value="">==선택==</option>
+                        {% for s in all_stadiums %}
                         <option value="{{ s.sta_code }}" {% if sch_sta_code == s.sta_code|stringformat:"d" %}selected{% endif %}>{{ s.sta_name }}</option>
                         {% endfor %}
-                        {% endif %}
                     </select>
                 </td>
             </tr>
