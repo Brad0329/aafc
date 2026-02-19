@@ -1,0 +1,80 @@
+{% extends "ba_office/base_office.html" %}
+{% load office_tags %}
+
+{% block left_menu %}{% include "ba_office/includes/shop_left.html" %}{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; 쇼핑몰관리 &gt; 카테고리관리</div>
+<div class="h_55"></div>
+
+<div id="shop_left" style="float:left; width:48%;">
+    <p class="title">쇼핑몰관리 - 카테고리리스트 (1차)</p>
+    <div class="tb_basic">
+        <table border="0" cellpadding="0" cellspacing="0">
+            <colgroup>
+                <col/><col width="15%"/><col width="12%"/><col width="28%"/>
+            </colgroup>
+            <tbody>
+                <tr>
+                    <th scope="col">1차분류</th>
+                    <th scope="col">하위분류</th>
+                    <th scope="col">보기</th>
+                    <th scope="col">관리</th>
+                </tr>
+                {% if cats %}
+                    {% for c in cats %}
+                    <tr>
+                        <td><a href="#" onclick="loadSub({{ c.cate_code }})">{{ c.cate_name }}</a></td>
+                        <td>{{ c.child_cnt }}개</td>
+                        <td>{{ c.cate_is_display }}</td>
+                        <td>
+                            <img src="/static/ba_office/images/btn_edit.gif" alt="수정" onclick="goEdit({{ c.cate_code }})" style="cursor:pointer;">
+                            <img src="/static/ba_office/images/btn_del.gif" alt="삭제" onclick="goDel({{ c.cate_code }}, 0)" style="cursor:pointer;">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="4" style="text-align:center;">등록 Data가 없습니다.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    <div class="btn_right">
+        <a href="{% url 'shop_category_write' %}"><img src="/static/ba_office/images/btn_regi.gif" alt="등록" style="cursor:pointer;"></a>
+    </div>
+</div>
+
+<div id="shop_right" style="float:left; width:48%; margin-left:2%;"></div>
+<div style="clear:both;"></div>
+
+<form id="delForm" method="post" action="{% url 'shop_category_delete' %}">
+    {% csrf_token %}
+    <input type="hidden" name="cate_code" id="del_cate_code">
+    <input type="hidden" name="parent" id="del_parent">
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function loadSub(cateCode) {
+    $('#shop_right').load("{% url 'shop_ajax_category2' %}?parent=" + cateCode + "&reg_code=" + cateCode, function() {
+        $('#shop_right').data('parent', cateCode);
+    });
+}
+function goEdit(cateCode) {
+    location.href = "{% url 'shop_category_write' %}?cate_code=" + cateCode;
+}
+function goDel(cateCode, parent) {
+    if (confirm("카테고리를 삭제 하시겠습니까?")) {
+        document.getElementById('del_cate_code').value = cateCode;
+        document.getElementById('del_parent').value = parent;
+        document.getElementById('delForm').submit();
+    }
+}
+{% if parent %}
+$(document).ready(function() {
+    loadSub({{ parent }});
+});
+{% endif %}
+</script>
+{% endblock %}

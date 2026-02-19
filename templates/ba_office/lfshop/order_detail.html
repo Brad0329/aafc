@@ -1,0 +1,170 @@
+{% extends "ba_office/base_office.html" %}
+{% load humanize office_tags %}
+
+{% block left_menu %}{% include "ba_office/includes/shop_left.html" %}{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; 쇼핑몰관리 &gt; 주문내역 &gt; 상세</div>
+<div class="h_55"></div>
+<p class="title">주문상세 - {{ order.order_no }}</p>
+
+<div class="tb_basic">
+    <table border="0" cellpadding="0" cellspacing="0">
+        <colgroup><col width="20%"/><col width="30%"/><col width="20%"/><col/></colgroup>
+        <tbody>
+            <tr><th colspan="4" style="background:#d3a243;color:#fff;">주문 기본정보</th></tr>
+            <tr>
+                <th>주문번호</th><td class="left">{{ order.order_no }}</td>
+                <th>주문일시</th><td class="left">{{ order.reg_date|date:"Y-m-d H:i:s" }}</td>
+            </tr>
+            <tr>
+                <th>진행상태</th>
+                <td class="left"><b style="color:#6600CC;">{{ order.state_name }}</b></td>
+                <th>결제수단</th><td class="left">{{ order.payway_name }}</td>
+            </tr>
+            <tr>
+                <th>회원ID</th><td class="left">{{ order.user_id }}</td>
+                <th>자녀ID</th><td class="left">{{ order.child_id }}</td>
+            </tr>
+            <tr>
+                <th>총주문금액</th><td class="left">{{ order.total_order_price|intcomma }}원</td>
+                <th>배송비</th><td class="left">{{ order.total_delivery_fee|intcomma }}원</td>
+            </tr>
+            <tr>
+                <th>포인트사용</th><td class="left">{{ order.use_cmoney|intcomma }}P</td>
+                <th>최종결제금액</th><td class="left"><b style="color:red;">{{ order.settle_price|intcomma }}원</b></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="tb_basic" style="margin-top:10px;">
+    <table border="0" cellpadding="0" cellspacing="0">
+        <colgroup><col width="20%"/><col width="30%"/><col width="20%"/><col/></colgroup>
+        <tbody>
+            <tr><th colspan="4" style="background:#d3a243;color:#fff;">주문자 / 수령인 정보</th></tr>
+            <tr>
+                <th>주문자명</th><td class="left">{{ order.ord_name }}</td>
+                <th>수령인명</th><td class="left">{{ order.rcv_name }}</td>
+            </tr>
+            <tr>
+                <th>주문자 연락처</th><td class="left">{{ order.ord_mobile }}</td>
+                <th>수령인 연락처</th><td class="left">{{ order.rcv_mobile }}</td>
+            </tr>
+            <tr>
+                <th>주문자 주소</th>
+                <td class="left">[{{ order.ord_post }}] {{ order.ord_addr }} {{ order.ord_addr_detail }}</td>
+                <th>수령인 주소</th>
+                <td class="left">[{{ order.rcv_post }}] {{ order.rcv_addr }} {{ order.rcv_addr_detail }}</td>
+            </tr>
+            <tr>
+                <th>주문 메모</th><td class="left" colspan="3">{{ order.order_memo }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="tb_basic" style="margin-top:10px;">
+    <table border="0" cellpadding="0" cellspacing="0">
+        <colgroup><col width="*"/><col width="8%"/><col width="12%"/><col width="12%"/><col width="18%"/></colgroup>
+        <tbody>
+            <tr><th colspan="5" style="background:#d3a243;color:#fff;">주문 상품</th></tr>
+            <tr>
+                <th>상품명</th><th>수량</th><th>단가</th><th>옵션가</th><th>배송업체/송장번호</th>
+            </tr>
+            {% for item in items %}
+            <tr>
+                <td>
+                    {% if item.goods_img %}<img src="/fcdata/shop_goods/{{ item.goods_img }}" width="60" style="float:left;margin-right:8px;">{% endif %}
+                    {{ item.goods_title }}
+                    {% if item.option_txt %}<div style="font-size:11px;color:gray;">{{ item.option_txt }}</div>{% endif %}
+                    {% for opt in item.options.all %}
+                    <div style="font-size:11px;color:gray;">{{ opt.title }}: {{ opt.item }}{% if opt.price %} (+{{ opt.price|intcomma }}원){% endif %}</div>
+                    {% endfor %}
+                </td>
+                <td style="text-align:center;">{{ item.ea }}</td>
+                <td style="text-align:right;">{{ item.price|intcomma }}원</td>
+                <td style="text-align:right;">{{ item.option_price|intcomma }}원</td>
+                <td>
+                    {% if delivery %}
+                        {{ delivery.delivery_name }}<br>{{ delivery.delivery_no }}
+                        {% if delivery.delivery_date %}<br><span style="font-size:11px;">{{ delivery.delivery_date|date:"Y-m-d" }}</span>{% endif %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" style="text-align:center;">상품이 없습니다.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- 관리자 메모 -->
+<div class="tb_basic" style="margin-top:10px;">
+    <form method="post" action="{% url 'shop_order_memo_save' %}">
+        {% csrf_token %}
+        <input type="hidden" name="pk" value="{{ order.pk }}">
+        <input type="hidden" name="next" value="{% url 'shop_order_detail' order.pk %}">
+        <table border="0" cellpadding="0" cellspacing="0">
+            <colgroup><col width="15%"/><col/></colgroup>
+            <tbody>
+                <tr><th colspan="2" style="background:#d3a243;color:#fff;">관리자 메모</th></tr>
+                <tr>
+                    <th>관리자 메모</th>
+                    <td class="left"><textarea name="admin_memo" rows="3" style="width:98%;">{{ order.admin_memo }}</textarea></td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="btn_right">
+            <input type="submit" value="메모저장" class="input">
+        </div>
+    </form>
+</div>
+
+<!-- 상태 변경 -->
+<div class="tb_basic" style="margin-top:10px;">
+    <table border="0" cellpadding="0" cellspacing="0">
+        <colgroup><col width="15%"/><col/></colgroup>
+        <tbody>
+            <tr><th colspan="2" style="background:#d3a243;color:#fff;">주문 상태 변경</th></tr>
+            <tr>
+                <th>상태변경</th>
+                <td class="left">
+                    {% if order.state == 100 and order.is_finish == 'T' %}
+                    <form method="post" action="{% url 'shop_order_confirm' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="pk" value="{{ order.pk }}">
+                        <input type="hidden" name="next" value="{% url 'shop_order_detail' order.pk %}">
+                        <button type="submit" onclick="return confirm('배송준비(입금확인)로 이동하시겠습니까?')">▶ 배송준비(입금확인)</button>
+                    </form>
+                    {% elif order.state == 200 or order.state == 301 %}
+                    <form method="post" action="{% url 'shop_order_delivery' %}" style="display:inline;" id="delivForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="pk" value="{{ order.pk }}">
+                        <input type="hidden" name="next" value="{% url 'shop_order_detail' order.pk %}">
+                        배송업체 <input type="text" name="delivery_name" class="input" style="width:120px;" value="{% if delivery %}{{ delivery.delivery_name }}{% endif %}">
+                        송장번호 <input type="text" name="delivery_no" class="input" style="width:120px;" value="{% if delivery %}{{ delivery.delivery_no }}{% endif %}">
+                        <button type="button" onclick="if(confirm('배송완료로 이동하시겠습니까?')) document.getElementById('delivForm').submit()">▶ 배송완료</button>
+                    </form>
+                    {% endif %}
+                    {% if order.state != 402 and order.is_finish == 'T' %}
+                    &nbsp;&nbsp;
+                    <form method="post" action="{% url 'shop_order_cancel' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="pk" value="{{ order.pk }}">
+                        <input type="hidden" name="next" value="{% url 'shop_order_detail' order.pk %}">
+                        <button type="submit" onclick="return confirm('주문을 취소하시겠습니까?')" style="color:red;">▶ 주문취소</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="btn_right">
+    <a href="{% url 'shop_order_list' %}"><img src="/static/ba_office/images/btn_list.gif" alt="목록" style="cursor:pointer;"></a>
+</div>
+{% endblock %}

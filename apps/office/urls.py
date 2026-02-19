@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import views_report as rpt
 from . import views_portal as portal
+from . import views_shop as shop
 
 urlpatterns = [
     path('', views.main_view, name='office_main'),
@@ -236,4 +237,33 @@ urlpatterns = [
     path('portal/board/del/', portal.board_del, name='office_board_del'),
     path('portal/board/comment/add/', portal.board_comment_add, name='office_board_comment_add'),
     path('portal/board/comment/del/', portal.board_comment_del, name='office_board_comment_del'),
+
+    # ── 쇼핑몰관리 ─────────────────────────────────────────
+    # 카테고리관리
+    path('lfshop/category/list/', shop.category_list, name='shop_category_list'),
+    path('lfshop/category/write/', shop.category_write, name='shop_category_write'),
+    path('lfshop/category/delete/', shop.category_delete, name='shop_category_delete'),
+    path('lfshop/ajax/category2/', shop.ajax_category2, name='shop_ajax_category2'),
+
+    # 상품관리
+    path('lfshop/goods/list/', shop.goods_list, name='shop_goods_list'),
+    path('lfshop/goods/modify/<int:pk>/', shop.goods_modify, name='shop_goods_modify'),
+    path('lfshop/goods/delete/', shop.goods_delete, name='shop_goods_delete'),
+    path('lfshop/ajax/goods-cate2/', shop.ajax_goods_cate2, name='shop_ajax_goods_cate2'),
+
+    # 주문내역
+    path('lfshop/order/list/', shop.order_list, name='shop_order_list'),
+    path('lfshop/order/detail/<int:pk>/', shop.order_detail, name='shop_order_detail'),
+    path('lfshop/order/confirm/', shop.order_confirm, name='shop_order_confirm'),
+    path('lfshop/order/delivery/', shop.order_delivery, name='shop_order_delivery'),
+    path('lfshop/order/cancel/', shop.order_cancel, name='shop_order_cancel'),
+    path('lfshop/order/memo/', shop.order_memo_save, name='shop_order_memo_save'),
+
+    # 배송용리포트
+    path('lfshop/deliver/list/', shop.deliver_list, name='shop_deliver_list'),
+    path('lfshop/deliver/excel/', shop.deliver_excel, name='shop_deliver_excel'),
+
+    # 통합재고관리
+    path('lfshop/stock/list/', shop.stock_list, name='shop_stock_list'),
+    path('lfshop/stock/save/', shop.stock_save, name='shop_stock_save'),
 ]

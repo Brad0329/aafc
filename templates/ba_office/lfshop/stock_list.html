@@ -1,0 +1,75 @@
+{% extends "ba_office/base_office.html" %}
+{% load humanize office_tags %}
+
+{% block left_menu %}{% include "ba_office/includes/shop_left.html" %}{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; 쇼핑몰관리 &gt; 통합재고관리</div>
+<div class="h_55"></div>
+<p class="title">통합재고관리</p>
+<p style="color:gray;font-size:12px;margin:5px 0 10px;">* 옵션이 있는 상품의 옵션별 재고를 일괄 입력합니다.</p>
+
+<form method="post" action="{% url 'shop_stock_save' %}" id="stockForm">
+    {% csrf_token %}
+    {% for product in products %}
+    <div class="tb_basic" style="margin-bottom:15px;">
+        <table border="0" cellpadding="0" cellspacing="0">
+            <colgroup><col width="30%"/><col width="15%"/><col width="*"/><col width="15%"/></colgroup>
+            <tbody>
+                <tr style="background:#f5f0e0;">
+                    <th colspan="4" style="text-align:left;padding:5px 8px;">
+                        [{{ product.gd_code }}] {{ product.gd_name }}
+                        &nbsp;<span style="font-weight:normal;color:gray;font-size:11px;">(전체재고: {% if product.gd_stock == '00' %}무제한{% else %}{{ product.gd_stock }}개{% endif %})</span>
+                    </th>
+                </tr>
+                <tr>
+                    <th>옵션1</th>
+                    <th>옵션2</th>
+                    <th>옵션 상세</th>
+                    <th>재고수량</th>
+                </tr>
+                {% for s in product.stock_list %}
+                <tr>
+                    <td>{% if s.item1 %}{{ s.item1.opt_item }}{% endif %}</td>
+                    <td>{% if s.item2 %}{{ s.item2.opt_item }}{% endif %}</td>
+                    <td style="font-size:11px;color:gray;">
+                        {% if s.item1 %}{{ s.item1.opt_item }}{% endif %}
+                        {% if s.item2 %} / {{ s.item2.opt_item }}{% endif %}
+                        {% if s.item1 and s.item1.opt_price != 0 %} (+{{ s.item1.opt_price|intcomma }}원){% endif %}
+                    </td>
+                    <td>
+                        <input type="number" name="stock_{{ product.pk }}_{{ s.opt_item_idx1 }}_{{ s.opt_item_idx2 }}"
+                               value="{{ s.opt_stock }}" class="input" style="width:70px;" min="0">
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" style="text-align:center;color:gray;">등록된 재고 데이터가 없습니다.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% empty %}
+    <div class="tb_basic">
+        <table border="0" cellpadding="0" cellspacing="0">
+            <tr><td style="text-align:center;padding:20px;">옵션이 있는 상품이 없습니다.</td></tr>
+        </table>
+    </div>
+    {% endfor %}
+
+    {% if products %}
+    <div class="btn_right">
+        <img src="/static/ba_office/images/btn_modify.gif" alt="저장" onclick="doSave()" style="cursor:pointer;">
+    </div>
+    {% endif %}
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function doSave() {
+    if (confirm("입력하신 재고 수량으로 저장하시겠습니까?")) {
+        document.getElementById('stockForm').submit();
+    }
+}
+</script>
+{% endblock %}

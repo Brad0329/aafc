@@ -1,0 +1,125 @@
+{% extends "ba_office/base_office.html" %}
+{% load humanize office_tags %}
+
+{% block left_menu %}{% include "ba_office/includes/shop_left.html" %}{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; 쇼핑몰관리 &gt; 상품관리</div>
+<div class="h_55"></div>
+<p class="title">상품관리 - 기본정보 수정</p>
+
+<form method="post" id="modForm">
+    {% csrf_token %}
+    <div class="tb_basic">
+        <table border="0" cellpadding="0" cellspacing="0">
+            <colgroup><col width="20%"/><col/></colgroup>
+            <tbody>
+                <tr><th>상품코드</th><td class="left">{{ product.gd_code }}</td></tr>
+                <tr>
+                    <th>분류선택</th>
+                    <td class="left">
+                        <select name="category1" class="input" style="width:110px;" onchange="changeCate(this.value)">
+                            <option value="">1차 분류</option>
+                            {% for c in cate1_list %}
+                            <option value="{{ c.cate_code }}" {% if c.cate_code == cur_cate1 %}selected{% endif %}>{{ c.cate_name }}</option>
+                            {% endfor %}
+                        </select>
+                        &nbsp;
+                        <select name="category2" class="input" style="width:110px;" id="cate2_select">
+                            <option value="">2차 분류</option>
+                            {% for c in cate2_list %}
+                            <option value="{{ c.cate_code }}" {% if c.cate_code == cur_cate2 %}selected{% endif %}>{{ c.cate_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <th>상품명</th>
+                    <td class="left"><input type="text" name="gd_name" value="{{ product.gd_name }}" class="input" style="width:300px;" maxlength="250"></td>
+                </tr>
+                <tr>
+                    <th>시장가(정가)</th>
+                    <td class="left"><input type="text" name="gd_market_price" value="{{ product.gd_market_price }}" class="input" style="width:100px;"> 원</td>
+                </tr>
+                <tr>
+                    <th>판매가</th>
+                    <td class="left"><input type="text" name="gd_price" value="{{ product.gd_price }}" class="input" style="width:100px;"> 원</td>
+                </tr>
+                <tr>
+                    <th>결제가</th>
+                    <td class="left"><input type="text" name="gd_pay_price" value="{{ product.gd_pay_price }}" class="input" style="width:100px;"> 원</td>
+                </tr>
+                <tr>
+                    <th>적립포인트</th>
+                    <td class="left"><input type="text" name="gd_point" value="{{ product.gd_point }}" class="input" style="width:100px;"> P</td>
+                </tr>
+                <tr>
+                    <th>재고수량</th>
+                    <td class="left">
+                        <input type="text" name="gd_stock" value="{{ product.gd_stock }}" class="input" style="width:80px;">
+                        <span style="color:gray;font-size:11px;">(00 = 무제한)</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>진열여부</th>
+                    <td class="left">
+                        <input type="radio" name="gd_display" value="Y" {% if product.gd_display == 'Y' %}checked{% endif %}>진열
+                        <input type="radio" name="gd_display" value="N" {% if product.gd_display != 'Y' %}checked{% endif %}>미진열
+                    </td>
+                </tr>
+                <tr>
+                    <th>품절여부</th>
+                    <td class="left">
+                        <input type="radio" name="gd_is_soldout" value="N" {% if product.gd_is_soldout != 'Y' %}checked{% endif %}>판매중
+                        <input type="radio" name="gd_is_soldout" value="Y" {% if product.gd_is_soldout == 'Y' %}checked{% endif %}>품절
+                    </td>
+                </tr>
+                <tr>
+                    <th>정렬번호</th>
+                    <td class="left"><input type="text" name="order_number" value="{{ product.order_number }}" class="input" style="width:80px;"></td>
+                </tr>
+                {% if product.gd_img_b %}
+                <tr>
+                    <th>대이미지</th>
+                    <td class="left"><img src="/fcdata/shop_goods/{{ product.gd_img_b }}" style="max-width:200px;"></td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <th>공급업체</th>
+                    <td class="left">{{ product.gd_product }}</td>
+                </tr>
+                <tr>
+                    <th>등록일</th>
+                    <td class="left">{{ product.insert_dt|date:"Y-m-d" }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="btn_right">
+        <input type="submit" value="" style="display:none;" id="submitBtn">
+        <img src="/static/ba_office/images/btn_modify.gif" alt="수정" onclick="doSubmit()" style="cursor:pointer;">
+        <a href="{% url 'shop_goods_list' %}"><img src="/static/ba_office/images/btn_list.gif" alt="목록" style="cursor:pointer;"></a>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function doSubmit() {
+    if (!document.querySelector('[name=gd_name]').value.trim()) {
+        alert('상품명을 입력해주세요.'); return;
+    }
+    if (confirm('상품 기본정보를 수정하시겠습니까?')) {
+        document.getElementById('modForm').submit();
+    }
+}
+function changeCate(cateCode) {
+    var $sel = $('#cate2_select');
+    $sel.empty().append('<option value="">2차 분류</option>');
+    if (!cateCode) return;
+    $.get("{% url 'shop_ajax_goods_cate2' %}?parent="+cateCode+"&category2={{ cur_cate2 }}", function(html) {
+        $sel.html(html);
+    });
+}
+</script>
+{% endblock %}

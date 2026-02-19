@@ -1,0 +1,4 @@
+<option value="">2차 분류</option>
+{% for c in cats %}
+<option value="{{ c.cate_code }}" {% if c.cate_code == category2 %}selected{% endif %}>{{ c.cate_name }}</option>
+{% endfor %}

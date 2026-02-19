@@ -1,0 +1,167 @@
+{% extends "ba_office/base_office.html" %}
+{% load humanize office_tags %}
+
+{% block left_menu %}{% include "ba_office/includes/shop_left.html" %}{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; 쇼핑몰관리 &gt; 상품관리</div>
+<div class="h_55"></div>
+<p class="title">상품관리 - 리스트</p>
+
+<div class="tb_basic">
+    <form name="sFrm" method="get" action="{% url 'shop_goods_list' %}">
+        <table border="0" cellpadding="0" cellspacing="0">
+            <colgroup><col width="15%"/><col width="35%"/><col width="15%"/><col width="35%"/></colgroup>
+            <tbody>
+                <tr>
+                    <th scope="col">분류선택</th>
+                    <td class="left" colspan="3">
+                        <select name="category1" class="input" style="width:110px;" onchange="changeCate(this.value)">
+                            <option value="">1차 분류</option>
+                            {% for c in cate1_list %}
+                            <option value="{{ c.cate_code }}" {% if c.cate_code == category1 %}selected{% endif %}>{{ c.cate_name }}</option>
+                            {% endfor %}
+                        </select>
+                        &nbsp;
+                        <select name="category2" class="input" style="width:110px;" id="cate2_select">
+                            <option value="">2차 분류</option>
+                            {% for c in cate2_list %}
+                            <option value="{{ c.cate_code }}" {% if c.cate_code == category2 %}selected{% endif %}>{{ c.cate_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="col">재고여부</th>
+                    <td class="left" colspan="3">
+                        <input type="radio" name="sstock" value="0" {% if sstock == '0' %}checked{% endif %}>전체 상품
+                        <input type="radio" name="sstock" value="1" {% if sstock == '1' %}checked{% endif %}>재고있는 상품
+                        <input type="radio" name="sstock" value="2" {% if sstock == '2' %}checked{% endif %}>재고 0인 상품
+                        <input type="radio" name="sstock" value="3" {% if sstock == '3' %}checked{% endif %}>품절 상품
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="col">진열여부</th>
+                    <td class="left" colspan="3">
+                        <input type="radio" name="sdisplay" value="0" {% if sdisplay == '0' %}checked{% endif %}>전체
+                        <input type="radio" name="sdisplay" value="1" {% if sdisplay == '1' %}checked{% endif %}>진열
+                        <input type="radio" name="sdisplay" value="2" {% if sdisplay == '2' %}checked{% endif %}>미진열
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="col">상품등록일</th>
+                    <td class="left">
+                        <input type="text" id="ssdate" name="ssdate" value="{{ ssdate }}" class="input" style="width:90px;" maxlength="10" onclick="jQueryGetDate('ssdate')" readonly>
+                        ~
+                        <input type="text" id="sedate" name="sedate" value="{{ sedate }}" class="input" style="width:90px;" maxlength="10" onclick="jQueryGetDate('sedate')" readonly>
+                    </td>
+                    <td></td><td></td>
+                </tr>
+                <tr>
+                    <th scope="col">직접검색</th>
+                    <td class="left">
+                        <input type="text" name="sword" value="{{ sword }}" class="input" style="width:200px;">
+                    </td>
+                    <td></td><td></td>
+                </tr>
+            </tbody>
+        </table>
+    </form>
+</div>
+<div class="btn_right">
+    <img src="/static/ba_office/images/btn_search.gif" onclick="document.sFrm.submit()" style="cursor:pointer;">
+</div>
+
+<div class="scroll">
+<div class="tb_scroll">
+<table border="0" cellpadding="0" cellspacing="0">
+    <colgroup>
+        <col width="7%"/><col width="7%"/><col width="*"/><col width="12%"/>
+        <col width="12%"/><col width="10%"/><col width="15%"/>
+    </colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">정렬번호</th>
+            <th scope="col">상품코드<br>진열여부</th>
+            <th scope="col">상품명 / 카테고리 / 공급업체</th>
+            <th scope="col">판매가 / 시장가 / 포인트</th>
+            <th scope="col">결제가 / 결제포인트</th>
+            <th scope="col">재고 / 품절</th>
+            <th scope="col">관리</th>
+        </tr>
+        {% if page_obj.object_list %}
+            {% for p in page_obj.object_list %}
+            <tr>
+                <td>{{ p.order_number }}</td>
+                <td>{{ p.gd_code }}<br><span style="color:{% if p.gd_display == 'Y' %}green{% else %}red{% endif %};">{% if p.gd_display == 'Y' %}[진열]{% else %}[미진열]{% endif %}</span></td>
+                <td>
+                    {{ p.gd_name }}<br>
+                    <span style="color:gray;font-size:11px;">{{ p.cate_path }}</span><br>
+                    <span style="color:gray;font-size:11px;">{{ p.gd_product }}</span>
+                </td>
+                <td>{{ p.gd_price|intcomma }}원<br>{{ p.gd_market_price|intcomma }}원<br>P{{ p.gd_point|intcomma }}</td>
+                <td>{{ p.gd_pay_price|intcomma }}원<br>P{{ p.gd_pay_point|intcomma }}</td>
+                <td>
+                    {% if p.gd_stock == '00' %}무제한{% else %}{{ p.gd_stock|intcomma }}개{% endif %}<br>
+                    {% if p.gd_is_soldout == 'Y' %}<span style="color:red;">[품절]</span>{% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'shop_goods_modify' p.pk %}"><img src="/static/ba_office/images/btn_edit.gif" alt="수정" style="cursor:pointer;"></a>
+                    <img src="/static/ba_office/images/btn_del.gif" alt="삭제" onclick="goDel({{ p.gd_code }})" style="cursor:pointer;">
+                </td>
+            </tr>
+            {% endfor %}
+        {% else %}
+            <tr><td colspan="7" style="text-align:center;">상품이 없습니다.</td></tr>
+        {% endif %}
+    </tbody>
+</table>
+</div>
+</div>
+
+<div class="paging">
+    {% if page_obj.has_previous %}
+    <a href="?category1={{ category1 }}&category2={{ category2 }}&sstock={{ sstock }}&sdisplay={{ sdisplay }}&ssdate={{ ssdate }}&sedate={{ sedate }}&sword={{ sword }}&page=1">&laquo;</a>
+    <a href="?category1={{ category1 }}&category2={{ category2 }}&sstock={{ sstock }}&sdisplay={{ sdisplay }}&ssdate={{ ssdate }}&sedate={{ sedate }}&sword={{ sword }}&page={{ page_obj.previous_page_number }}">&lt;</a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <strong>{{ num }}</strong>
+        {% elif num > page_obj.number|add:"-5" and num < page_obj.number|add:"5" %}
+        <a href="?category1={{ category1 }}&category2={{ category2 }}&sstock={{ sstock }}&sdisplay={{ sdisplay }}&ssdate={{ ssdate }}&sedate={{ sedate }}&sword={{ sword }}&page={{ num }}">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <a href="?category1={{ category1 }}&category2={{ category2 }}&sstock={{ sstock }}&sdisplay={{ sdisplay }}&ssdate={{ ssdate }}&sedate={{ sedate }}&sword={{ sword }}&page={{ page_obj.next_page_number }}">&gt;</a>
+    <a href="?category1={{ category1 }}&category2={{ category2 }}&sstock={{ sstock }}&sdisplay={{ sdisplay }}&ssdate={{ ssdate }}&sedate={{ sedate }}&sword={{ sword }}&page={{ page_obj.paginator.num_pages }}">&raquo;</a>
+    {% endif %}
+</div>
+
+<form id="delForm" method="post" action="{% url 'shop_goods_delete' %}">
+    {% csrf_token %}
+    <input type="hidden" name="gd_code" id="del_gd_code">
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(function() {
+    $("#ssdate,#sedate").datepicker({ dateFormat:'yy-mm-dd', changeMonth:true, changeYear:true });
+});
+function jQueryGetDate(id) { $("#"+id).trigger("focus"); }
+function changeCate(cateCode) {
+    var $sel = $('#cate2_select');
+    $sel.empty().append('<option value="">2차 분류</option>');
+    if (!cateCode) return;
+    $.get("{% url 'shop_ajax_goods_cate2' %}?parent="+cateCode, function(html) {
+        $sel.html(html);
+    });
+}
+function goDel(gdCode) {
+    if (confirm("선택하신 상품을 삭제하시겠습니까?")) {
+        document.getElementById('del_gd_code').value = gdCode;
+        document.getElementById('delForm').submit();
+    }
+}
+</script>
+{% endblock %}

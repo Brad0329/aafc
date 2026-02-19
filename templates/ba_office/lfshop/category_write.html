@@ -1,0 +1,75 @@
+{% extends "ba_office/base_office.html" %}
+{% load office_tags %}
+
+{% block left_menu %}{% include "ba_office/includes/shop_left.html" %}{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; 쇼핑몰관리 &gt; 카테고리관리</div>
+<div class="h_55"></div>
+<p class="title">쇼핑몰관리 - 카테고리 {% if mode == 'add' %}등록{% else %}수정{% endif %}</p>
+
+{% if error %}<p style="color:red;margin:5px 0;">{{ error }}</p>{% endif %}
+
+<form method="post" enctype="multipart/form-data" id="regform">
+    {% csrf_token %}
+    <input type="hidden" name="mode" value="{{ mode }}">
+    <input type="hidden" name="cate_code" value="{{ cat.cate_code|default:'' }}">
+    <input type="hidden" name="parent" value="{{ parent }}">
+
+    <div class="tb_basic">
+        <table border="0" cellpadding="0" cellspacing="0">
+            <colgroup><col width="25%"/><col/></colgroup>
+            <tbody>
+                <tr>
+                    <th scope="col" colspan="2">
+                        {% if parent %}
+                            {% if parent_cat %}[{{ parent_cat.cate_name }}]{% endif %} 2차 분류 {% if mode == 'add' %}등록{% else %}수정{% endif %}
+                        {% else %}
+                            1차 분류 {% if mode == 'add' %}등록{% else %}수정{% endif %}
+                        {% endif %}
+                    </th>
+                </tr>
+                <tr>
+                    <th scope="col">분류명</th>
+                    <td class="left">
+                        <input type="text" name="cate_name" class="input" style="width:200px;" maxlength="30" value="{{ cat.cate_name|default:'' }}">
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="col">이미지</th>
+                    <td class="left">
+                        <input type="file" name="cate_img" class="input" style="width:200px;">
+                        {% if cat.cate_img %}
+                            <br><img src="/fcdata/shop_category/{{ cat.cate_img }}" width="200">
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="col">표시옵션</th>
+                    <td class="left">
+                        <input type="radio" name="is_display" value="Y" {% if not cat or cat.cate_is_display == 'Y' %}checked{% endif %}>표시
+                        <input type="radio" name="is_display" value="N" {% if cat and cat.cate_is_display == 'N' %}checked{% endif %}>감추기
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="btn_right">
+        <input type="submit" value="" style="display:none;" id="submitBtn">
+        <img src="/static/ba_office/images/{% if mode == 'add' %}btn_regi{% else %}btn_modify{% endif %}.gif" alt="저장" onclick="doSubmit()" style="cursor:pointer;">
+        <img src="/static/ba_office/images/btn_cancel.gif" alt="취소" onclick="history.back()" style="cursor:pointer;">
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function doSubmit() {
+    var cate_name = document.querySelector('[name=cate_name]').value.trim();
+    if (!cate_name) { alert('분류명을 입력해주세요.'); return; }
+    if (confirm('카테고리를 {% if mode == "add" %}등록{% else %}수정{% endif %}하시겠습니까?')) {
+        document.getElementById('regform').submit();
+    }
+}
+</script>
+{% endblock %}
