@@ -11,73 +11,101 @@
 // [UX변경] 원본: sel_stadium(code_desc) AJAX cascade 제거 (필드→구장 2단계)
 function sel_course(sta_code) {
     $.getJSON("{% url 'office_ajax_student_course' %}", {sta_code: sta_code}, function(data) {
-        var sel = document.schform.sch_lecture_code;
+        var sel = document.srch_form.sch_lecture_code;
         sel.options.length = 1;
         for (var i = 0; i < data.length; i++) {
             sel.options[sel.options.length] = new Option(data[i].lecture_title, data[i].lecture_code);
         }
     });
 }
-function toggleMode() {
-    var mode = document.schform.sch_mode.value;
-    if (mode == '1') {
-        document.getElementById('date_single').style.display = '';
-        document.getElementById('date_range').style.display = 'none';
-        document.schform.sch_att_gbn.disabled = true;
-        document.schform.sch_suc_gbn.disabled = true;
+
+// ASP 원본: jQuery datepicker 초기화
+$(document).ready(function() {
+    $("#sch_lecture_month").datepicker({
+        changeMonth: true,
+        changeYear: true,
+        dateFormat: 'yy-mm-dd',
+        dayNames:['월요일','화요일','수요일','목요일','금요일','토요일','일요일'],
+        monthNamesShort:['1','2','3','4','5','6','7','8','9','10','11','12'],
+        yearRange: '2007:2030'
+    });
+    $("#sch_lecture_end_month").datepicker({
+        changeMonth: true,
+        changeYear: true,
+        dateFormat: 'yy-mm-dd',
+        dayNames:['월요일','화요일','수요일','목요일','금요일','토요일','일요일'],
+        monthNamesShort:['1','2','3','4','5','6','7','8','9','10','11','12'],
+        yearRange: '2007:2030'
+    });
+});
+
+function jQueryGetDate(objName) {
+    $("#" + objName).trigger("focus");
+}
+
+// ASP 원본: process_gbn_fn
+function process_gbn_fn(gbn) {
+    if (gbn == '1') {
+        $("#end_lecture_month").hide();
+        document.srch_form.att_gbn.disabled = true;
+        document.srch_form.suc_gbn.disabled = true;
     } else {
-        document.getElementById('date_single').style.display = 'none';
-        document.getElementById('date_range').style.display = '';
-        document.schform.sch_att_gbn.disabled = false;
-        document.schform.sch_suc_gbn.disabled = false;
+        $("#end_lecture_month").show();
+        document.srch_form.att_gbn.disabled = false;
+        document.srch_form.suc_gbn.disabled = false;
     }
 }
-function fn_search() {
-    var mode = document.schform.sch_mode.value;
-    var lec = document.schform.sch_lecture_code.value;
-    if (!lec) { alert('과정을 선택하세요.'); return; }
-    if (mode == '1' && !document.schform.sch_date.value) { alert('수업일을 선택하세요.'); return; }
-    if (mode == '2') {
-        if (!document.schform.sch_sdate.value || !document.schform.sch_edate.value) {
-            alert('조회 기간을 입력하세요.'); return;
-        }
+
+// ASP 원본: srch_snd
+// [UX변경] 원본: chec_fun(srch_form.sch_locd_code, "필드명") 검증 제거
+function srch_snd() {
+    if (!document.srch_form.sch_sta_code.value) { alert('구장명을 선택하세요.'); return; }
+    if (!document.srch_form.sch_lecture_code.value) { alert('과정명을 선택하세요.'); return; }
+    if (!document.srch_form.sch_lecture_month.value) { alert('수업일을 입력하세요.'); return; }
+    if (document.srch_form.sch_process_gbn.value == '2') {
+        if (!document.srch_form.sch_lecture_end_month.value) { alert('종료 수업일을 입력하세요.'); return; }
     }
-    document.schform.submit();
+    document.srch_form.submit();
 }
-function batchSubmit() {
-    var gbn = document.getElementById('batch_gbn').value;
-    if (!gbn) { alert('출결구분을 선택하세요.'); return; }
-    if (gbn == 'N') {
-        var desc = document.getElementById('batch_desc').value;
-        if (!desc) { alert('결석 시 비고를 입력하세요.'); return; }
-    }
-    document.getElementById('att_mode').value = '1';
-    document.getElementById('batch_gbn_hidden').value = gbn;
-    document.getElementById('batch_desc_hidden').value = document.getElementById('batch_desc').value;
-    document.frmAtt.submit();
-}
-function individualSubmit() {
-    // 모든 학생 출결 선택 확인
+
+// ASP 원본: snd_chk (gbn=1:일괄처리, gbn=2:개별저장)
+function snd_chk(gbn) {
     var children = document.querySelectorAll('input[name="child_ids"]');
-    for (var i = 0; i < children.length; i++) {
-        var cid = children[i].value;
-        var gbn = document.querySelector('[name="gbn_' + cid + '"]').value;
-        if (!gbn) {
-            alert('모든 학생의 출결 상태를 선택해주세요.');
+    if (children.length == 0) {
+        alert('처리할 데이터가 없습니다.');
+        return;
+    }
+    if (gbn == 1) {
+        var allAtt = document.getElementById('all_att').value;
+        if (!allAtt) {
+            alert('일괄처리를 하시려면 일괄처리할 내용을 선택해주세요.');
+            document.getElementById('all_att').focus();
             return;
         }
-        // 결석 시 비고 필수
-        if (gbn == 'N') {
-            var desc = document.querySelector('[name="desc_' + cid + '"]').value;
-            if (!desc.trim()) {
-                var name = children[i].closest('tr').querySelectorAll('td')[2].textContent;
-                alert(name + ': 결석 시 비고를 입력해주세요.');
+        document.getElementById('batch_gbn_hidden').value = allAtt;
+    }
+    if (gbn == 2) {
+        for (var i = 0; i < children.length; i++) {
+            var cid = children[i].value;
+            var gbnEl = document.querySelector('[name="gbn_' + cid + '"]');
+            if (gbnEl && !gbnEl.value) {
+                alert('출결사항 미체크 항목이 있습니다. 모든 회원들은 반드시 출석,결석 등의 값을 선택하셔야 합니다.');
                 return;
+            }
+            if (gbnEl && gbnEl.value == 'N') {
+                var descEl = document.querySelector('[name="desc_' + cid + '"]');
+                if (!descEl || !descEl.value.trim()) {
+                    alert('결석의 경우 결석사유를 반드시 입력해 주세요.');
+                    return;
+                }
             }
         }
     }
-    document.getElementById('att_mode').value = '2';
-    document.frmAtt.submit();
+    var con = confirm('출결처리 하시겠습니까?');
+    if (con) {
+        document.getElementById('att_mode').value = gbn;
+        document.reg_form.submit();
+    }
 }
 </script>
 {% endblock %}
@@ -86,18 +114,22 @@ function individualSubmit() {
 <div class="navi">HOME  &gt;  수강생관리  &gt;  출결관리</div>
 <div class="h_55"></div>
 
-<p class="title">출결관리(NEW)</p>
+<p class="title">출결관리</p>
 
-<form name="schform" method="get" action="{% url 'office_attendance' %}">
 <div class="tb_basic" style="margin-bottom:5px;">
+<form name="srch_form" method="get" action="{% url 'office_attendance' %}">
 <table summary="검색" border="0" cellpadding="0" cellspacing="0">
-    {# [UX변경] 원본: 필드명+구장명+과정명 3열 6컬럼 → 구장명+과정명 2열 4컬럼 #}
-    <colgroup><col width="10%" /><col width="33%" /><col width="10%" /><col width="47%" /></colgroup>
+    {# [UX변경] 원본: 6열(필드명+구장명+과정명) 2행 → 구장명+과정명 1행 + 처리구분+수업일+출결완료 1행 (필드명 제거) #}
+    <colgroup>
+        <col width="10%"/><col width="20%"/>
+        <col width="10%"/><col width="20%"/>
+        <col width="10%"/><col width="30%"/>
+    </colgroup>
     <tbody>
         <tr>
             <th scope="col">구장명</th>
             <td class="left">
-                <select name="sch_sta_code" class="select" style="width:120px;" onchange="sel_course(this.value);">
+                <select name="sch_sta_code" class="select" style="width:130px;" onchange="sel_course(this.value);">
                     <option value="">==선택==</option>
                     {% for s in stadiums %}
                     <option value="{{ s.sta_code }}" {% if sch_sta_code == s.sta_code|stringformat:"d" %}selected{% endif %}>{{ s.sta_name }}</option>
@@ -105,8 +137,8 @@ function individualSubmit() {
                 </select>
             </td>
             <th scope="col">과정명</th>
-            <td class="left">
-                <select name="sch_lecture_code" class="select" style="width:120px;">
+            <td class="left" colspan="3">
+                <select name="sch_lecture_code" class="select" style="width:200px;">
                     <option value="">==선택==</option>
                     {% for c in courses %}
                     <option value="{{ c.lecture_code }}" {% if sch_lecture_code == c.lecture_code|stringformat:"d" %}selected{% endif %}>{{ c.lecture_title }}</option>
@@ -117,185 +149,157 @@ function individualSubmit() {
         <tr>
             <th scope="col">처리구분</th>
             <td class="left">
-                <select name="sch_mode" class="select" style="width:120px;" onchange="toggleMode();">
-                    <option value="1" {% if sch_mode == "1" %}selected{% endif %}>출석체크</option>
-                    <option value="2" {% if sch_mode == "2" %}selected{% endif %}>조회용</option>
+                <select name="sch_process_gbn" class="select" style="width:80px;" onchange="process_gbn_fn(this.value);">
+                    <option value="1" {% if sch_process_gbn == "1" %}selected{% endif %}>출석체크</option>
+                    <option value="2" {% if sch_process_gbn == "2" %}selected{% endif %}>조회용</option>
                 </select>
             </td>
             <th scope="col">수업일</th>
-            <td class="left" colspan="3">
-                <span id="date_single" {% if sch_mode == "2" %}style="display:none"{% endif %}>
-                    <input type="date" name="sch_date" value="{{ sch_date }}" class="input" style="width:150px;" />
-                </span>
-                <span id="date_range" {% if sch_mode != "2" %}style="display:none"{% endif %}>
-                    <input type="date" name="sch_sdate" value="{{ sch_sdate }}" class="input" style="width:130px;" />
-                    ~
-                    <input type="date" name="sch_edate" value="{{ sch_edate }}" class="input" style="width:130px;" />
-                </span>
-                <a href="javascript:fn_search();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
-            </td>
-        </tr>
-        <tr>
-            <th scope="col">출결</th>
             <td class="left">
-                <select name="sch_att_gbn" class="select" style="width:120px;" {% if sch_mode != "2" %}disabled{% endif %}>
-                    <option value="">==전체==</option>
-                    <option value="Y" {% if sch_att_gbn == "Y" %}selected{% endif %}>출석</option>
-                    <option value="N" {% if sch_att_gbn == "N" %}selected{% endif %}>결석</option>
-                    <option value="A" {% if sch_att_gbn == "A" %}selected{% endif %}>보강</option>
-                    <option value="R" {% if sch_att_gbn == "R" %}selected{% endif %}>우천취소</option>
-                    <option value="D" {% if sch_att_gbn == "D" %}selected{% endif %}>수업연기</option>
-                    <option value="E" {% if sch_att_gbn == "E" %}selected{% endif %}>출결제외</option>
+                <input type="text" name="sch_lecture_month" id="sch_lecture_month" value="{{ sch_lecture_month }}" class="input" style="width:90px;" onclick="jQueryGetDate('sch_lecture_month')" maxlength="10" />
+                <span id="end_lecture_month" {% if sch_process_gbn != "2" %}style="display:none;"{% endif %}>
+                    ~ <input type="text" name="sch_lecture_end_month" id="sch_lecture_end_month" value="{{ sch_lecture_end_month }}" class="input" style="width:90px;" onclick="jQueryGetDate('sch_lecture_end_month')" maxlength="10" />
+                </span>
+            </td>
+            <th scope="col">출결/완료</th>
+            <td class="left">
+                <select name="att_gbn" class="select" style="width:80px;" {% if sch_process_gbn != "2" %}disabled{% endif %}>
+                    <option value="">==선택==</option>
+                    <option value="Y" {% if att_gbn == "Y" %}selected{% endif %}>출석</option>
+                    <option value="N" {% if att_gbn == "N" %}selected{% endif %}>결석</option>
+                    <option value="A" {% if att_gbn == "A" %}selected{% endif %}>보강</option>
+                    <option value="R" {% if att_gbn == "R" %}selected{% endif %}>우천취소</option>
+                    <option value="D" {% if att_gbn == "D" %}selected{% endif %}>수업연기</option>
+                    <option value="E" {% if att_gbn == "E" %}selected{% endif %}>출결처리제외</option>
+                </select>
+                <select name="suc_gbn" class="select" style="width:70px;" {% if sch_process_gbn != "2" %}disabled{% endif %}>
+                    <option value="">==선택==</option>
+                    <option value="Y" {% if suc_gbn == "Y" %}selected{% endif %}>완료</option>
+                    <option value="N" {% if suc_gbn == "N" %}selected{% endif %}>미완료</option>
                 </select>
             </td>
-            <th scope="col">완료</th>
-            <td class="left">
-                <select name="sch_suc_gbn" class="select" style="width:120px;" {% if sch_mode != "2" %}disabled{% endif %}>
-                    <option value="">==전체==</option>
-                    <option value="Y" {% if sch_suc_gbn == "Y" %}selected{% endif %}>완료</option>
-                    <option value="N" {% if sch_suc_gbn == "N" %}selected{% endif %}>미완료</option>
-                </select>
-            </td>
-            <td colspan="2"></td>
         </tr>
     </tbody>
 </table>
-</div>
 </form>
+</div>
+<div class="btn_right">
+    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+</div>
 
 {% if searched %}
-{% if sch_mode == "1" and students %}
-<!-- 출석체크 모드 -->
-<p class="title">출석체크 - {{ sch_date }}</p>
+<p class="title">출결처리일자</p><br>사후처리 항목을 입력하시려면 처리구분값을 [조회용]으로 변경후 검색하시기 바랍니다.
 
-<div style="margin:5px 0;">
-    <b>일괄처리:</b>
-    <select id="batch_gbn" class="select" style="width:80px;">
-        <option value="">선택</option>
-        <option value="Y">출석</option>
-        <option value="N">결석</option>
-        <option value="R">우천취소</option>
-    </select>
-    <input type="text" id="batch_desc" class="input" style="width:150px;" placeholder="비고" />
-    <a href="javascript:batchSubmit();"><img src="{% static 'ba_office/images/btn_check.gif' %}" alt="일괄처리" /></a>
-    &nbsp;&nbsp;|&nbsp;&nbsp;
-    <a href="javascript:individualSubmit();"><img src="{% static 'ba_office/images/btn_modify.gif' %}" alt="개별저장" /></a>
-</div>
-
-<form name="frmAtt" method="post" action="{% url 'office_attendance_proc' %}">
+<div class="tb_basic">
+<form name="reg_form" method="post" action="{% url 'office_attendance_proc' %}">
 {% csrf_token %}
 <input type="hidden" name="lecture_code" value="{{ sch_lecture_code }}" />
-<input type="hidden" name="att_date" value="{{ sch_date }}" />
+<input type="hidden" name="att_date" value="{{ sch_lecture_month }}" />
 <input type="hidden" name="att_mode" id="att_mode" value="2" />
 <input type="hidden" name="batch_gbn" id="batch_gbn_hidden" value="" />
-<input type="hidden" name="batch_desc" id="batch_desc_hidden" value="" />
 {# [UX변경] 원본: <input type="hidden" name="sch_code_desc" value="{{ sch_code_desc }}" /> #}
 <input type="hidden" name="sch_sta_code" value="{{ sch_sta_code }}" />
 
 <div class="scroll">
 <table class="tb_scroll" border="0" cellpadding="0" cellspacing="0">
     <colgroup>
-        <col width="4%" /><col width="8%" /><col width="8%" /><col width="10%" />
-        <col width="15%" /><col width="10%" /><col width="10%" /><col width="8%" />
+        <col width="4%"/><col width="10%"/><col width="12%"/>
+        <col width="10%"/><col/><col width="15%"/>
+        <col width="10%"/><col width="8%"/>
     </colgroup>
     <thead>
     <tr>
-        <th>No</th>
-        <th>자녀ID</th>
-        <th>자녀명</th>
-        <th>출결</th>
+        <th>순번</th>
+        <th>수업일</th>
+        <th>수강생명</th>
+        <th>출/결</th>
         <th>내용</th>
         <th>사후처리</th>
-        <th>적용월</th>
-        <th>완료</th>
+        <th>적용월<br>(ex 201409)</th>
+        <th>완료여부</th>
     </tr>
     </thead>
     <tbody>
-    {% for s in students %}
-    <input type="hidden" name="child_ids" value="{{ s.child_id }}" />
-    <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ s.child_id }}</td>
-        <td>{{ s.child_name }}</td>
-        <td>
-            <select name="gbn_{{ s.child_id }}" class="select" style="width:70px;">
-                <option value="">선택</option>
-                <option value="Y" {% if s.attendance_gbn == "Y" %}selected{% endif %}>출석</option>
-                <option value="N" {% if s.attendance_gbn == "N" %}selected{% endif %}>결석</option>
-                <option value="A" {% if s.attendance_gbn == "A" %}selected{% endif %}>보강</option>
-                <option value="R" {% if s.attendance_gbn == "R" %}selected{% endif %}>우천취소</option>
-                <option value="D" {% if s.attendance_gbn == "D" %}selected{% endif %}>수업연기</option>
-                <option value="E" {% if s.attendance_gbn == "E" %}selected{% endif %}>출결제외</option>
-            </select>
-        </td>
-        <td><input type="text" name="desc_{{ s.child_id }}" value="{{ s.attendance_desc }}" class="input" style="width:100%;" /></td>
-        <td>
-            <select name="mata_{{ s.child_id }}" class="select" style="width:80px;" disabled>
-                <option value="">선택</option>
-                <option value="1" {% if s.mata == "1" %}selected{% endif %}>보강</option>
-                <option value="2" {% if s.mata == "2" %}selected{% endif %}>수업료이월</option>
-                <option value="3" {% if s.mata == "3" %}selected{% endif %}>결석체크전화</option>
-                <option value="4" {% if s.mata == "4" %}selected{% endif %}>티켓신청</option>
-            </select>
-        </td>
-        <td><input type="text" name="app_month_{{ s.child_id }}" value="{{ s.app_month }}" class="input" style="width:80px;" placeholder="YYYYMM" readonly /></td>
-        <td>
-            <select name="complete_yn_{{ s.child_id }}" class="select" style="width:50px;" disabled>
-                <option value="N" {% if s.complete_yn == "N" %}selected{% endif %}>N</option>
-                <option value="Y" {% if s.complete_yn == "Y" %}selected{% endif %}>Y</option>
-            </select>
-        </td>
-    </tr>
-    {% endfor %}
+    {% if sch_process_gbn == "1" %}
+        {% if students %}
+        {% for s in students %}
+        <input type="hidden" name="child_ids" value="{{ s.child_id }}" />
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ sch_lecture_month }}</td>
+            <td>{{ s.child_name }}<br>({{ s.child_id }})</td>
+            <td>
+                <select name="gbn_{{ s.child_id }}" class="select" style="width:80px;">
+                    <option value="">==선택==</option>
+                    <option value="Y" {% if s.attendance_gbn == "Y" %}selected{% endif %}>출석</option>
+                    <option value="N" {% if s.attendance_gbn == "N" %}selected{% endif %}>결석</option>
+                    <option value="A" {% if s.attendance_gbn == "A" %}selected{% endif %}>보강</option>
+                    <option value="R" {% if s.attendance_gbn == "R" %}selected{% endif %}>우천취소</option>
+                    <option value="D" {% if s.attendance_gbn == "D" %}selected{% endif %}>수업연기</option>
+                    <option value="E" {% if s.attendance_gbn == "E" %}selected{% endif %}>출결처리제외</option>
+                </select>
+            </td>
+            <td><input type="text" name="desc_{{ s.child_id }}" value="{{ s.attendance_desc }}" class="input" style="width:100%;" /></td>
+            <td>
+                <select name="mata_{{ s.child_id }}" class="select" style="width:80px;" disabled>
+                    <option value="">==선택==</option>
+                    <option value="1" {% if s.mata == "1" %}selected{% endif %}>보강</option>
+                    <option value="2" {% if s.mata == "2" %}selected{% endif %}>수업료 이월</option>
+                    <option value="3" {% if s.mata == "3" %}selected{% endif %}>결석체크전화</option>
+                    <option value="4" {% if s.mata == "4" %}selected{% endif %}>홈경기대체 티켓신청</option>
+                </select>
+            </td>
+            <td><input type="text" name="app_month_{{ s.child_id }}" value="{{ s.app_month }}" class="input" style="width:70px;" maxlength="7" readonly /></td>
+            <td>
+                <select name="complete_yn_{{ s.child_id }}" class="select" style="width:50px;" disabled>
+                    <option value="">==선택==</option>
+                    <option value="Y" {% if s.complete_yn == "Y" %}selected{% endif %}>완료</option>
+                    <option value="N" {% if s.complete_yn == "N" %}selected{% endif %}>미완료</option>
+                </select>
+            </td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr><td colspan="8" style="text-align:center; padding:20px; color:#999;">해당 강좌의 수강생이 없습니다.</td></tr>
+        {% endif %}
+    {% elif sch_process_gbn == "2" %}
+        {% if records %}
+        {% for r in records %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ r.attendance_dt }}</td>
+            <td>{{ r.child_name }}<br>({{ r.child_id }})</td>
+            <td>{{ r.get_attendance_gbn_display }}</td>
+            <td class="left">{{ r.attendance_desc }}</td>
+            <td>{% if r.mata == "1" %}보강{% elif r.mata == "2" %}수업료 이월{% elif r.mata == "3" %}결석체크전화{% elif r.mata == "4" %}홈경기대체 티켓신청{% endif %}</td>
+            <td>{{ r.app_month }}</td>
+            <td>{{ r.complete_yn }}</td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr><td colspan="8" style="text-align:center; padding:20px; color:#999;">출결 데이터가 없습니다.</td></tr>
+        {% endif %}
+    {% endif %}
     </tbody>
 </table>
 </div>
 </form>
-
-{% elif sch_mode == "2" and records %}
-<!-- 조회 모드 -->
-<p class="title">출결조회 - {{ sch_sdate }} ~ {{ sch_edate }}</p>
-
-<div class="scroll">
-<table class="tb_scroll" border="0" cellpadding="0" cellspacing="0">
-    <colgroup>
-        <col width="5%" /><col width="12%" /><col width="10%" /><col width="10%" />
-        <col width="8%" /><col width="20%" /><col width="10%" /><col width="10%" /><col width="8%" />
-    </colgroup>
-    <thead>
-    <tr>
-        <th>No</th>
-        <th>출석일</th>
-        <th>자녀ID</th>
-        <th>자녀명</th>
-        <th>출결</th>
-        <th>내용</th>
-        <th>사후처리</th>
-        <th>적용월</th>
-        <th>완료</th>
-    </tr>
-    </thead>
-    <tbody>
-    {% for r in records %}
-    <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ r.attendance_dt }}</td>
-        <td>{{ r.child_id }}</td>
-        <td>{{ r.child_name }}</td>
-        <td>{{ r.get_attendance_gbn_display }}</td>
-        <td class="left">{{ r.attendance_desc }}</td>
-        <td>{% if r.mata == "1" %}보강{% elif r.mata == "2" %}수업료이월{% elif r.mata == "3" %}결석체크전화{% elif r.mata == "4" %}티켓신청{% endif %}</td>
-        <td>{{ r.app_month }}</td>
-        <td>{{ r.complete_yn }}</td>
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
 </div>
 
-{% else %}
-<p style="margin:10px 0; color:#999;">{% if sch_mode == "1" %}해당 강좌의 수강생이 없습니다.{% else %}출결 데이터가 없습니다.{% endif %}</p>
+<div class="btn_right">
+{% if sch_process_gbn == "1" and students %}
+    <select id="all_att" class="select">
+        <option value="">==선택==</option>
+        <option value="Y">출석</option>
+        <option value="N">결석</option>
+        <option value="R">우천취소</option>
+    </select>
+    <input type="button" value="일괄처리" onclick="snd_chk(1);" class="button" />
+    <a href="javascript:snd_chk(2);"><img src="{% static 'ba_office/images/btn_attendance.gif' %}" alt="저장" /></a>
 {% endif %}
+<br><br>
+<b>출결코드 = 우천취소:날씨로 인한 수업전체취소 / 수업연기: 수강생 본인의사로 결석하여 차후 보강대상자 / 출결처리제외: 해당일자 출석체크 대상자가 아닌경우 체크</b>
+</div>
 {% endif %}
 
 {% endblock %}

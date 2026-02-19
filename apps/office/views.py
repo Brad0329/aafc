@@ -2920,12 +2920,12 @@ def attendance_view(request):
     # [UX변경] 원본: sch_code_desc = request.GET.get('sch_code_desc', '') (필드 제거)
     sch_sta_code = request.GET.get('sch_sta_code', '')
     sch_lecture_code = request.GET.get('sch_lecture_code', '')
-    sch_mode = request.GET.get('sch_mode', '1')  # 1=출석체크, 2=조회용
-    sch_date = request.GET.get('sch_date', '')
-    sch_sdate = request.GET.get('sch_sdate', '')
-    sch_edate = request.GET.get('sch_edate', '')
-    sch_att_gbn = request.GET.get('sch_att_gbn', '')
-    sch_suc_gbn = request.GET.get('sch_suc_gbn', '')
+    # ASP 원본 파라미터명으로 변경: sch_mode→sch_process_gbn, sch_date→sch_lecture_month, sch_sdate/sch_edate→sch_lecture_month/sch_lecture_end_month
+    sch_process_gbn = request.GET.get('sch_process_gbn', '1')  # 1=출석체크, 2=조회용
+    sch_lecture_month = request.GET.get('sch_lecture_month', '')   # 단일날짜(mode1) or 시작일(mode2)
+    sch_lecture_end_month = request.GET.get('sch_lecture_end_month', '')  # 종료일(mode2만)
+    att_gbn = request.GET.get('att_gbn', '')
+    suc_gbn = request.GET.get('suc_gbn', '')
 
     students = []
     records = []
@@ -2938,12 +2938,13 @@ def attendance_view(request):
     if sch_sta_code:
         courses = Lecture.objects.filter(stadium__sta_code=int(sch_sta_code), use_gbn='Y').order_by('lecture_title')
 
-    if sch_lecture_code and (sch_date or (sch_sdate and sch_edate)):
+    if sch_lecture_code and sch_lecture_month:
         searched = True
         lecture_code = int(sch_lecture_code)
 
-        if sch_mode == '1' and sch_date:
+        if sch_process_gbn == '1':
             # 모드 1: 출석체크 - 해당 강좌의 수강생 목록
+            sch_date = sch_lecture_month
             try:
                 att_date_parts = sch_date.split('-')
                 att_year = int(att_date_parts[0])
@@ -2987,17 +2988,17 @@ def attendance_view(request):
                     'uid': att.id if att else 0,
                 })
 
-        elif sch_mode == '2' and sch_sdate and sch_edate:
+        elif sch_process_gbn == '2' and sch_lecture_end_month:
             # 모드 2: 조회 - 기간별 출결 데이터
             records = Attendance.objects.filter(
                 lecture_code=lecture_code,
-                attendance_dt__gte=sch_sdate,
-                attendance_dt__lte=sch_edate,
+                attendance_dt__gte=sch_lecture_month,
+                attendance_dt__lte=sch_lecture_end_month,
             )
-            if sch_att_gbn:
-                records = records.filter(attendance_gbn=sch_att_gbn)
-            if sch_suc_gbn:
-                records = records.filter(complete_yn=sch_suc_gbn)
+            if att_gbn:
+                records = records.filter(attendance_gbn=att_gbn)
+            if suc_gbn:
+                records = records.filter(complete_yn=suc_gbn)
             records = records.order_by('attendance_dt', 'child_id')
 
             # 자녀 이름 매핑
@@ -3014,12 +3015,11 @@ def attendance_view(request):
         'searched': searched,
         'sch_sta_code': sch_sta_code,
         'sch_lecture_code': sch_lecture_code,
-        'sch_mode': sch_mode,
-        'sch_date': sch_date,
-        'sch_sdate': sch_sdate,
-        'sch_edate': sch_edate,
-        'sch_att_gbn': sch_att_gbn,
-        'sch_suc_gbn': sch_suc_gbn,
+        'sch_process_gbn': sch_process_gbn,
+        'sch_lecture_month': sch_lecture_month,
+        'sch_lecture_end_month': sch_lecture_end_month,
+        'att_gbn': att_gbn,
+        'suc_gbn': suc_gbn,
     })
 
 
@@ -3097,10 +3097,10 @@ def attendance_proc(request):
                     insert_dt=timezone.now(),
                 )
 
-    # 원래 검색 조건으로 리다이렉트
+    # 원래 검색 조건으로 리다이렉트 (ASP 파라미터명 사용)
     # [UX변경] 원본: sch_code_desc = request.POST.get('sch_code_desc', '') (필드 제거)
     sch_sta_code = request.POST.get('sch_sta_code', '')
-    return redirect(f'/ba_office/lfstudent/attendance/?sch_mode=1&sch_lecture_code={lecture_code}&sch_date={att_date}&sch_sta_code={sch_sta_code}')
+    return redirect(f'/ba_office/lfstudent/attendance/?sch_process_gbn=1&sch_lecture_code={lecture_code}&sch_lecture_month={att_date}&sch_sta_code={sch_sta_code}')
 
 
 # ============================================================
