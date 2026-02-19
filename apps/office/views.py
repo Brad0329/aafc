@@ -4420,15 +4420,12 @@ def coach_del(request, pk):
 def lecture_list(request):
     """강좌 목록"""
     use_gbn = request.GET.get('use_gbn', 'Y')
-    local_code = request.GET.get('local_code', '')
+    # [UX변경] 원본: local_code = request.GET.get('local_code', '') (필드 제거)
     sel_sta_code = request.GET.get('sel_sta_code', '')
     class_gbn = request.GET.get('class_gbn', '')
     lecture_day = request.GET.get('lecture_day', '')
 
-    # LOCD 코드그룹 로드 (검색 필터용)
-    locd_list = CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order')
-
-    # 구장 목록 (hidden select 패턴용)
+    # [UX변경] 구장 전체 직접 표시. 원본: locd_list + AJAX cascade
     stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
 
     lectures = []
@@ -4439,8 +4436,6 @@ def lecture_list(request):
     if sel_sta_code:
         qs = Lecture.objects.filter(use_gbn=use_gbn)
 
-        if local_code:
-            qs = qs.filter(local_code=int(local_code))
         if sel_sta_code:
             qs = qs.filter(stadium__sta_code=int(sel_sta_code))
         if class_gbn:
@@ -4517,11 +4512,9 @@ def lecture_list(request):
         'txt_dt': txt_dt,
         'cur_dt': cur_dt,
         'use_gbn': use_gbn,
-        'local_code': local_code,
         'sel_sta_code': sel_sta_code,
         'class_gbn': class_gbn,
         'lecture_day': lecture_day,
-        'locd_list': locd_list,
         'stadiums': stadiums,
     })
 

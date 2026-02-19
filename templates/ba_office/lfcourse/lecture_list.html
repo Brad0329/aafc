@@ -9,28 +9,14 @@
 
 {% block extra_js %}
 <script>
-function sel_local(obj) {
-    var local_code = obj.value;
-    $.getJSON("{% url 'office_ajax_course_stadium' %}", {local_code: local_code}, function(data) {
-        var sel = $("#sta_code");
-        sel.empty().append('<option value="">==선택==</option>');
-        $.each(data, function(i, item) {
-            sel.append('<option value="' + item.sta_code + '">' + item.sta_name + '</option>');
-        });
-    });
-}
+// [UX변경] 원본: sel_local() AJAX cascade 제거 (필드→구장 2단계)
 function srch_snd() {
-    if ($("#local_code").val() == "") {
-        alert("권역명을(를) 입력하세요");
-        $("#local_code").focus();
-        return;
-    }
-    if ($("#sta_code").val() == "") {
+    // [UX변경] 원본: local_code(권역명) 검증 제거
+    if ($("#sel_sta_code").val() == "") {
         alert("구장명을(를) 입력하세요");
-        $("#sta_code").focus();
+        $("#sel_sta_code").focus();
         return;
     }
-    $("#sel_sta_code").val($("#sta_code").val());
     document.srch_form.submit();
 }
 function lflecture_del(lecture_code) {
@@ -40,7 +26,8 @@ function lflecture_del(lecture_code) {
     }
 }
 function go_stu(local_code, sta_code, lec_code, lec_month, lec_stats) {
-    location.href = "{% url 'office_student_list' %}?sch_code_desc=" + local_code + "&sch_sta_code=" + sta_code + "&sch_lecture_code=" + lec_code + "&sch_ym=" + lec_month + "&sch_lecture_stats=" + lec_stats;
+    // [UX변경] 원본: sch_code_desc=" + local_code + "& 제거 (student_list에서 필드 제거됨)
+    location.href = "{% url 'office_student_list' %}?sch_sta_code=" + sta_code + "&sch_lecture_code=" + lec_code + "&sch_ym=" + lec_month + "&sch_lecture_stats=" + lec_stats;
 }
 function go_wait(local_code, sta_code, lec_code) {
     location.href = "{% url 'office_wait_list' %}?sch_locd_code=" + local_code + "&sch_sta_code=" + sta_code + "&sch_lec_code=" + lec_code;
@@ -55,7 +42,7 @@ function go_wait(local_code, sta_code, lec_code) {
 <p class="title">과정정보 - 리스트</p>
 <div class="tb_basic">
     <form name="srch_form" method="get" action="{% url 'office_lecture_list' %}">
-    <input type="hidden" name="sel_sta_code" id="sel_sta_code" value="">
+    {# [UX변경] 원본: hidden sel_sta_code + 필드선택 local_code select (필드→구장 2단계) 제거 #}
     <table summary="과정정보" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
             <col width="15%" />
@@ -69,13 +56,7 @@ function go_wait(local_code, sta_code, lec_code) {
                         <option value="Y" {% if use_gbn == "Y" %}selected{% endif %}>활성</option>
                         <option value="N" {% if use_gbn == "N" %}selected{% endif %}>종료</option>
                     </select>
-                    <select name="local_code" id="local_code" onchange="sel_local(this);">
-                        <option value="">필드선택</option>
-                        {% for cd in locd_list %}
-                        <option value="{{ cd.subcode }}" {% if local_code == cd.subcode|stringformat:"s" %}selected{% endif %}>{{ cd.code_desc }}_{{ cd.code_name }}</option>
-                        {% endfor %}
-                    </select>
-                    <select name="sta_code_disp" id="sta_code" class="select">
+                    <select name="sel_sta_code" id="sel_sta_code" class="select">
                         <option value="">==선택==</option>
                         {% for s in stadiums %}
                         <option value="{{ s.sta_code }}" {% if sel_sta_code == s.sta_code|stringformat:"d" %}selected{% endif %}>{{ s.sta_name }}</option>
