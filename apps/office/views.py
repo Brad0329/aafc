@@ -4781,8 +4781,9 @@ def lecture_timetable(request, lecture_code):
 @office_permission_required('L')
 def train_list(request):
     """훈련일정 목록"""
-    sel_year_code = request.GET.get('sel_year_code', '')
-    sel_month_code = request.GET.get('sel_month_code', '')
+    now = datetime.now()
+    sel_year_code = request.GET.get('sel_year_code', '') or str(now.year)
+    sel_month_code = request.GET.get('sel_month_code', '') or f'{now.month:02d}'
     # [UX변경] 원본: sch_locd_code = request.GET.get('sch_locd_code', '') (필드 제거)
     sch_sta_code = request.GET.get('sch_sta_code', '')
 
@@ -4790,7 +4791,6 @@ def train_list(request):
     all_stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
 
     # 연도 목록
-    now = datetime.now()
     year_list = list(range(now.year - 2, now.year + 3))
 
     trains = []
