@@ -11,7 +11,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from .decorators import office_login_required, office_permission_required
 from apps.reports.models import (
-    DailyTotalData, DailyCoachData, DailyCoachDataNew,
+    DailyCoachData, DailyCoachDataNew,
     DailyCoachDataMonth, MonthlyData,
 )
 from apps.enrollment.models import (
@@ -236,86 +236,7 @@ def report_weekly(request):
     })
 
 
-# ── 2. (Daily)전체_DATA ─────────────────────────────────
-
-@office_login_required
-@office_permission_required('R')
-def report_total_data_daily(request):
-    """(Daily)전체_DATA - DailyTotalData 단순 조회"""
-    sch = request.GET.get('sch_lecture_month', '')
-    if not sch:
-        sch = _default_ym()
-
-    rows = DailyTotalData.objects.filter(proc_dt=sch).order_by('id')[:10000]
-    data = []
-    for i, r in enumerate(rows, 1):
-        data.append({
-            'num': i, 'no_seq': r.id, 'member_id': r.member_id,
-            'member_name': r.member_name, 'child_id': r.child_id,
-            'mhtel': r.mhtel, 'child_name': r.child_name,
-            'card_num': r.card_num, 'apply_gubun': r.apply_gubun,
-            'sta_name': r.sta_name, 'lecture_code': r.lecture_code,
-            'lecture_title': r.lecture_title, 'coach_name': r.coach_name,
-            'lec_cycle': r.lec_cycle, 'lec_period': r.lec_period,
-            'lecture_stats': r.lecture_stats, 'pay_price': r.pay_price,
-            'lec_price': r.lec_price, 'join_price': r.join_price,
-            'lec_course_ym_amt': r.lec_course_ym_amt,
-            'pay_stats': r.pay_stats, 'pay_method': r.pay_method,
-            'pay_dt': r.pay_dt, 'cancel_date': r.cancel_date,
-            'cancel_code': r.cancel_code, 'cancel_desc': r.cancel_desc,
-            'start_dt': r.start_dt, 'end_dt': r.end_dt,
-            'course_ym': r.course_ym, 'course_ym_amt': r.course_ym_amt,
-            'insert_id': r.insert_id, 'insert_dt': r.insert_dt,
-        })
-
-    return render(request, 'ba_office/lfreport/total_data_daily.html', {
-        'sch_lecture_month': sch, 'rows': data, 'total_count': len(data),
-    })
-
-
-@office_login_required
-@office_permission_required('R')
-def report_total_data_daily_excel(request):
-    """(Daily)전체_DATA Excel"""
-    sch = request.GET.get('sch_lecture_month', '')
-    if not sch:
-        return HttpResponse('조회월을 지정해주세요.')
-
-    rows = DailyTotalData.objects.filter(proc_dt=sch).order_by('id')[:10000]
-
-    wb = Workbook()
-    ws = wb.active
-    ws.title = 'Daily전체DATA'
-    headers = ['순번', 'NO_SEQ', '부모아이디', '부모명', '자녀아이디', '핸드폰번호',
-               '자녀명', '카드번호', '입단구분', '구장', '클래스코드', '클래스명',
-               '담당코치', '수업주기', '수강기간', '수강상태', '결제금액', '수업료',
-               '교육용품비', '월수강금액', '결제상태', '결제방법', '결제일자',
-               '취소일자', '취소코드', '취소사유', '시작월', '종료월',
-               '수강월', '수강금액', '등록자', '등록일자']
-    hfill = _header_fill()
-    border = _thin_border()
-    for col_idx, h in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col_idx, value=h)
-        cell.fill = hfill
-        cell.border = border
-        cell.font = Font(bold=True)
-
-    for i, r in enumerate(rows, 1):
-        vals = [i, r.id, r.member_id, r.member_name, r.child_id, r.mhtel,
-                r.child_name, r.card_num, r.apply_gubun, r.sta_name,
-                r.lecture_code, r.lecture_title, r.coach_name,
-                r.lec_cycle, r.lec_period, r.lecture_stats,
-                r.pay_price, r.lec_price, r.join_price, r.lec_course_ym_amt,
-                r.pay_stats, r.pay_method, r.pay_dt, r.cancel_date,
-                r.cancel_code, r.cancel_desc, r.start_dt, r.end_dt,
-                r.course_ym, r.course_ym_amt, r.insert_id, r.insert_dt]
-        for col_idx, v in enumerate(vals, 1):
-            ws.cell(row=i + 1, column=col_idx, value=v).border = border
-
-    return _excel_response(wb, f'total_data_daily_{sch}.xlsx')
-
-
-# ── 3. (회원)전체_DATA ──────────────────────────────────
+# ── 2. (회원)전체_DATA ──────────────────────────────────
 
 @office_login_required
 @office_permission_required('R')

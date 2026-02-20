@@ -7,7 +7,6 @@
 
 기준: 2023년 이전 전체 삭제
 대상 모델별 course_ym 형식이 다르므로 cutoff 값을 각각 지정:
-  - DailyTotalData       : 'YYYY-MM' 형식 → cutoff '2024-01'
   - DailyCoachData       : 'YYYYMM'  형식 → cutoff '202401'
   - DailyCoachDataNew    : 'YYYYMM'  형식 → cutoff '202401'
   - DailyCoachDataMonth  : 'YYYYMM'  형식 → cutoff '202401'
@@ -15,14 +14,13 @@
 
 from django.core.management.base import BaseCommand
 from apps.reports.models import (
-    DailyTotalData, DailyCoachData, DailyCoachDataNew, DailyCoachDataMonth
+    DailyCoachData, DailyCoachDataNew, DailyCoachDataMonth
 )
 
 BATCH_SIZE = 10000
 
 # (테이블명, 모델, course_ym cutoff)
 TARGETS = [
-    ('reports_dailytotaldata',      DailyTotalData,      '2024-01'),
     ('reports_dailycoachdata',      DailyCoachData,      '202401'),
     ('reports_dailycoachdatanew',   DailyCoachDataNew,   '202401'),
     ('reports_dailycoachdatamonth', DailyCoachDataMonth, '202401'),
@@ -68,7 +66,6 @@ class Command(BaseCommand):
             deleted_total = 0
 
             while True:
-                # 배치 삭제: pk 목록 조회 후 삭제 (DB 락 최소화)
                 ids = list(
                     model.objects.filter(course_ym__lt=cutoff)
                     .values_list('pk', flat=True)[:BATCH_SIZE]

@@ -1,24 +1,8 @@
 from django.contrib import admin
 from .models import (
-    DailyTotalData, DailyCoachData, DailyCoachDataNew,
+    DailyCoachData, DailyCoachDataNew,
     DailyCoachDataMonth, MonthlyData,
 )
-
-
-@admin.register(DailyTotalData)
-class DailyTotalDataAdmin(admin.ModelAdmin):
-    list_display = ['id', 'proc_dt', 'member_name', 'child_name', 'sta_name',
-                    'lecture_title', 'coach_name', 'pay_stats', 'pay_method',
-                    'pay_price', 'course_ym']
-    list_filter = ['pay_stats', 'pay_method']
-    search_fields = ['member_id', 'member_name', 'child_name', 'sta_name', 'coach_name']
-    ordering = ['-id']
-
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
 
 
 @admin.register(DailyCoachData)

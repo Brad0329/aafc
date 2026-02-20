@@ -1,56 +1,6 @@
 from django.db import models
 
 
-class DailyTotalData(models.Model):
-    """전체 DATA (lf_daily_total_data)"""
-    proc_dt = models.CharField('처리일', max_length=12, blank=True)
-    member_id = models.CharField('학부모ID', max_length=30, blank=True)
-    member_name = models.CharField('학부모명', max_length=30, blank=True)
-    child_id = models.CharField('자녀ID', max_length=30, blank=True)
-    mhtel = models.CharField('연락처', max_length=30, blank=True)
-    child_name = models.CharField('자녀명', max_length=30, blank=True)
-    card_num = models.CharField('카드번호', max_length=8, blank=True)
-    apply_gubun = models.CharField('신청구분', max_length=30, blank=True)
-    sta_name = models.CharField('구장명', max_length=50, blank=True)
-    lecture_code = models.IntegerField('강좌코드', default=0)
-    lecture_title = models.CharField('강좌명', max_length=150, blank=True)
-    coach_name = models.CharField('코치명', max_length=30, blank=True)
-    lec_cycle = models.CharField('주간횟수', max_length=1, blank=True)
-    lec_period = models.CharField('수강기간', max_length=1, blank=True)
-    lecture_stats = models.CharField('수강상태', max_length=30, blank=True)
-    pay_price = models.IntegerField('결제금액', default=0)
-    lec_price = models.IntegerField('수업료', default=0)
-    join_price = models.IntegerField('입단비', default=0)
-    lec_course_ym_amt = models.IntegerField('월수강금액', default=0)
-    pay_stats = models.CharField('결제상태', max_length=12, blank=True)
-    pay_method = models.CharField('결제방법', max_length=14, blank=True)
-    pay_dt = models.CharField('결제일', max_length=10, blank=True)
-    cancel_date = models.CharField('취소일', max_length=10, blank=True)
-    cancel_code = models.CharField('취소코드', max_length=4, blank=True)
-    cancel_desc = models.CharField('취소사유', max_length=100, blank=True)
-    start_dt = models.CharField('시작년월', max_length=6, blank=True)
-    end_dt = models.CharField('종료년월', max_length=6, blank=True)
-    course_ym = models.CharField('수강년월', max_length=7, blank=True)
-    course_ym_amt = models.IntegerField('수강년월금액', default=0)
-    insert_id = models.CharField('등록자', max_length=16, blank=True)
-    insert_dt = models.CharField('등록일', max_length=10, blank=True)
-
-    class Meta:
-        db_table = 'reports_dailytotaldata'
-        verbose_name = '전체 DATA'
-        verbose_name_plural = '전체 DATA'
-        indexes = [
-            models.Index(fields=['proc_dt'], name='idx_dtd_proc_dt'),
-            models.Index(fields=['member_id'], name='idx_dtd_member'),
-            models.Index(fields=['sta_name'], name='idx_dtd_sta'),
-            models.Index(fields=['course_ym'], name='idx_dtd_course_ym'),
-            models.Index(fields=['pay_stats'], name='idx_dtd_pay_stats'),
-        ]
-
-    def __str__(self):
-        return f'{self.proc_dt} {self.member_name} {self.child_name}'
-
-
 class DailyCoachData(models.Model):
     """코치별 DATA (lf_daily_coachdata)"""
     course_ym = models.CharField('수강년월', max_length=10, blank=True)
