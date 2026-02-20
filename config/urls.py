@@ -28,8 +28,7 @@ urlpatterns = [
     path('shop/', include('apps.shop.urls')),
     path('points/', include('apps.points.urls')),
     path('notifications/', include('apps.notifications.urls')),
-    path('reports/', include('apps.reports.urls')),
-    path('ba_office/', include('apps.office.urls')),
+path('ba_office/', include('apps.office.urls')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
 ]
 
