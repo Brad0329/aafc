@@ -10,7 +10,7 @@
 | 테이블 | 건수 | 위험도 |
 |--------|------|--------|
 | ~~DailyTotalData~~ | ~~5,094,089~~ | ~~🔴 매우 높음~~ **(모델 제거됨 - commit 6987103)** |
-| DailyCoachDataNew | 574,419 | 🔴 높음 |
+| ~~DailyCoachDataNew~~ | ~~574,419~~ | ~~🔴 높음~~ **(뷰 미사용 - commit 5fe7879, 모델 제거 예정)** |
 | EnrollmentCourse | 220,596 | 🔴 높음 |
 | Attendance | 231,147 | 🟡 중간 |
 | SMSLog | 209,307 | 🟡 중간 |
@@ -18,7 +18,8 @@
 | PointHistory | 29,475 | 🟢 낮음 |
 
 t2.micro (RAM 1GB) 기준으로 대용량 쿼리 하나가 전체 서비스를 멈출 수 있음.
-> ✅ DailyTotalData(5백만건)가 제거되어 가장 큰 위험 요소가 해소됨.
+> ✅ DailyTotalData(5백만건) 모델 제거, DailyCoachData/New/Month(68만건) 뷰 미사용으로 전환되어 주요 위험 요소 해소됨.
+> 코치별현황 4개 리포트는 Enrollment 원본 테이블에서 실시간 직접 조회 (commit 5fe7879).
 
 ---
 
@@ -72,7 +73,7 @@ PostgreSQL은 Heap 구조이므로 인덱스 없으면 MSSQL보다 더 느림.
 **이미 완료 (추가 불필요):**
 - `Attendance`: lecture_code+attendance_dt, child_id, attendance_dt, sta_code ✅
 - ~~`DailyTotalData`: proc_dt, member_id, sta_name, course_ym, pay_stats~~ **(모델 제거됨)**
-- `DailyCoachData/New/Month`: course_ym, proc_dt ✅
+- ~~`DailyCoachData/New/Month`: course_ym, proc_dt~~ **(뷰 미사용, 모델 제거 예정)**
 - `MonthlyData`: proc_dt, sta_code ✅
 - `EnrollmentCourse.enrollment_id` (FK → Django 자동 인덱스 생성) ✅
 

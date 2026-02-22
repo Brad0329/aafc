@@ -1,170 +1,84 @@
 # AAFC 이관 데이터 정리 계획
 
-> 목적: AWS 배포 전 오래된 데이터 정리 (2023년 이전 백업 후 삭제)
+> 목적: AWS 배포 전 불필요한 집계 테이블 제거
 > 실행 환경: VS Code + Claude
 > 실행 시점: 3월 말 최종 MSSQL 덤프 → PostgreSQL 이관 직후
 
 ---
 
-## 정리 대상 테이블
+## 변경 이력
 
-| 테이블 (Django 모델) | DB 테이블명 | 기준 컬럼 | 예상 대상 |
+| 날짜 | 내용 |
+|------|------|
+| 2026-02-18 | 최초 작성 (4개 집계 테이블 데이터 정리 계획) |
+| 2026-02-20 | DailyTotalData 모델 제거 (commit 6987103) |
+| 2026-02-22 | DailyCoachData/New/Month → 뷰 미사용 전환 (commit 5fe7879) |
+
+---
+
+## 현황: 집계 테이블 정리 완료
+
+4개 REPORT 뷰(`report_pay_master`, `report_month_coachdata`, `report_each_coachdata`, `report_year_coachdata`)가
+Enrollment 원본 테이블에서 직접 조회하도록 변경됨 (commit 5fe7879).
+
+| 테이블 (Django 모델) | DB 테이블명 | 건수 | 상태 |
 |---|---|---|---|
-| ~~DailyTotalData~~ | ~~reports_dailytotaldata~~ | - | **모델 제거됨 (commit 6987103)** |
-| DailyCoachData | reports_dailycoachdata | course_ym | 66K 중 일부 |
-| DailyCoachDataNew | reports_dailycoachdatanew | course_ym | 574K 중 일부 |
-| DailyCoachDataMonth | reports_dailycoachdatamonth | course_ym | 42K 중 일부 |
+| ~~DailyTotalData~~ | ~~reports_dailytotaldata~~ | ~~5,094,089~~ | **모델 제거됨 (commit 6987103)** |
+| ~~DailyCoachData~~ | ~~reports_dailycoachdata~~ | ~~66,787~~ | **뷰 미사용 → 모델 제거 예정** |
+| ~~DailyCoachDataNew~~ | ~~reports_dailycoachdatanew~~ | ~~574,419~~ | **뷰 미사용 → 모델 제거 예정** |
+| ~~DailyCoachDataMonth~~ | ~~reports_dailycoachdatamonth~~ | ~~42,785~~ | **뷰 미사용 → 모델 제거 예정** |
 
-**기준: `course_ym < '202401'` (2023년 이전 전체)**
-
-> ⚠️ course_ym 컬럼 타입이 `CharField`이므로 문자열 사전순 비교 적용.
-> 나머지 3개 모델은 모두 `'YYYYMM'` 형식 (cutoff: `'202401'`).
-> ~~DailyTotalData(`'YYYY-MM'` 형식)는 모델 자체가 제거되어 이관/정리 대상에서 제외됨.~~
+> 이 테이블들은 MSSQL SQL Server Agent 배치 잡(매일 23시)이 생성하던 사전집계 테이블.
+> Django에는 이 배치 프로세스가 없어서 새 데이터가 생성되지 않음.
+> → **데이터 정리 대신 모델 자체를 제거하는 것이 올바른 접근.**
 
 ---
 
-## 작업 순서
+## 모델 제거 작업 순서
 
-### STEP 1. 삭제 전 백업 (필수)
+### STEP 1. 코드에서 모델 제거
 
 ```bash
-# AWS RDS 최종 이관 직전, 전체 DB 백업
-pg_dump -U aafc_user -h {RDS_ENDPOINT} -d aafc_prod -F c -f aafc_prod_before_cleanup.dump
+# 1. reports/models.py에서 3개 모델 클래스 삭제
+#    - DailyCoachData
+#    - DailyCoachDataNew
+#    - DailyCoachDataMonth
+#    (MonthlyData는 유지)
 
-# 또는 대상 테이블만 선택 백업
-pg_dump -U aafc_user -h {RDS_ENDPOINT} -d aafc_prod \
-  -t reports_dailycoachdata \
-  -t reports_dailycoachdatanew \
-  -t reports_dailycoachdatamonth \
-  -F c -f aafc_reports_backup_2023before.dump
+# 2. reports/admin.py에서 3개 Admin 클래스 삭제
+
+# 3. views_report.py에서 import 확인 (이미 제거됨 - commit 5fe7879)
+
+# 4. 마이그레이션 생성 및 적용
+python manage.py makemigrations reports
+python manage.py migrate
 ```
 
-> ⚠️ `aafc_user`, `aafc_prod`, `{RDS_ENDPOINT}`는 실제 배포 시 확정된 값으로 교체 필요.
-> 배포 시 `.env` 파일 또는 별도 메모에 미리 정리해둘 것.
-
----
-
-### STEP 2. course_ym 형식 확인
-
-> 나머지 3개 모델은 모두 `YYYYMM` (6자리) 형식입니다. 이관 후 아래 SQL로 확인:
->
-> | 테이블 | 형식 | cutoff |
-> |---|---|---|
-> | ~~reports_dailytotaldata~~ | - | **모델 제거됨** |
-> | reports_dailycoachdata | `YYYYMM` (6자리) | `'202401'` |
-> | reports_dailycoachdatanew | `YYYYMM` (6자리) | `'202401'` |
-> | reports_dailycoachdatamonth | `YYYYMM` (6자리) | `'202401'` |
-
-```sql
--- psql 접속 후 실행
-SELECT DISTINCT course_ym FROM reports_dailycoachdata      WHERE course_ym < '202401'  ORDER BY 1 LIMIT 20;
-SELECT DISTINCT course_ym FROM reports_dailycoachdatanew   WHERE course_ym < '202401'  ORDER BY 1 LIMIT 20;
-SELECT DISTINCT course_ym FROM reports_dailycoachdatamonth WHERE course_ym < '202401'  ORDER BY 1 LIMIT 20;
-```
-
-결과 형식이 위 표와 일치하면 다음 단계 진행.
-
----
-
-### STEP 3. 삭제 대상 건수 확인 (dry-run)
+### STEP 2. 관련 파일 정리
 
 ```bash
-python manage.py cleanup_old_data --dry-run --settings=config.settings.prod
+# cleanup_old_data management command 삭제 (더 이상 불필요)
+# 경로: apps/reports/management/commands/cleanup_old_data.py
+
+# migrate_reports.py에서 관련 이관 함수 제거
+# 경로: scripts/migrate_reports.py
 ```
 
-출력 예시:
-```
-[DRY RUN] reports_dailycoachdata: 45,231건 삭제 예정 (course_ym < 202401)
-[DRY RUN] reports_dailycoachdatanew: 312,419건 삭제 예정 (course_ym < 202401)
-[DRY RUN] reports_dailycoachdatamonth: 28,000건 삭제 예정 (course_ym < 202401)
-```
+### STEP 3. 이관 시 해당 테이블 스킵
 
----
-
-### STEP 4. 실제 삭제 실행
-
-```bash
-python manage.py cleanup_old_data --settings=config.settings.prod
-```
-
----
-
-### STEP 5. 공간 회수 (필수)
-
-```bash
-# psql 접속 후 실행
-psql -U aafc_user -h {RDS_ENDPOINT} -d aafc_prod
-
-VACUUM ANALYZE reports_dailycoachdata;
-VACUUM ANALYZE reports_dailycoachdatanew;
-VACUUM ANALYZE reports_dailycoachdatamonth;
-```
-
----
-
-### STEP 6. 롤백 절차 (문제 발생 시)
-
-```bash
-# 전체 DB 복구 (기존 DB 삭제 후 복원)
-dropdb -U aafc_user -h {RDS_ENDPOINT} aafc_prod
-createdb -U aafc_user -h {RDS_ENDPOINT} aafc_prod
-pg_restore -U aafc_user -h {RDS_ENDPOINT} -d aafc_prod aafc_prod_before_cleanup.dump
-
-# 또는 대상 테이블만 복원 (기존 테이블 데이터 남아있는 경우)
-pg_restore -U aafc_user -h {RDS_ENDPOINT} -d aafc_prod \
-  -t reports_dailycoachdata \
-  -t reports_dailycoachdatanew \
-  -t reports_dailycoachdatamonth \
-  aafc_reports_backup_2023before.dump
-```
-
----
-
-## Management Command
-
-`apps/reports/management/commands/cleanup_old_data.py` 파일이 이미 작성되어 있음.
-
-주요 동작:
-- 대상: DailyCoachData, DailyCoachDataNew, DailyCoachDataMonth (3개 테이블)
-- ~~DailyTotalData는 모델 자체가 제거되어 대상에서 제외됨~~
-- `--dry-run` 옵션: 실제 삭제 없이 대상 건수만 출력
-- 배치 삭제: 한 번에 10,000건씩 반복 (DB 락 방지)
-- 진행 상황 출력 (10,000건 단위)
-- 완료 후 총 삭제 건수 요약
-
----
-
-## 로컬에서 리허설 방법
-
-3월 말 실제 이관 전, 로컬 개발 DB(2월 9일 스냅샷)에서 미리 테스트:
-
-```bash
-# 1. course_ym 형식 확인 (psql)
-psql -U postgres -d aafc_dev
-
-# 2. dry-run으로 대상 확인
-python manage.py cleanup_old_data --dry-run
-
-# 3. 실제 삭제 테스트
-python manage.py cleanup_old_data
-
-# 4. 리포트 페이지 정상 동작 확인 (2024년 이후 데이터 조회)
-python manage.py runserver
-```
+3월 말 최종 MSSQL 이관 시 아래 MSSQL 테이블은 **이관하지 않음**:
+- `lf_daily_coachdata` (→ DailyCoachData)
+- `lf_daily_coachdata_new` (→ DailyCoachDataNew)
+- `lf_daily_coachdata_new_month` (→ DailyCoachDataMonth)
+- `lf_daily_total_data` (→ DailyTotalData, 이미 제거됨)
 
 ---
 
 ## 3월 말 최종 이관 체크리스트
 
 - [ ] MSSQL 최신 덤프 (3월 말 기준)
-- [ ] 로컬에서 PostgreSQL 이관 스크립트 실행
+- [ ] 로컬에서 PostgreSQL 이관 스크립트 실행 (위 4개 테이블 제외)
 - [ ] RDS 접속 정보 확정 (`{RDS_ENDPOINT}`, `aafc_user`, `aafc_prod` 실제 값 확인)
-- [ ] `course_ym` 형식 이상 여부 SQL 확인
-- [ ] `cleanup_old_data --dry-run` 으로 삭제 대상 건수 확인
-- [ ] 사용자에게 최종 확인 (2023년 이전 데이터 삭제 동의)
-- [ ] 전체 DB 백업 (`aafc_prod_before_cleanup.dump`)
-- [ ] 대상 테이블 선택 백업 (`aafc_reports_backup_2023before.dump`)
-- [ ] `cleanup_old_data` 실행
-- [ ] `VACUUM ANALYZE` 실행 (4개 테이블)
-- [ ] 리포트 페이지 정상 동작 확인
+- [ ] `python manage.py migrate` → 집계 테이블 DROP 확인
+- [ ] 리포트 페이지 정상 동작 확인 (Enrollment 직접 조회 방식)
 - [ ] AWS RDS에 최종 데이터 업로드
