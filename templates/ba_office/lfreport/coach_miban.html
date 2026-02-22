@@ -35,7 +35,12 @@ function srch_snd() {
             <tr>
                 <th scope="col">기준월</th>
                 <td class="left">
-                    <input type="text" name="search_date" id="search_date" maxlength="10" style="width:100px;" value="{{ search_date }}" />
+                    <select name="search_date" id="search_date">
+                        <option value="">선택</option>
+                        {% for m in month_list %}
+                        <option value="{{ m }}" {% if search_date == m %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
                 </td>
                 <td class="left">
                     <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>

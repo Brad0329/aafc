@@ -11,74 +11,143 @@
 <script>
 function srch_snd() {
     var sd = document.getElementById("search_date").value;
-    if (sd == "") { alert("조회년도를 입력해주세요."); return; }
-    location.href = "{% url 'office_report_each_coachdata' %}?search_date=" + sd;
+    var sc = document.getElementById("search_coach").value;
+    if (sd == "") { alert("기준년도를 입력해주세요."); return; }
+    var url = "{% url 'office_report_each_coachdata' %}?search_date=" + sd;
+    if (sc) url += "&search_coach=" + encodeURIComponent(sc);
+    location.href = url;
 }
 </script>
 {% endblock %}
 
 {% block content %}
-<div class="navi">HOME &gt; REPORT &gt; 코치별현황 NEW</div>
+<div class="navi">HOME &gt; REPORT &gt; 년간 코치 개별</div>
 <div class="h_55"></div>
 
-<p class="title">코치별현황 NEW (년간 코치 개별)</p>
+<p class="title">년간 코치 개별</p>
 <div class="tb_basic">
-    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+    <table summary="수강생정보" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
-            <col width="15%" />
+            <col width="8%" />
+            <col width="25%" />
+            <col width="8%" />
+            <col width="25%" />
+            <col width="8%" />
             <col width="*" />
         </colgroup>
         <tbody>
             <tr>
-                <th scope="col">조회년도</th>
+                <th scope="col">기준년도</th>
                 <td class="left">
-                    <input type="text" id="search_date" value="{{ search_date }}" size="6" maxlength="4" placeholder="YYYY" />
+                    <select id="search_date">
+                        <option value="">선택</option>
+                        {% for y in year_list %}
+                        <option value="{{ y }}" {% if search_date == y %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <th scope="col">코치선택</th>
+                <td class="left">
+                    <select id="search_coach">
+                        <option value="">=선택=</option>
+                        {% for c in coach_list %}
+                        <option value="{{ c }}" {% if search_coach == c %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td class="left">
                     <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
-                    &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
                 </td>
             </tr>
         </tbody>
     </table>
 </div>
 
-<div class="scroll">
-<div class="tb_scroll">
-    <table summary="코치별현황" border="0" cellpadding="0" cellspacing="0">
-        <thead>
-            <tr>
-                <th>구장</th><th>코치</th><th>수강월</th><th>수강인원</th>
-                <th>수업료(1001)</th><th>차감(1002)</th>
-                <th>수강할인(1003)</th><th>결제할인(1003B)</th>
-                <th>피추천(1006)</th><th>다회(1007B)</th>
-                <th>수업료합계</th>
-                <th>차량(1009B)</th><th>교육용품(2001)</th><th>교육할인(2002)</th>
-                <th>기타합계</th>
-            </tr>
-        </thead>
+<p>&nbsp;</p>
+<p>결제상태 : 결제완료, 수업상태 : 수강확정 데이타만 집계됩니다.</p>
+
+<p>&nbsp;</p>
+<p class="title">{{ search_coach }} 코치 실적</p>
+<div class="tb_basic">
+    <table summary="코치실적" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="*" />
+            <col width="7%" /><col width="7%" /><col width="7%" /><col width="7%" />
+            <col width="7%" /><col width="7%" /><col width="7%" /><col width="8%" />
+            <col width="7%" /><col width="7%" /><col width="7%" /><col width="7%" />
+            <col width="7%" />
+        </colgroup>
         <tbody>
-            {% for r in rows %}
             <tr>
-                <td class="left">{{ r.sta_name }}</td>
-                <td>{{ r.coach_name }}</td>
-                <td>{{ r.course_ym }}</td>
-                <td>{{ r.total_cnt|intcomma }}</td>
-                <td class="right">{{ r.total_m1001|intcomma }}</td>
-                <td class="right">{{ r.total_m1002|intcomma }}</td>
-                <td class="right">{{ r.total_m1003|intcomma }}</td>
-                <td class="right">{{ r.total_m1003b|intcomma }}</td>
-                <td class="right">{{ r.total_m1006|intcomma }}</td>
-                <td class="right">{{ r.total_m1007b|intcomma }}</td>
-                <td class="right"><b>{{ r.tot_sum|intcomma }}</b></td>
-                <td class="right">{{ r.total_m1009b|intcomma }}</td>
-                <td class="right">{{ r.total_m2001|intcomma }}</td>
-                <td class="right">{{ r.total_m2002|intcomma }}</td>
-                <td class="right"><b>{{ r.etc_sum|intcomma }}</b></td>
+                <th>조회월</th><th>코치명</th><th>결제방법</th><th>클래스원수</th>
+                <th>수강료</th><th>수업료차감</th><th>수업료할인</th><th>결제금액차감</th>
+                <th>주2회이상할인</th><th>차량이용료</th><th>용품비</th><th>용품비할인</th>
+                <th>수업료합계</th><th>기타합계</th>
+            </tr>
+            {% for r in rows1 %}
+            <tr>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.course_ym }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.col2 }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.pay_method_nm }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.cl_cnt|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m1001|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m1002|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m1003|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m1003_b|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m1007|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m1009|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m2001|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m2002|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.tot_sum|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.etc_sum|intcomma }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="15" align="center">데이터가 없습니다.</td></tr>
+            <tr><td colspan="14"> - No Data - </td></tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p class="title">{{ search_coach }} 코치 결제방법별</p>
+<div class="tb_basic">
+    <table summary="결제방법별" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="*" />
+            <col width="7%" /><col width="7%" /><col width="7%" /><col width="7%" />
+            <col width="7%" /><col width="7%" /><col width="7%" /><col width="8%" />
+            <col width="7%" /><col width="7%" /><col width="7%" /><col width="7%" />
+            <col width="7%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th>조회월</th><th>PG결제</th><th>결제방법</th><th>클래스원수</th>
+                <th>수강료</th><th>수업료차감</th><th>수업료할인</th><th>결제금액차감</th>
+                <th>주2회이상할인</th><th>차량이용료</th><th>용품비</th><th>용품비할인</th>
+                <th>수업료 합계</th><th>기타합계</th>
+            </tr>
+            {% for r in rows2 %}
+            <tr>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.course_ym }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.col2 }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.pay_method_nm }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.cl_cnt|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m1001|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m1002|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m1003|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m1003_b|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m1007|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m1009|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m2001|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.m2002|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.tot_sum|intcomma }}</td>
+                <td {% if r.style == "total" %}style="background-color:#ccffff;font-weight:bold;"{% elif r.style == "subtotal" %}style="background-color:#c2d69a;font-weight:bold;"{% endif %}>{{ r.etc_sum|intcomma }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="14"> - No Data - </td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}

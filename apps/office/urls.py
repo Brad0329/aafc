@@ -214,6 +214,7 @@ path('report/sale-list/', rpt.report_sale_list, name='office_report_sale_list'),
     path('report/each-coachdata/', rpt.report_each_coachdata, name='office_report_each_coachdata'),
     path('report/pay-master/', rpt.report_pay_master, name='office_report_pay_master'),
     path('report/raw-data/', rpt.report_raw_data, name='office_report_raw_data'),
+    path('report/raw-data/excel/', rpt.report_raw_data_excel, name='office_report_raw_data_excel'),
     path('report/month-coachdata/', rpt.report_month_coachdata, name='office_report_month_coachdata'),
     path('report/year-coachdata/', rpt.report_year_coachdata, name='office_report_year_coachdata'),
     # REPORT > AJAX

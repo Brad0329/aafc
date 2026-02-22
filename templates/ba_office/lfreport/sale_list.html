@@ -41,7 +41,12 @@ function exceldown() {
             <tr>
                 <th scope="col">기준월</th>
                 <td class="left">
-                    <input type="text" id="sch_lecture_month" value="{{ sch_lecture_month }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                    <select id="sch_lecture_month">
+                        <option value="">선택</option>
+                        {% for m in month_list %}
+                        <option value="{{ m }}" {% if sch_lecture_month == m %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
                 </td>
                 <th scope="col">결제상태</th>
                 <td class="left">

@@ -10,16 +10,16 @@
 
 | 테이블 (Django 모델) | DB 테이블명 | 기준 컬럼 | 예상 대상 |
 |---|---|---|---|
-| DailyTotalData | reports_dailytotaldata | course_ym | 500만 건 중 다수 |
-| DailyCoachData | reports_dailycoachdata | course_ym | 일부 |
+| ~~DailyTotalData~~ | ~~reports_dailytotaldata~~ | - | **모델 제거됨 (commit 6987103)** |
+| DailyCoachData | reports_dailycoachdata | course_ym | 66K 중 일부 |
 | DailyCoachDataNew | reports_dailycoachdatanew | course_ym | 574K 중 일부 |
 | DailyCoachDataMonth | reports_dailycoachdatamonth | course_ym | 42K 중 일부 |
 
-**기준: `course_ym < '2024-01'` (2023년 이전 전체)**
+**기준: `course_ym < '202401'` (2023년 이전 전체)**
 
 > ⚠️ course_ym 컬럼 타입이 `CharField`이므로 문자열 사전순 비교 적용.
-> 모델별 저장 형식이 다름: DailyTotalData는 `'YYYY-MM'`, 나머지 3개는 `'YYYYMM'`.
-> Management Command에서 각 모델별 cutoff 값을 분리 적용함 (STEP 2 참고).
+> 나머지 3개 모델은 모두 `'YYYYMM'` 형식 (cutoff: `'202401'`).
+> ~~DailyTotalData(`'YYYY-MM'` 형식)는 모델 자체가 제거되어 이관/정리 대상에서 제외됨.~~
 
 ---
 
@@ -33,7 +33,6 @@ pg_dump -U aafc_user -h {RDS_ENDPOINT} -d aafc_prod -F c -f aafc_prod_before_cle
 
 # 또는 대상 테이블만 선택 백업
 pg_dump -U aafc_user -h {RDS_ENDPOINT} -d aafc_prod \
-  -t reports_dailytotaldata \
   -t reports_dailycoachdata \
   -t reports_dailycoachdatanew \
   -t reports_dailycoachdatamonth \
@@ -47,18 +46,17 @@ pg_dump -U aafc_user -h {RDS_ENDPOINT} -d aafc_prod \
 
 ### STEP 2. course_ym 형식 확인
 
-> ⚠️ 모델별 `course_ym` 저장 형식이 다릅니다. 이관 후 아래 SQL로 반드시 확인:
+> 나머지 3개 모델은 모두 `YYYYMM` (6자리) 형식입니다. 이관 후 아래 SQL로 확인:
 >
 > | 테이블 | 형식 | cutoff |
 > |---|---|---|
-> | reports_dailytotaldata | `YYYY-MM` (하이픈 포함) | `'2024-01'` |
+> | ~~reports_dailytotaldata~~ | - | **모델 제거됨** |
 > | reports_dailycoachdata | `YYYYMM` (6자리) | `'202401'` |
 > | reports_dailycoachdatanew | `YYYYMM` (6자리) | `'202401'` |
 > | reports_dailycoachdatamonth | `YYYYMM` (6자리) | `'202401'` |
 
 ```sql
 -- psql 접속 후 실행
-SELECT DISTINCT course_ym FROM reports_dailytotaldata      WHERE course_ym < '2024-01' ORDER BY 1 LIMIT 20;
 SELECT DISTINCT course_ym FROM reports_dailycoachdata      WHERE course_ym < '202401'  ORDER BY 1 LIMIT 20;
 SELECT DISTINCT course_ym FROM reports_dailycoachdatanew   WHERE course_ym < '202401'  ORDER BY 1 LIMIT 20;
 SELECT DISTINCT course_ym FROM reports_dailycoachdatamonth WHERE course_ym < '202401'  ORDER BY 1 LIMIT 20;
@@ -76,10 +74,9 @@ python manage.py cleanup_old_data --dry-run --settings=config.settings.prod
 
 출력 예시:
 ```
-[DRY RUN] reports_dailytotaldata: 3,241,089건 삭제 예정 (course_ym < 2024-01)
-[DRY RUN] reports_dailycoachdata: 45,231건 삭제 예정 (course_ym < 2024-01)
-[DRY RUN] reports_dailycoachdatanew: 312,419건 삭제 예정 (course_ym < 2024-01)
-[DRY RUN] reports_dailycoachdatamonth: 28,000건 삭제 예정 (course_ym < 2024-01)
+[DRY RUN] reports_dailycoachdata: 45,231건 삭제 예정 (course_ym < 202401)
+[DRY RUN] reports_dailycoachdatanew: 312,419건 삭제 예정 (course_ym < 202401)
+[DRY RUN] reports_dailycoachdatamonth: 28,000건 삭제 예정 (course_ym < 202401)
 ```
 
 ---
@@ -98,7 +95,6 @@ python manage.py cleanup_old_data --settings=config.settings.prod
 # psql 접속 후 실행
 psql -U aafc_user -h {RDS_ENDPOINT} -d aafc_prod
 
-VACUUM ANALYZE reports_dailytotaldata;
 VACUUM ANALYZE reports_dailycoachdata;
 VACUUM ANALYZE reports_dailycoachdatanew;
 VACUUM ANALYZE reports_dailycoachdatamonth;
@@ -116,7 +112,6 @@ pg_restore -U aafc_user -h {RDS_ENDPOINT} -d aafc_prod aafc_prod_before_cleanup.
 
 # 또는 대상 테이블만 복원 (기존 테이블 데이터 남아있는 경우)
 pg_restore -U aafc_user -h {RDS_ENDPOINT} -d aafc_prod \
-  -t reports_dailytotaldata \
   -t reports_dailycoachdata \
   -t reports_dailycoachdatanew \
   -t reports_dailycoachdatamonth \
@@ -130,6 +125,8 @@ pg_restore -U aafc_user -h {RDS_ENDPOINT} -d aafc_prod \
 `apps/reports/management/commands/cleanup_old_data.py` 파일이 이미 작성되어 있음.
 
 주요 동작:
+- 대상: DailyCoachData, DailyCoachDataNew, DailyCoachDataMonth (3개 테이블)
+- ~~DailyTotalData는 모델 자체가 제거되어 대상에서 제외됨~~
 - `--dry-run` 옵션: 실제 삭제 없이 대상 건수만 출력
 - 배치 삭제: 한 번에 10,000건씩 반복 (DB 락 방지)
 - 진행 상황 출력 (10,000건 단위)
@@ -144,7 +141,6 @@ pg_restore -U aafc_user -h {RDS_ENDPOINT} -d aafc_prod \
 ```bash
 # 1. course_ym 형식 확인 (psql)
 psql -U postgres -d aafc_dev
-SELECT DISTINCT course_ym FROM reports_dailytotaldata WHERE course_ym < '2024-01' ORDER BY 1 LIMIT 20;
 
 # 2. dry-run으로 대상 확인
 python manage.py cleanup_old_data --dry-run

@@ -9,15 +9,16 @@
 
 | 테이블 | 건수 | 위험도 |
 |--------|------|--------|
-| DailyTotalData | 5,094,089 | 🔴 매우 높음 |
-| EnrollmentCourse | 220,596 | 🔴 높음 |
-| SMSLog | 209,307 | 🟡 중간 |
-| Attendance | 231,147 | 🟡 중간 |
+| ~~DailyTotalData~~ | ~~5,094,089~~ | ~~🔴 매우 높음~~ **(모델 제거됨 - commit 6987103)** |
 | DailyCoachDataNew | 574,419 | 🔴 높음 |
+| EnrollmentCourse | 220,596 | 🔴 높음 |
+| Attendance | 231,147 | 🟡 중간 |
+| SMSLog | 209,307 | 🟡 중간 |
 | Enrollment | 79,490 | 🟡 중간 |
 | PointHistory | 29,475 | 🟢 낮음 |
 
 t2.micro (RAM 1GB) 기준으로 대용량 쿼리 하나가 전체 서비스를 멈출 수 있음.
+> ✅ DailyTotalData(5백만건)가 제거되어 가장 큰 위험 요소가 해소됨.
 
 ---
 
@@ -70,7 +71,7 @@ PostgreSQL은 Heap 구조이므로 인덱스 없으면 MSSQL보다 더 느림.
 
 **이미 완료 (추가 불필요):**
 - `Attendance`: lecture_code+attendance_dt, child_id, attendance_dt, sta_code ✅
-- `DailyTotalData`: proc_dt, member_id, sta_name, course_ym, pay_stats ✅
+- ~~`DailyTotalData`: proc_dt, member_id, sta_name, course_ym, pay_stats~~ **(모델 제거됨)**
 - `DailyCoachData/New/Month`: course_ym, proc_dt ✅
 - `MonthlyData`: proc_dt, sta_code ✅
 - `EnrollmentCourse.enrollment_id` (FK → Django 자동 인덱스 생성) ✅
@@ -240,18 +241,12 @@ Gunicorn worker 프로세스가 OOM Kill → 502 Bad Gateway 발생.
 - `views.py:2782` → `[:10000]` 제한 있음
 
 **확인 필요한 리포트 뷰:**
-- `apps/office/views_report.py` 내 DailyTotalData 직접 조회 구간
+- ~~`apps/office/views_report.py` 내 DailyTotalData 직접 조회 구간~~ **(모델 제거됨, 해당 없음)**
 
-### 조치: views_report.py 에서 아래 패턴 확인 및 적용
+### 조치: views_report.py 에서 대용량 조회 패턴 확인
 
-```python
-# 조회는 항상 조건 필터 먼저, 전체 조회 금지
-qs = DailyTotalData.objects.filter(
-    course_ym=course_ym  # 반드시 조건 있어야 함
-).order_by('proc_dt')[:10000]  # 최대 1만 건 유지
-
-# Excel 다운로드도 동일하게 제한
-```
+> DailyTotalData(5백만건)는 모델 자체가 제거되어 OOM 최대 위험 요소 해소.
+> 나머지 리포트 뷰도 기존 `[:10000]` 제한이 적용되어 있어 양호.
 
 ### Gunicorn worker 설정으로 OOM 방어
 

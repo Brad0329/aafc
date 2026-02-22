@@ -32,7 +32,12 @@ function srch_snd() {
             <tr>
                 <th scope="col">조회월</th>
                 <td class="left">
-                    <input type="text" id="lecture_dt" value="{{ lecture_dt }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                    <select id="lecture_dt">
+                        <option value="">선택</option>
+                        {% for m in month_list %}
+                        <option value="{{ m }}" {% if lecture_dt == m %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
                     <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
                     &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
                 </td>

@@ -14,6 +14,11 @@ function srch_snd() {
     if (sd == "") { alert("조회월을 입력해주세요."); return; }
     location.href = "{% url 'office_report_raw_data' %}?search_date=" + sd;
 }
+function exceldown() {
+    var sd = document.getElementById("search_date").value;
+    if (sd == "") { alert("조회월을 지정해주세요."); return; }
+    location.href = "{% url 'office_report_raw_data_excel' %}?search_date=" + sd;
+}
 </script>
 {% endblock %}
 
@@ -32,8 +37,15 @@ function srch_snd() {
             <tr>
                 <th scope="col">조회월</th>
                 <td class="left">
-                    <input type="text" id="search_date" value="{{ search_date }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                    <select id="search_date">
+                        <option value="">선택</option>
+                        {% for m in month_list %}
+                        <option value="{{ m }}" {% if search_date == m %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
                     <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+                    &nbsp;&nbsp;
+                    <a href="javascript:exceldown();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a>
                     &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
                 </td>
             </tr>

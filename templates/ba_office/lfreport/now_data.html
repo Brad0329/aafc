@@ -46,7 +46,12 @@ function exceldown() {
                         <option value="{{ s.sta_code }}" {% if selsta_code == s.sta_code|stringformat:"d" %}selected{% endif %}>{{ s.sta_name }}</option>
                         {% endfor %}
                     </select>
-                    <input type="text" id="lecture_dt" value="{{ lecture_dt }}" size="10" maxlength="6" placeholder="YYYYMM" />
+                    <select id="lecture_dt">
+                        <option value="">선택</option>
+                        {% for m in month_list %}
+                        <option value="{{ m }}" {% if lecture_dt == m %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
                     <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
                     &nbsp;&nbsp;
                     <a href="javascript:exceldown();"><img src="{% static 'ba_office/images/btn_excel.gif' %}" alt="엑셀" /></a>

@@ -32,7 +32,12 @@ function srch_snd() {
             <tr>
                 <th scope="col">조회년도</th>
                 <td class="left">
-                    <input type="text" id="search_date" value="{{ search_date }}" size="6" maxlength="4" placeholder="YYYY" />
+                    <select id="search_date">
+                        <option value="">선택</option>
+                        {% for y in year_list %}
+                        <option value="{{ y }}" {% if search_date == y %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
                     <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
                     &nbsp; <b>Total : {{ total_count|intcomma }}건</b>
                 </td>
