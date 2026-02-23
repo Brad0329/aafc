@@ -121,7 +121,7 @@
                 <td class="left" colspan="3">
                     <input type="file" name="attachImg{{ forloop.counter }}" class="input" style="width:600px;">
                     (<input type="checkbox" name="isDelAttachImg{{ forloop.counter }}" value="T" onclick="checkDelAttach(this, 'attachImg{{ forloop.counter }}')">삭제)
-                    <br><img src="/media/fcdata/board/{{ f.bs_img }}" width="300">
+                    <br><img src="{{ MEDIA_URL }}fcdata/board/{{ f.bs_img }}" width="300">
                 </td>
             </tr>
             {% endif %}

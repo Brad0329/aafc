@@ -78,7 +78,7 @@
                 <td class="left" colspan="3">
                     <input type="file" name="pop_img" style="width:500px;">
                     {% if popup and popup.pop_img %}
-                    <br>file: <img src="/media/fcdata/popup/{{ popup.pop_img }}" height="400">
+                    <br>file: <img src="{{ MEDIA_URL }}fcdata/popup/{{ popup.pop_img }}" height="400">
                     {% endif %}
                 </td>
             </tr>

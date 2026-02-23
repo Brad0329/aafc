@@ -64,7 +64,7 @@
                 <th scope="col">첨부파일</th>
                 <td class="left" colspan="3">
                     {% for f in file_pdfs %}
-                    <a href="/media/fcdata/board/{{ f.bs_file }}" download>{{ f.bs_file }}</a><br>
+                    <a href="{{ MEDIA_URL }}fcdata/board/{{ f.bs_file }}" download>{{ f.bs_file }}</a><br>
                     {% endfor %}
                 </td>
             </tr>
@@ -73,8 +73,8 @@
                 <th scope="col">내용</th>
                 <td class="left" colspan="3">
                     {% for f in file_images %}
-                    <div class="pic_view"><img src="/media/fcdata/board/{{ f.bs_img }}" width="800"></div>
-                    <div class="btn_down"><a href="/media/fcdata/board/{{ f.bs_img }}" download><img src="{% static 'ba_office/images/btn_down.gif' %}" style="cursor:pointer;" /></a></div><br>
+                    <div class="pic_view"><img src="{{ MEDIA_URL }}fcdata/board/{{ f.bs_img }}" width="800"></div>
+                    <div class="btn_down"><a href="{{ MEDIA_URL }}fcdata/board/{{ f.bs_img }}" download><img src="{% static 'ba_office/images/btn_down.gif' %}" style="cursor:pointer;" /></a></div><br>
                     {% endfor %}
                     {{ board.b_content|safe }}
                 </td>

@@ -40,7 +40,7 @@
                     <td class="left">
                         <input type="file" name="cate_img" class="input" style="width:200px;">
                         {% if cat.cate_img %}
-                            <br><img src="/fcdata/shop_category/{{ cat.cate_img }}" width="200">
+                            <br><img src="{{ MEDIA_URL }}fcdata/shop_category/{{ cat.cate_img }}" width="200">
                         {% endif %}
                     </td>
                 </tr>

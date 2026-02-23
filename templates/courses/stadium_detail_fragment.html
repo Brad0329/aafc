@@ -61,7 +61,7 @@
         <h3 class="stadium_tit"><img src="{% static 'images/sub/stadium_ico_02.png' %}" alt=""/>담당코치</h3>
         <ul class="stadium_coach">
             {% for img in coach_images %}
-            <li><img src="/media/fcdata/coach/{{ img }}" alt="코치"/></li>
+            <li><img src="{{ MEDIA_URL }}fcdata/coach/{{ img }}" alt="코치"/></li>
             {% endfor %}
         </ul>
         {% endif %}
@@ -69,12 +69,12 @@
         <h3 class="stadium_tit"><img src="{% static 'images/sub/stadium_ico_03.png' %}" alt=""/>구장사진</h3>
         {% if stadium.sta_s_img %}
         <div class="stadium_img">
-            <img src="/media/fcdata/stadium/{{ stadium.sta_s_img }}" alt="{{ stadium.sta_name }}"/>
+            <img src="{{ MEDIA_URL }}fcdata/stadium/{{ stadium.sta_s_img }}" alt="{{ stadium.sta_name }}"/>
         </div>
         {% endif %}
         {% if stadium.sta_l_img %}
         <div class="stadium_img">
-            <img src="/media/fcdata/stadium/{{ stadium.sta_l_img }}" alt="{{ stadium.sta_name }}"/>
+            <img src="{{ MEDIA_URL }}fcdata/stadium/{{ stadium.sta_l_img }}" alt="{{ stadium.sta_name }}"/>
         </div>
         {% endif %}
 

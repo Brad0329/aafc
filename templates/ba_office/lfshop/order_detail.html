@@ -75,7 +75,7 @@
             {% for item in items %}
             <tr>
                 <td>
-                    {% if item.goods_img %}<img src="/fcdata/shop_goods/{{ item.goods_img }}" width="60" style="float:left;margin-right:8px;">{% endif %}
+                    {% if item.goods_img %}<img src="{{ MEDIA_URL }}fcdata/shop_goods/{{ item.goods_img }}" width="60" style="float:left;margin-right:8px;">{% endif %}
                     {{ item.goods_title }}
                     {% if item.option_txt %}<div style="font-size:11px;color:gray;">{{ item.option_txt }}</div>{% endif %}
                     {% for opt in item.options.all %}

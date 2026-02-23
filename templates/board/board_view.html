@@ -65,7 +65,7 @@
                     <tr class="txt">
                         <td colspan="2">
                             {% for img in images %}
-                            <div><img src="/fcdata/board/{{ img.bs_img }}"></div><br><br>
+                            <div><img src="{{ MEDIA_URL }}fcdata/board/{{ img.bs_img }}"></div><br><br>
                             {% endfor %}
                             {{ board.b_content|safe }}
                         </td>
@@ -76,7 +76,7 @@
                         <td>첨부파일</td>
                         <td>
                             {% for att in attachments %}
-                            <a href="/fcdata/board/{{ att.bs_file }}"><font color='blue'>{{ att.bs_file }}</font></a><br>
+                            <a href="{{ MEDIA_URL }}fcdata/board/{{ att.bs_file }}"><font color='blue'>{{ att.bs_file }}</font></a><br>
                             {% endfor %}
                         </td>
                     </tr>

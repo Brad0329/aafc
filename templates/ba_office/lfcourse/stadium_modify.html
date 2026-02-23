@@ -124,7 +124,7 @@ function sendChk() {
                 <td class="left" colspan="3">
                     <input type="file" name="sta_s_img" style="width:600px;"><br>
                     이전파일 : {{ stadium.sta_s_img }}
-                    {% if stadium.sta_s_img %}<br><img src="/media/fcdata/stadium/{{ stadium.sta_s_img }}" width="500">{% endif %}
+                    {% if stadium.sta_s_img %}<br><img src="{{ MEDIA_URL }}fcdata/stadium/{{ stadium.sta_s_img }}" width="500">{% endif %}
                 </td>
             </tr>
             <tr>
@@ -132,7 +132,7 @@ function sendChk() {
                 <td class="left" colspan="3">
                     <input type="file" name="sta_l_img" style="width:600px;"><br>
                     이전파일 : {{ stadium.sta_l_img }}
-                    {% if stadium.sta_l_img %}<br><img src="/media/fcdata/stadium/{{ stadium.sta_l_img }}" width="500">{% endif %}
+                    {% if stadium.sta_l_img %}<br><img src="{{ MEDIA_URL }}fcdata/stadium/{{ stadium.sta_l_img }}" width="500">{% endif %}
                 </td>
             </tr>
             <tr>
@@ -140,7 +140,7 @@ function sendChk() {
                 <td class="left" colspan="3">
                     <input type="file" name="sta_p_img" style="width:600px;"><br>
                     이전파일 : {{ stadium.sta_p_img }}
-                    {% if stadium.sta_p_img %}<br><img src="/media/fcdata/stadium/{{ stadium.sta_p_img }}" width="500">{% endif %}
+                    {% if stadium.sta_p_img %}<br><img src="{{ MEDIA_URL }}fcdata/stadium/{{ stadium.sta_p_img }}" width="500">{% endif %}
                 </td>
             </tr>
             <tr>
@@ -148,7 +148,7 @@ function sendChk() {
                 <td class="left" colspan="3">
                     <input type="file" name="sta_m_img" style="width:600px;"><br>
                     이전파일 : {{ stadium.sta_m_img }}
-                    {% if stadium.sta_m_img %}<br><img src="/media/fcdata/stadium/{{ stadium.sta_m_img }}" width="500">{% endif %}
+                    {% if stadium.sta_m_img %}<br><img src="{{ MEDIA_URL }}fcdata/stadium/{{ stadium.sta_m_img }}" width="500">{% endif %}
                 </td>
             </tr>
             <tr>

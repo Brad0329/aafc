@@ -55,7 +55,7 @@ function lfcoach_del(coach_code) {
                 <td>{{ coach.level_name }}<br>({{ coach.level_desc }})</td>
                 <td>{{ coach.coach_code }}</td>
                 <td>{{ coach.dpart }}</td>
-                <td><img src="/media/fcdata/coach/{{ coach.coach_s_img }}" width="100"></td>
+                <td><img src="{{ MEDIA_URL }}fcdata/coach/{{ coach.coach_s_img }}" width="100"></td>
                 <td>{{ coach.order_seq }}</td>
                 <td>
                     <a href="{% url 'office_coach_modify' coach.coach_code %}"><img src="{% static 'ba_office/images/btn_edit.gif' %}" alt="수정" /></a>

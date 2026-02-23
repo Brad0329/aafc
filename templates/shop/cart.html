@@ -40,7 +40,7 @@
                             <div class="bakset_cont_02">
                                 <div class="img">
                                     {% if data.cart.product.gd_img_s %}
-                                    <img src="/fcdata/shop_goods/{{ data.cart.product.gd_img_s }}" width="64"/>
+                                    <img src="{{ MEDIA_URL }}fcdata/shop_goods/{{ data.cart.product.gd_img_s }}" width="64"/>
                                     {% endif %}
                                 </div>
                                 <div class="txt">

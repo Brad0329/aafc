@@ -180,10 +180,10 @@
 <div class="layer_popup" id="popup_{{ popup.id }}" style="position:fixed; left:{{ popup.pop_left }}px; top:{{ popup.pop_top }}px; width:{{ popup.pop_width }}px; z-index:9999; display:block;">
     {% if popup.pop_url %}
     <a href="{{ popup.pop_url }}" {% if popup.pop_urltype == 'N' %}target="_blank"{% endif %}>
-        <img src="/media/fcdata/popup/{{ popup.pop_img }}" style="width:100%;"/>
+        <img src="{{ MEDIA_URL }}fcdata/popup/{{ popup.pop_img }}" style="width:100%;"/>
     </a>
     {% else %}
-    <img src="/media/fcdata/popup/{{ popup.pop_img }}" style="width:100%;"/>
+    <img src="{{ MEDIA_URL }}fcdata/popup/{{ popup.pop_img }}" style="width:100%;"/>
     {% endif %}
     <div style="background:#333; padding:5px; text-align:right; overflow:hidden;">
         <label style="color:#fff; font-size:12px; cursor:pointer; float:left;">

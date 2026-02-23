@@ -34,7 +34,7 @@
                         <div class="img">
                             <a href="{% url 'shop:goods_view' gd_code=product.gd_code %}">
                                 {% if product.gd_img_b %}
-                                <img src="/fcdata/shop_goods/{{ product.gd_img_b }}" alt="{{ product.gd_name }}"/>
+                                <img src="{{ MEDIA_URL }}fcdata/shop_goods/{{ product.gd_img_b }}" alt="{{ product.gd_name }}"/>
                                 {% else %}
                                 <img src="{% static 'images/sub/junior_coach_noimage.jpg' %}" alt=""/>
                                 {% endif %}

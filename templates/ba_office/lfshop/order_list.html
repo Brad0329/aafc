@@ -147,7 +147,7 @@
                         <tr style="background:#fff;text-align:center;">
                             <td style="text-align:left;">
                                 {% if item.goods_img %}
-                                <img src="/fcdata/shop_goods/{{ item.goods_img }}" width="50" style="float:left;margin-right:5px;">
+                                <img src="{{ MEDIA_URL }}fcdata/shop_goods/{{ item.goods_img }}" width="50" style="float:left;margin-right:5px;">
                                 {% endif %}
                                 {{ item.goods_title }}
                                 {% if item.option_txt %}<div style="font-size:11px;color:gray;">{{ item.option_txt }}</div>{% endif %}
