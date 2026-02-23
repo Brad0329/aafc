@@ -10,3 +10,4 @@ whitenoise==6.11.0
 boto3==1.42.51
 django-storages==1.14.6
 python-decouple==3.8
+openpyxl==3.1.5
