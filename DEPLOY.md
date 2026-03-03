@@ -111,7 +111,7 @@ aws s3 sync "C:\Users\user\Documents\aafc\media" s3://aafc-bucket/ --region ap-n
 
 ```powershell
 # 1. 로컬에서 dump 생성
-& "C:\Program Files\PostgreSQL\17\bin\pg_dump.exe" -U postgres -d aafc_dev -F c -f C:\Users\user\Downloads\aafc_dump.dump
+& "C:\Program Files\PostgreSQL\16\bin\pg_dump.exe" -U postgres -d aafc_dev -F c -f C:\Users\user\Downloads\aafc_dump.dump
 
 # 2. EC2로 전송
 scp -i "C:\Users\user\Downloads\aafc-key.pem" "C:\Users\user\Downloads\aafc_dump.dump" ubuntu@43.201.113.91:/srv/aafc/

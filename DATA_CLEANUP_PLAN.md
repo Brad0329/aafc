@@ -13,6 +13,8 @@
 | 2026-02-18 | 최초 작성 (4개 집계 테이블 데이터 정리 계획) |
 | 2026-02-20 | DailyTotalData 모델 제거 (commit 6987103) |
 | 2026-02-22 | DailyCoachData/New/Month → 뷰 미사용 전환 (commit 5fe7879) |
+| 2026-03-03 | DailyCoachData/New/Month 3개 모델 제거 완료 + cleanup_old_data 삭제 |
+| 2026-03-03 | MSSQL 2026-02-28 백업 복원 → PostgreSQL 전체 재이관 (4개 집계 테이블 제외) |
 
 ---
 
@@ -24,9 +26,9 @@ Enrollment 원본 테이블에서 직접 조회하도록 변경됨 (commit 5fe78
 | 테이블 (Django 모델) | DB 테이블명 | 건수 | 상태 |
 |---|---|---|---|
 | ~~DailyTotalData~~ | ~~reports_dailytotaldata~~ | ~~5,094,089~~ | **모델 제거됨 (commit 6987103)** |
-| ~~DailyCoachData~~ | ~~reports_dailycoachdata~~ | ~~66,787~~ | **뷰 미사용 → 모델 제거 예정** |
-| ~~DailyCoachDataNew~~ | ~~reports_dailycoachdatanew~~ | ~~574,419~~ | **뷰 미사용 → 모델 제거 예정** |
-| ~~DailyCoachDataMonth~~ | ~~reports_dailycoachdatamonth~~ | ~~42,785~~ | **뷰 미사용 → 모델 제거 예정** |
+| ~~DailyCoachData~~ | ~~reports_dailycoachdata~~ | ~~66,787~~ | **모델 제거 완료 (2026-03-03)** |
+| ~~DailyCoachDataNew~~ | ~~reports_dailycoachdatanew~~ | ~~574,419~~ | **모델 제거 완료 (2026-03-03)** |
+| ~~DailyCoachDataMonth~~ | ~~reports_dailycoachdatamonth~~ | ~~42,785~~ | **모델 제거 완료 (2026-03-03)** |
 
 > 이 테이블들은 MSSQL SQL Server Agent 배치 잡(매일 23시)이 생성하던 사전집계 테이블.
 > Django에는 이 배치 프로세스가 없어서 새 데이터가 생성되지 않음.
@@ -74,11 +76,13 @@ python manage.py migrate
 
 ---
 
-## 3월 말 최종 이관 체크리스트
+## 3월 최종 이관 체크리스트
 
-- [ ] MSSQL 최신 덤프 (3월 말 기준)
-- [ ] 로컬에서 PostgreSQL 이관 스크립트 실행 (위 4개 테이블 제외)
+- [x] MSSQL 최신 덤프 (2026-02-28 기준 백업 복원)
+- [x] 로컬에서 PostgreSQL 이관 스크립트 실행 (위 4개 테이블 제외, 총 1,272,498건)
+- [x] DailyCoachData/New/Month 3개 모델 제거 + makemigrations/migrate
+- [x] cleanup_old_data management command 삭제
+- [x] pg_dump 생성 (aafc_dump_20260303.dump, 27MB)
 - [ ] RDS 접속 정보 확정 (`{RDS_ENDPOINT}`, `aafc_user`, `aafc_prod` 실제 값 확인)
-- [ ] `python manage.py migrate` → 집계 테이블 DROP 확인
 - [ ] 리포트 페이지 정상 동작 확인 (Enrollment 직접 조회 방식)
 - [ ] AWS RDS에 최종 데이터 업로드
