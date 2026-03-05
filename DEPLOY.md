@@ -118,8 +118,8 @@ scp -i "C:\Users\user\Downloads\aafc-key.pem" "C:\Users\user\Downloads\aafc_dump
 ```
 
 ```bash
-# 3. EC2에서 RDS로 복원
-pg_restore -h aafc-db.cdaqmq8yqnjw.ap-northeast-2.rds.amazonaws.com -U aafc_user -d aafc_prod -F c --clean --if-exists /srv/aafc/aafc_dump.dump
+# 3. EC2에서 RDS로 복원 (비밀번호는 /srv/aafc/.env의 DB_PASSWORD 참조)
+PGPASSWORD='비밀번호' pg_restore -h aafc-db.cdaqmq8yqnjw.ap-northeast-2.rds.amazonaws.com -U aafc_user -d aafc_prod -F c --clean --if-exists /srv/aafc/aafc_dump.dump
 ```
 
 ---
@@ -161,6 +161,7 @@ AWS_S3_REGION_NAME=ap-northeast-2
 
 | 항목 | URL |
 |------|-----|
+| AWS 콘솔 | https://console.aws.amazon.com (pesseq@gmail.com) |
 | 메인 사이트 | http://43.201.113.91 |
 | 관리자 페이지 | http://43.201.113.91/ba_office/ |
 | 관리자 계정 | junior2019 / test1234 |
