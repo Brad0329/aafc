@@ -8,7 +8,7 @@
 AAFC(유소년 축구 아카데미) 종합 관리 시스템을 운영 중인 회사가 자체 서버로 독립하려 한다. 현재 시스템은 Classic ASP(단종 기술) + MSSQL(유료) + Windows Server(유료)로 구성되어 유지보수가 어렵고 비용이 높다. 초보 프로그래머가 Claude AI와 함께 유지보수할 수 있도록 Python Django + PostgreSQL로 전환한다.
 
 ### 사용자 결정사항
-- **배포**: 미정 (로컬 개발 우선, 추후 결정)
+- **배포**: AWS (EC2 + RDS + S3) 배포 완료
 - **결제**: KCP + Toss 병행 유지
 - **프론트엔드**: Django 템플릿 + jQuery
 
@@ -22,14 +22,14 @@ AAFC(유소년 축구 아카데미) 종합 관리 시스템을 운영 중인 회
 | 프레임워크 | Django | 5.1+ |
 | DB | PostgreSQL | 16+ |
 | 프론트엔드 | Django Templates + jQuery 3.x | - |
-| CSS | Bootstrap 5 + 기존 커스텀 CSS 활용 | - |
+| CSS | 기존 ASP 사이트 커스텀 CSS 그대로 활용 (Bootstrap 미사용) | - |
 | 결제 | KCP Python SDK + Toss REST API | - |
 | 에디터 | django-ckeditor-5 | - |
 | 파일업로드 | Django 내장 + Pillow | - |
 | SMS | django-sms 또는 직접 HTTP API | - |
 | 인증 | Django Auth + NICE CheckPlus | - |
 | 배포 | Gunicorn + Nginx + Let's Encrypt | - |
-| 태스크큐 | Celery + Redis (SMS, 리포트 등) | - |
+| 태스크큐 | 미사용 (추후 필요 시 Celery + Redis 도입) | - |
 
 ---
 
@@ -368,7 +368,7 @@ class LegacySHA256Hasher(BasePasswordHasher):
 | 데이터 정합성 | 마이그레이션 후 row count + 금액 합계 교차 검증 |
 | NICE 인증 실패 | Phase 9에서 처리, 그 전까지 일반 가입으로 대체 |
 | 기존 사이트 중단 | 병행 운영: 새 시스템 안정화까지 기존 시스템 유지 |
-| 성능 이슈 | 500만 건 daily_total_data 등 → DB 인덱스 + 페이지네이션 |
+| 성능 이슈 | daily_total_data 등 집계 테이블 제거 완료 → Enrollment 직접 조회 + DB 인덱스 |
 | 관리자 UI 변경 | Phase 8에서 기존 ba_office 디자인 복제, 재교육 불필요 |
 
 ---
@@ -423,7 +423,7 @@ class LegacySHA256Hasher(BasePasswordHasher):
 | 8-7 REPORT | ✅ 검증 완료 (검증1 + 검증2) |
 | 8-8 출고관리 | 보류 (요청자 확인 필요) |
 | 8-9 포탈관리 | 개발 완료 |
-| 8-10 쇼핑몰관리 | 보류 (요청자 확인 필요) |
+| 8-10 쇼핑몰관리 | ✅ 개발 완료 |
 
 ---
 
