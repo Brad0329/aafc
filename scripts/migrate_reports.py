@@ -16,10 +16,7 @@ django.setup()
 import pyodbc
 from django.utils import timezone
 from apps.enrollment.models import Attendance, ChangeHistory
-from apps.reports.models import (
-    DailyTotalData, DailyCoachData, DailyCoachDataNew,
-    DailyCoachDataMonth, MonthlyData,
-)
+from apps.reports.models import MonthlyData
 
 MSSQL_CONN_STR = (
     'DRIVER={ODBC Driver 17 for SQL Server};'
@@ -438,10 +435,7 @@ if __name__ == '__main__':
     try:
         migrate_attendance(cursor)
         migrate_change_history(cursor)
-        migrate_daily_total_data(cursor)
-        migrate_daily_coachdata(cursor)
-        migrate_daily_coachdata_new(cursor)
-        migrate_daily_coachdata_month(cursor)
+        # DailyTotalData, DailyCoachData, DailyCoachDataNew, DailyCoachDataMonth 모델 제거됨 - 이관 불필요
         migrate_monthly_data(cursor)
     finally:
         cursor.close()
@@ -452,9 +446,5 @@ if __name__ == '__main__':
     print('=' * 60)
     print(f'Attendance 총 건수: {Attendance.objects.count():,}')
     print(f'ChangeHistory 총 건수: {ChangeHistory.objects.count():,}')
-    print(f'DailyTotalData 총 건수: {DailyTotalData.objects.count():,}')
-    print(f'DailyCoachData 총 건수: {DailyCoachData.objects.count():,}')
-    print(f'DailyCoachDataNew 총 건수: {DailyCoachDataNew.objects.count():,}')
-    print(f'DailyCoachDataMonth 총 건수: {DailyCoachDataMonth.objects.count():,}')
     print(f'MonthlyData 총 건수: {MonthlyData.objects.count():,}')
     print('\n이관 완료!')
