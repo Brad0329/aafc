@@ -341,6 +341,7 @@ class OrderItemOption(models.Model):
         OrderItem, on_delete=models.CASCADE,
         related_name='options', verbose_name='주문상품',
     )
+    option_item_uid = models.IntegerField('옵션항목ID', default=0)
     title = models.CharField('옵션명', max_length=100)
     item = models.CharField('옵션항목', max_length=200)
     price = models.IntegerField('옵션가격', default=0)

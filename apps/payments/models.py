@@ -73,7 +73,7 @@ class PaymentFail(models.Model):
 class PaymentToss(models.Model):
     """Toss 결제 로그 (수강신청) - lf_pay_toss_log 대응"""
     payment_key = models.CharField('결제키', max_length=200, blank=True)
-    order_id = models.CharField('주문번호', max_length=100, blank=True)
+    order_id = models.CharField('주문번호', max_length=100, blank=True, unique=True)  # 멱등성 키
     amount = models.IntegerField('결제금액', default=0)
     method = models.CharField('결제수단', max_length=30, blank=True)      # 카드/계좌이체/가상계좌 등
     status = models.CharField('결제상태', max_length=30, blank=True)      # DONE/CANCELED 등

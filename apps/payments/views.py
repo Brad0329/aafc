@@ -1,8 +1,5 @@
 import datetime
-import json
 
-import requests
-from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import render, redirect
@@ -12,6 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from apps.accounts.models import MemberChild
 from apps.courses.models import Lecture, LectureSelDay
 from apps.enrollment.models import Enrollment, EnrollmentCourse, EnrollmentBill
+from . import toss
 from .models import PaymentKCP, PaymentFail, PaymentToss
 
 
@@ -292,36 +290,6 @@ def _create_fail_log(request, data, res_cd='', res_msg=''):
 # Toss Payments (수강신청)
 # ──────────────────────────────────────────────────────────────
 
-def _toss_confirm(payment_key, order_id, amount):
-    """Toss 결제 승인 API 호출 → (http_code, json) 반환"""
-    try:
-        resp = requests.post(
-            settings.TOSS_CONFIRM_URL,
-            json={'paymentKey': payment_key, 'orderId': order_id, 'amount': int(amount)},
-            auth=(settings.TOSS_SECRET_KEY, ''),  # Basic 인증: base64('secretKey:')
-            headers={'Content-Type': 'application/json'},
-            timeout=30,
-        )
-        try:
-            body = resp.json()
-        except ValueError:
-            body = {}
-        return resp.status_code, body
-    except requests.RequestException as e:
-        return 0, {'code': 'NETWORK_ERROR', 'message': str(e)}
-
-
-def _toss_method_to_code(method):
-    """Toss 결제수단명 → (pay_method, use_pay_method)"""
-    if method == '카드':
-        return 'CARD', '100000000000'
-    if method == '계좌이체':
-        return 'R', '010000000000'
-    if method == '가상계좌':
-        return 'VACCT', '001000000000'
-    return 'CARD', '100000000000'
-
-
 @login_required
 def toss_enrollment_success(request):
     """Toss 수강신청 결제 성공 콜백 (GET 리다이렉트 → 승인 confirm → 입단 생성)"""
@@ -357,7 +325,7 @@ def toss_enrollment_success(request):
         return render(request, 'payments/payment_success.html', {'enrollment': enrollment})
 
     # Toss 승인 확정
-    http_code, confirm_json = _toss_confirm(payment_key, order_id, expected_amount)
+    http_code, confirm_json = toss.confirm(payment_key, order_id, expected_amount)
     if http_code != 200:
         _create_fail_log(request, data,
                          res_cd=confirm_json.get('code', 'CONFIRM_FAIL'),
@@ -375,18 +343,40 @@ def toss_enrollment_success(request):
             'res_msg': '결제가 정상적으로 완료되지 않았습니다.',
         })
 
-    pay_method, use_pay_method = _toss_method_to_code(confirm_json.get('method', ''))
+    pay_method, use_pay_method = toss.method_to_codes(confirm_json.get('method', ''))
 
     try:
-        enrollment = _create_enrollment(request, data, pay_method)
-        _create_payment_log_toss(request, data, enrollment, http_code, confirm_json, use_pay_method)
-        request.session.pop('enrollment_data', None)
-        return render(request, 'payments/payment_success.html', {'enrollment': enrollment})
+        with transaction.atomic():
+            # 멱등 마커 선점 (order_id unique) — 동시/중복 콜백 시 이중 입단 방지
+            log, created = PaymentToss.objects.get_or_create(
+                order_id=order_id,
+                defaults={
+                    'good_name': data.get('good_name', ''),
+                    'pay_seq': 0,
+                    'member_num': request.user.username,
+                    'buyr_name': request.user.name,
+                    'pg_gbn': 'TOSS',
+                    **toss.build_log_kwargs(confirm_json, http_code, use_pay_method),
+                },
+            )
+            if not created:
+                enrollment = Enrollment.objects.filter(id=log.pay_seq).first()
+                request.session.pop('enrollment_data', None)
+                return render(request, 'payments/payment_success.html', {'enrollment': enrollment})
+
+            enrollment = _create_enrollment(request, data, pay_method)
+            log.pay_seq = enrollment.id
+            log.save(update_fields=['pay_seq'])
     except Exception as e:
+        # 승인됐으나 처리 실패 → Toss 보상 취소 (결제-입단 불일치 방지)
+        toss.cancel(payment_key, '입단 처리 실패로 자동 취소')
         _create_fail_log(request, data, res_cd='SYS_ERR', res_msg=str(e))
         return render(request, 'payments/payment_fail.html', {
-            'res_msg': f'처리 중 오류가 발생하였습니다: {e}',
+            'res_msg': f'처리 중 오류로 결제가 취소되었습니다: {e}',
         })
+
+    request.session.pop('enrollment_data', None)
+    return render(request, 'payments/payment_success.html', {'enrollment': enrollment})
 
 
 @login_required
@@ -400,34 +390,3 @@ def toss_enrollment_fail(request):
     return render(request, 'payments/payment_fail.html', {
         'res_msg': message or '결제가 취소되었습니다.',
     })
-
-
-def _create_payment_log_toss(request, data, enrollment, http_code, confirm_json, use_pay_method):
-    """Toss 결제 성공 로그 생성"""
-    card = confirm_json.get('card') or {}
-    transfer = confirm_json.get('transfer') or {}
-    PaymentToss.objects.create(
-        payment_key=confirm_json.get('paymentKey', ''),
-        order_id=confirm_json.get('orderId', data.get('order_idxx', '')),
-        amount=int(confirm_json.get('totalAmount', 0) or data.get('payment_price', 0)),
-        method=confirm_json.get('method', ''),
-        status=confirm_json.get('status', ''),
-        use_pay_method=use_pay_method,
-        http_code=http_code,
-        res_cd=confirm_json.get('code', ''),
-        res_msg=confirm_json.get('message', ''),
-        good_name=data.get('good_name', ''),
-        card_name=card.get('company', ''),
-        card_no=card.get('number', ''),
-        app_no=card.get('approveNo', ''),
-        quota=str(card.get('installmentPlanMonths', '') or ''),
-        noinf='Y' if card.get('isInterestFree') else 'N',
-        bank_name=transfer.get('bank', ''),
-        bank_code=transfer.get('bankCode', ''),
-        approved_at=confirm_json.get('approvedAt', ''),
-        raw_response=json.dumps(confirm_json, ensure_ascii=False),
-        pay_seq=enrollment.id,
-        member_num=request.user.username,
-        buyr_name=request.user.name,
-        pg_gbn='TOSS',
-    )
