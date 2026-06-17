@@ -451,6 +451,7 @@ def ajax_load_promotions(request):
     return render(request, 'enrollment/fragments/promotion_list.html', {
         'discounts': discounts,
         'end_chk': end_chk,
+        'is_step3': request.GET.get('step3', '') == '1',  # step3: 표시만, 적용 버튼 숨김
     })
 
 
