@@ -18,8 +18,8 @@
     {% for item in group.lectures %}
         <tr>
             <td>
-                <input type="checkbox" name="cbList" value="{{ item.lecture.lecture_code }}"
-                       onclick="toggleLecture('{{ item.lecture.lecture_code }}', {{ item.jud }})"/>
+                <input type="checkbox" name="cbList" id="cb_{{ item.lecture.lecture_code }}" value="{{ item.lecture.lecture_code }}"
+                       onclick="go_class('cb_{{ item.lecture.lecture_code }}', {{ item.jud }}, '{{ item.lecture.lecture_title|escapejs }}')"/>
             </td>
             <td>{{ item.lecture.lecture_title }}</td>
             <td>{{ item.lecture.get_day_display }}</td>

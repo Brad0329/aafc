@@ -2,7 +2,7 @@
 {% for sta in stadiums %}
     <li>
         <input type="radio" name="sta_radio" value="{{ sta.sta_code }}"
-               onclick="selSta('{{ sta.sta_code }}')"/> {{ sta.sta_name }}
+               onclick="sel_sta('{{ sta.sta_code }}', '{{ sta.sta_name|escapejs }}')"/> {{ sta.sta_name }}
     </li>
 {% empty %}
     <li>등록된 구장이 없습니다.</li>
