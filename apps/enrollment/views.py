@@ -1,3 +1,6 @@
+import re
+
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
@@ -513,7 +516,11 @@ def apply_step3_view(request):
     # KCP 설정
     sta_code = data['sta_code']
     now = timezone.localtime()
-    order_idxx = now.strftime('%Y%m%d%H%M%S') + request.user.username + '1' + data['child_id']
+    # Toss orderId 허용문자(영숫자/-/_, 6~64자)만 남김
+    order_idxx = re.sub(
+        r'[^A-Za-z0-9_-]', '',
+        now.strftime('%Y%m%d%H%M%S') + request.user.username + '1' + data['child_id']
+    )
 
     sta = Stadium.objects.filter(sta_code=sta_code).first()
     sta_name = sta.sta_name if sta else ''
@@ -572,14 +579,6 @@ def apply_step3_view(request):
     data['total_discount'] = total_discount
     request.session['enrollment_data'] = data
 
-    allow_installment = payment_price >= 50000
-
-    # KCP 가맹점 코드
-    if sta_code == 32:
-        kcp_site_cd = 'AJVBN'
-    else:
-        kcp_site_cd = 'A8BDH'
-
     return render(request, 'enrollment/apply_step3.html', {
         'data': data,
         'payment_price': payment_price,
@@ -595,8 +594,7 @@ def apply_step3_view(request):
         'sta_name': sta_name,
         'local_name': local_name,
         'child': child,
-        'kcp_site_cd': kcp_site_cd,
-        'allow_installment': allow_installment,
+        'toss_client_key': settings.TOSS_CLIENT_KEY,
         'user': request.user,
         'lec_cycle': lec_cycle,
         'lec_period': lec_period,

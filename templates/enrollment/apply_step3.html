@@ -80,34 +80,12 @@
                 </table>
             </div>
 
-            <!-- KCP 결제 폼 -->
-            <form id="order_info" name="order_info" method="post" action="{% url 'payments:kcp_return' %}">
-                {% csrf_token %}
-                <input type="hidden" name="req_tx" value="pay"/>
-                <input type="hidden" name="site_cd" value="{{ kcp_site_cd }}"/>
-                <input type="hidden" name="ordr_idxx" value="{{ order_idxx }}"/>
-                <input type="hidden" name="good_name" value="{{ good_name }}"/>
-                <input type="hidden" name="good_mny" value="{{ payment_price }}"/>
-                <input type="hidden" name="buyr_name" value="{{ user.name }}"/>
-                <input type="hidden" name="buyr_tel1" value="{{ user.phone }}"/>
-                <input type="hidden" name="buyr_mail" value="{{ user.email }}"/>
-                <input type="hidden" name="use_pay_method" id="use_pay_method" value="100000000000"/>
-                <input type="hidden" name="quotaopt" value="{% if allow_installment %}12{% else %}0{% endif %}"/>
-                <input type="hidden" name="amount" value="{{ payment_price }}"/>
-                <input type="hidden" name="res_cd" value=""/>
-                <input type="hidden" name="res_msg" value=""/>
-                <input type="hidden" name="tno" value=""/>
-                <input type="hidden" name="card_cd" value=""/>
-                <input type="hidden" name="card_name" value=""/>
-                <input type="hidden" name="app_no" value=""/>
-                <input type="hidden" name="app_time" value=""/>
-                <input type="hidden" name="noinf" value=""/>
-                <input type="hidden" name="quota" value=""/>
-                <input type="hidden" name="bank_name" value=""/>
-                <input type="hidden" name="bank_code" value=""/>
-                <input type="hidden" name="depositor" value=""/>
-                <input type="hidden" name="account" value=""/>
-                <input type="hidden" name="va_date" value=""/>
+            <!-- Toss 결제 폼 -->
+            <form name="tos_form" id="tos_form">
+                <input type="hidden" id="amount" value="{{ payment_price }}"/>
+                <input type="hidden" id="orderId" value="{{ order_idxx }}"/>
+                <input type="hidden" id="orderName" value="{{ good_name }}"/>
+                <input type="hidden" id="customerName" value="{{ user.name }}"/>
             </form>
 
             <div class="join_btn">
@@ -118,6 +96,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://js.tosspayments.com/v1"></script>
 <script type="text/javascript">
 $(document).ready(function() {
     {% if pro_confirm == 1 %}
@@ -127,31 +106,30 @@ $(document).ready(function() {
     {% endif %}
 });
 
-$("input[name='p_payway']").on("change", function() {
-    var val = $(this).val();
-    if (val == "C") {
-        $("#use_pay_method").val("100000000000");
-    } else {
-        $("#use_pay_method").val("010000000000");
-    }
-});
+var tossPayments = TossPayments('{{ toss_client_key }}');
 
 function snd_chk() {
     if (!confirm("결제를 진행하시겠습니까?\n결제금액: {{ payment_price|intcomma }}원")) {
         return;
     }
 
-    {% comment %}
-    실제 운영 시 KCP JS SDK를 통한 결제 팝업 호출.
-    테스트 환경에서는 바로 결과 처리 페이지로 전송합니다.
-    {% endcomment %}
-    var form = document.order_info;
-    form.res_cd.value = "0000";
-    form.res_msg.value = "정상처리";
-    form.tno.value = "TEST" + new Date().getTime();
-    form.amount.value = "{{ payment_price }}";
-    form.app_time.value = new Date().toISOString().replace(/[-:T]/g, '').substring(0, 14);
-    form.submit();
+    var payType = $("input[name='p_payway']:checked").val();
+    var method = (payType === "C") ? "카드" : "계좌이체";
+
+    tossPayments.requestPayment(method, {
+        amount: Number(document.getElementById("amount").value),
+        orderId: document.getElementById("orderId").value,
+        orderName: document.getElementById("orderName").value,
+        customerName: document.getElementById("customerName").value,
+        successUrl: "{{ request.scheme }}://{{ request.get_host }}{% url 'payments:toss_enrollment_success' %}",
+        failUrl: "{{ request.scheme }}://{{ request.get_host }}{% url 'payments:toss_enrollment_fail' %}"
+    }).catch(function(error) {
+        if (error.code === "USER_CANCEL") {
+            alert("결제를 취소하셨습니다.");
+        } else {
+            alert(error.message || "결제 중 오류가 발생했습니다.");
+        }
+    });
 }
 </script>
 {% endblock %}

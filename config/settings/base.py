@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from decouple import config
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = 'django-insecure-y+=_o22umdcu3jju%e+mgzaqi%^z@ebq@oq^u)jq9cljbv#qu6'
@@ -133,3 +135,14 @@ CKEDITOR_5_CONFIGS = {
         'width': '100%',
     },
 }
+
+# ── Toss Payments ──
+# 로컬: 아래 default(테스트 키)로 동작.
+#   developers.tosspayments.com → 내 개발정보 → API 키에서 test_ck_/test_sk_ 발급 후
+#   default 값에 채우거나 프로젝트 루트 .env 에 넣으면 됨. (현재는 placeholder)
+# 운영(EC2): .env 에 TOSS_CLIENT_KEY / TOSS_SECRET_KEY (live_ck_/live_sk_) 설정 → override.
+#   주의: live 키는 HTTPS + 등록 도메인에서만 동작.
+# 시크릿 키는 콜론 없이 저장 (confirm 호출 시 HTTPBasicAuth(secret, '')로 'secret:' 인코딩 처리됨)
+TOSS_CLIENT_KEY = config('TOSS_CLIENT_KEY', default='test_ck_PLACEHOLDER')
+TOSS_SECRET_KEY = config('TOSS_SECRET_KEY', default='test_sk_PLACEHOLDER')
+TOSS_CONFIRM_URL = 'https://api.tosspayments.com/v1/payments/confirm'

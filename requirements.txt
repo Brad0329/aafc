@@ -2,6 +2,7 @@
 django==5.2.11
 psycopg2-binary==2.9.11
 python-dateutil==2.9.0.post0
+requests==2.32.3
 django-ckeditor-5
 
 # AWS 배포용

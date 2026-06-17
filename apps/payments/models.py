@@ -68,3 +68,40 @@ class PaymentFail(models.Model):
 
     def __str__(self):
         return f'#{self.id} {self.ordr_idxx} FAIL'
+
+
+class PaymentToss(models.Model):
+    """Toss 결제 로그 (수강신청) - lf_pay_toss_log 대응"""
+    payment_key = models.CharField('결제키', max_length=200, blank=True)
+    order_id = models.CharField('주문번호', max_length=100, blank=True)
+    amount = models.IntegerField('결제금액', default=0)
+    method = models.CharField('결제수단', max_length=30, blank=True)      # 카드/계좌이체/가상계좌 등
+    status = models.CharField('결제상태', max_length=30, blank=True)      # DONE/CANCELED 등
+    use_pay_method = models.CharField('결제수단코드', max_length=20, blank=True)
+    http_code = models.IntegerField('HTTP상태', default=0)
+    res_cd = models.CharField('응답코드', max_length=50, blank=True)
+    res_msg = models.CharField('응답메시지', max_length=300, blank=True)
+    good_name = models.CharField('상품명', max_length=200, blank=True)
+    card_name = models.CharField('카드명', max_length=50, blank=True)
+    card_no = models.CharField('카드번호', max_length=30, blank=True)
+    app_no = models.CharField('승인번호', max_length=30, blank=True)
+    quota = models.CharField('할부개월', max_length=5, blank=True)
+    noinf = models.CharField('무이자여부', max_length=5, blank=True)
+    bank_name = models.CharField('은행명', max_length=30, blank=True)
+    bank_code = models.CharField('은행코드', max_length=10, blank=True)
+    approved_at = models.CharField('승인시각', max_length=40, blank=True)
+    raw_response = models.TextField('원본응답', blank=True)
+    pay_seq = models.IntegerField('입단번호', default=0)
+    member_num = models.CharField('회원아이디', max_length=30, blank=True)
+    buyr_name = models.CharField('구매자명', max_length=60, blank=True)
+    pg_gbn = models.CharField('PG구분', max_length=10, default='TOSS')
+    insert_dt = models.DateTimeField('등록일', auto_now_add=True)
+
+    class Meta:
+        db_table = 'payments_paymenttoss'
+        verbose_name = 'Toss결제'
+        verbose_name_plural = 'Toss결제'
+        ordering = ['-id']
+
+    def __str__(self):
+        return f'#{self.id} {self.order_id} {self.amount}'

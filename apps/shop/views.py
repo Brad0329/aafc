@@ -1,17 +1,22 @@
 import datetime
+import json
+
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import F
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.accounts.models import MemberChild
+from apps.payments.views import _toss_confirm
 from .models import (
     Category, Product, ProductOption, ProductOptionItem, ProductOptionStock,
     Cart, CartOption, Order, OrderItem, OrderItemOption, OrderDelivery,
-    ShopPaymentKCP,
+    ShopPaymentKCP, ShopPaymentToss,
 )
 
 SHOP_MENU = [
@@ -241,6 +246,7 @@ def order_form(request):
         'settle_price': settle_price,
         'children': children,
         'user': request.user,
+        'toss_client_key': settings.TOSS_CLIENT_KEY,
     }
     return render(request, 'shop/order_form.html', context)
 
@@ -318,7 +324,7 @@ def order_create(request):
                 child_id=child_id,
                 payway=payway,
                 pay_method=pay_method_map.get(payway, ''),
-                pg='KCP',
+                pg='TOSS',
                 total_price=total_price,
                 total_order_price=total_price + total_option_price,
                 total_option_price=total_option_price,
@@ -339,9 +345,8 @@ def order_create(request):
                 rcv_addr=rcv_addr,
                 rcv_addr_detail=rcv_addr_detail,
                 order_memo=order_memo,
-                state=200,
-                is_finish='T',
-                confirm_date=now,
+                state=100,
+                is_finish='F',
                 reg_date=now,
             )
 
@@ -393,12 +398,8 @@ def order_create(request):
                     real_delivery_fee=delivery_fee,
                 )
 
-            # 장바구니 정리
-            Cart.objects.filter(id__in=cart_ids, member=request.user).delete()
-            if 'order_cart_ids' in request.session:
-                del request.session['order_cart_ids']
-
             # 세션에 주문 정보 저장 (결제 콜백용)
+            # 장바구니 삭제/재고 차감은 결제 성공(shop_toss_success) 후 처리 → 실패 시 장바구니 보존
             request.session['shop_order_id'] = order.id
             request.session['shop_order_no'] = order.order_no
 
@@ -421,7 +422,7 @@ def order_create(request):
 @csrf_exempt
 @login_required
 def shop_kcp_return(request):
-    """KCP 결제 결과 콜백 처리"""
+    """KCP 결제 결과 콜백 처리 (※ Toss 전환으로 비활성 - URL 미연결, 코드 보존)"""
     if request.method != 'POST':
         return redirect('shop:goods_list')
 
@@ -574,3 +575,172 @@ def order_detail(request, order_id):
         'deliveries': deliveries,
     }
     return render(request, 'shop/order_detail.html', context)
+
+
+# ── Toss 결제 (쇼핑몰) ──
+
+def _create_shop_toss_log(order, http_code, confirm_json, member_num):
+    """쇼핑몰 Toss 결제 로그 생성"""
+    card = confirm_json.get('card') or {}
+    transfer = confirm_json.get('transfer') or {}
+    method = confirm_json.get('method', '')
+    use_pay_method = {
+        '카드': '100000000000', '계좌이체': '010000000000', '가상계좌': '001000000000',
+    }.get(method, '')
+    ShopPaymentToss.objects.create(
+        order=order,
+        payment_key=confirm_json.get('paymentKey', ''),
+        order_no=confirm_json.get('orderId', order.order_no),
+        amount=int(confirm_json.get('totalAmount', 0) or order.settle_price),
+        method=method,
+        status=confirm_json.get('status', ''),
+        use_pay_method=use_pay_method,
+        http_code=http_code,
+        res_cd=confirm_json.get('code', ''),
+        res_msg=confirm_json.get('message', ''),
+        order_name=confirm_json.get('orderName', ''),
+        card_name=card.get('company', ''),
+        card_no=card.get('number', ''),
+        app_no=card.get('approveNo', ''),
+        quota=str(card.get('installmentPlanMonths', '') or ''),
+        noinf='Y' if card.get('isInterestFree') else 'N',
+        bank_name=transfer.get('bank', ''),
+        bank_code=transfer.get('bankCode', ''),
+        approved_at=confirm_json.get('approvedAt', ''),
+        raw_response=json.dumps(confirm_json, ensure_ascii=False),
+        member_num=member_num,
+    )
+
+
+@login_required
+def shop_toss_success(request):
+    """쇼핑몰 Toss 결제 성공 콜백 (GET → 승인 confirm → 주문확정/재고차감/포인트)"""
+    payment_key = request.GET.get('paymentKey', '')
+    order_id = request.GET.get('orderId', '')
+    amount = request.GET.get('amount', '')
+
+    try:
+        order = Order.objects.get(order_no=order_id, member=request.user)
+    except Order.DoesNotExist:
+        return render(request, 'shop/order_fail.html', {
+            'shop_menu': SHOP_MENU, 'current_menu': 'shop_goods',
+            'res_msg': '주문 정보를 찾을 수 없습니다.',
+        })
+
+    # 위변조 방지: 결제 금액 대조 (정수 비교)
+    try:
+        amount_int = int(amount)
+    except (ValueError, TypeError):
+        amount_int = -1
+    if amount_int != order.settle_price:
+        return render(request, 'shop/order_fail.html', {
+            'shop_menu': SHOP_MENU, 'current_menu': 'shop_goods',
+            'res_msg': '결제 금액이 일치하지 않습니다.',
+        })
+
+    # 멱등성: 이미 확정된 주문이면 중복 처리 방지
+    if order.is_finish == 'T':
+        for k in ('shop_order_id', 'shop_order_no', 'order_cart_ids'):
+            request.session.pop(k, None)
+        return render(request, 'shop/order_success.html', {
+            'shop_menu': SHOP_MENU, 'current_menu': 'shop_goods', 'order': order,
+        })
+
+    # Toss 승인 확정
+    http_code, confirm_json = _toss_confirm(payment_key, order_id, order.settle_price)
+    if http_code != 200:
+        _create_shop_toss_log(order, http_code, confirm_json, request.user.username)
+        return render(request, 'shop/order_fail.html', {
+            'shop_menu': SHOP_MENU, 'current_menu': 'shop_goods',
+            'res_msg': confirm_json.get('message', '결제 승인에 실패하였습니다.'),
+        })
+
+    # 승인 상태/금액 최종 검증 (가상계좌 미입금 등 미완결 결제 방어)
+    if confirm_json.get('status') != 'DONE' or int(confirm_json.get('totalAmount', 0) or 0) != order.settle_price:
+        _create_shop_toss_log(order, http_code, confirm_json, request.user.username)
+        return render(request, 'shop/order_fail.html', {
+            'shop_menu': SHOP_MENU, 'current_menu': 'shop_goods',
+            'res_msg': '결제가 정상적으로 완료되지 않았습니다.',
+        })
+
+    method = confirm_json.get('method', '')
+    pay_method_map = {'카드': '신용카드', '계좌이체': '계좌이체', '가상계좌': '가상계좌'}
+
+    with transaction.atomic():
+        # 동시성 방어: 주문 행을 잠그고 확정 여부 재확인 (중복 콜백 시 이중 처리 방지)
+        order = Order.objects.select_for_update().get(pk=order.pk)
+        if order.is_finish == 'T':
+            for k in ('shop_order_id', 'shop_order_no', 'order_cart_ids'):
+                request.session.pop(k, None)
+            return render(request, 'shop/order_success.html', {
+                'shop_menu': SHOP_MENU, 'current_menu': 'shop_goods', 'order': order,
+            })
+
+        # 주문 확정
+        order.state = 200
+        order.is_finish = 'T'
+        order.is_confirm = 'T'
+        order.pay_method = pay_method_map.get(method, order.pay_method)
+        order.confirm_date = timezone.localtime()
+        order.save(update_fields=['state', 'is_finish', 'is_confirm', 'pay_method', 'confirm_date'])
+
+        # 재고 차감 (ASP shoptos_finish 대응) - 장바구니 기준, 재고/가격옵션(200)만
+        cart_ids = request.session.get('order_cart_ids', [])
+        cart_items = Cart.objects.filter(
+            id__in=cart_ids, member=request.user
+        ).select_related('product').prefetch_related('options')
+        for item in cart_items:
+            if item.option_kind == '200':
+                product = item.product
+                try:
+                    cur = int(product.gd_stock or 0)
+                except (ValueError, TypeError):
+                    cur = 0
+                product.gd_stock = str(max(cur - item.ea, 0))
+                product.save(update_fields=['gd_stock'])
+                for opt in item.options.all():
+                    if opt.option_item_uid:
+                        ProductOptionStock.objects.filter(
+                            product__gd_code=product.gd_code,
+                            opt_item_idx1=opt.option_item_uid,
+                        ).update(opt_stock=F('opt_stock') - item.ea)
+
+        # Toss 결제 로그
+        _create_shop_toss_log(order, http_code, confirm_json, request.user.username)
+
+        # 장바구니 정리
+        Cart.objects.filter(id__in=cart_ids, member=request.user).delete()
+
+    # 포인트 적립/사용 처리
+    from apps.points.utils import calculate_shop_point, add_point_history
+    save_points = calculate_shop_point(order.settle_price)
+    if save_points > 0:
+        add_point_history(
+            member_id=request.user.username, member_name=request.user.name,
+            app_gbn='S', app_point=save_points,
+            point_desc='쇼핑몰구매', order_no=order.order_no,
+        )
+    if order.use_cmoney and order.use_cmoney > 0:
+        add_point_history(
+            member_id=request.user.username, member_name=request.user.name,
+            app_gbn='U', app_point=order.use_cmoney,
+            point_desc='쇼핑몰사용', order_no=order.order_no,
+        )
+
+    # 세션 정리
+    for k in ('shop_order_id', 'shop_order_no', 'order_cart_ids'):
+        request.session.pop(k, None)
+
+    return render(request, 'shop/order_success.html', {
+        'shop_menu': SHOP_MENU, 'current_menu': 'shop_goods', 'order': order,
+    })
+
+
+@login_required
+def shop_toss_fail(request):
+    """쇼핑몰 Toss 결제 실패/취소 콜백 (GET)"""
+    message = request.GET.get('message', '')
+    return render(request, 'shop/order_fail.html', {
+        'shop_menu': SHOP_MENU, 'current_menu': 'shop_goods',
+        'res_msg': message or '결제가 취소되었습니다.',
+    })

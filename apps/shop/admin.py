@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     Category, Product, ProductOption, ProductOptionItem, ProductOptionStock,
     Cart, CartOption, Order, OrderItem, OrderItemOption, OrderDelivery,
-    ShopPaymentKCP,
+    ShopPaymentKCP, ShopPaymentToss,
 )
 
 
@@ -167,3 +167,12 @@ class ShopPaymentKCPAdmin(admin.ModelAdmin):
         'bank_name', 'depositor', 'account', 'cash_yn', 'cash_authno',
         'noti_id', 'member_num', 'insert_dt',
     ]
+
+
+@admin.register(ShopPaymentToss)
+class ShopPaymentTossAdmin(admin.ModelAdmin):
+    list_display = ['id', 'order', 'order_no', 'amount', 'method', 'status',
+                    'res_cd', 'card_name', 'app_no', 'member_num', 'insert_dt']
+    list_filter = ['method', 'status', 'use_pay_method']
+    search_fields = ['order_no', 'payment_key', 'app_no', 'member_num', 'order__order_no']
+    readonly_fields = [f.name for f in ShopPaymentToss._meta.fields]

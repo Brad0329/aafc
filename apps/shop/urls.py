@@ -16,7 +16,9 @@ urlpatterns = [
     # 주문/결제
     path('order/', views.order_form, name='order_form'),
     path('order/create/', views.order_create, name='order_create'),
-    path('kcp/return/', views.shop_kcp_return, name='kcp_return'),
+    # path('kcp/return/', views.shop_kcp_return, name='kcp_return'),  # Toss 전환으로 비활성
+    path('toss/success/', views.shop_toss_success, name='toss_success'),
+    path('toss/fail/', views.shop_toss_fail, name='toss_fail'),
 
     # 주문조회
     path('orders/', views.order_list, name='order_list'),

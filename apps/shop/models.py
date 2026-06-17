@@ -417,3 +417,42 @@ class ShopPaymentKCP(models.Model):
 
     def __str__(self):
         return f'#{self.id} {self.tno} {self.amount}원'
+
+
+class ShopPaymentToss(models.Model):
+    """쇼핑몰 Toss 결제 로그 (lf_pay_tosshop_log / lf_payshop_toslog 대응)"""
+    order = models.ForeignKey(
+        Order, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='toss_payments', verbose_name='주문',
+    )
+    payment_key = models.CharField('결제키', max_length=200, blank=True)
+    order_no = models.CharField('주문번호', max_length=100, blank=True)
+    amount = models.IntegerField('결제금액', default=0)
+    method = models.CharField('결제수단', max_length=30, blank=True)
+    status = models.CharField('결제상태', max_length=30, blank=True)
+    use_pay_method = models.CharField('결제수단코드', max_length=20, blank=True)
+    http_code = models.IntegerField('HTTP상태', default=0)
+    res_cd = models.CharField('응답코드', max_length=50, blank=True)
+    res_msg = models.CharField('응답메시지', max_length=300, blank=True)
+    order_name = models.CharField('상품명', max_length=200, blank=True)
+    card_name = models.CharField('카드명', max_length=50, blank=True)
+    card_no = models.CharField('카드번호', max_length=30, blank=True)
+    app_no = models.CharField('승인번호', max_length=30, blank=True)
+    quota = models.CharField('할부개월', max_length=5, blank=True)
+    noinf = models.CharField('무이자여부', max_length=5, blank=True)
+    bank_name = models.CharField('은행명', max_length=30, blank=True)
+    bank_code = models.CharField('은행코드', max_length=10, blank=True)
+    approved_at = models.CharField('승인시각', max_length=40, blank=True)
+    raw_response = models.TextField('원본응답', blank=True)
+    member_num = models.CharField('회원아이디', max_length=30, blank=True)
+    insert_dt = models.DateTimeField('등록일', auto_now_add=True)
+
+    class Meta:
+        db_table = 'shop_shoppaymenttoss'
+        verbose_name = '쇼핑몰Toss결제'
+        verbose_name_plural = '쇼핑몰Toss결제'
+        ordering = ['-id']
+
+    def __str__(self):
+        return f'#{self.id} {self.payment_key} {self.amount}원'

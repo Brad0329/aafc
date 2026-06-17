@@ -206,7 +206,10 @@
     </div>
 
 <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<script src="https://js.tosspayments.com/v1"></script>
 <script>
+var tossPayments = TossPayments('{{ toss_client_key }}');
+
 function ordZipcode() {
     new daum.Postcode({
         oncomplete: function(data) {
@@ -282,10 +285,22 @@ function orderChk() {
     .then(function(res) { return res.json(); })
     .then(function(data) {
         if (data.success) {
-            // 결제 페이지로 이동 (KCP 연동)
-            // 현재는 테스트를 위해 결제 성공 처리
-            alert('주문이 완료되었습니다.\n주문번호: ' + data.order_no + '\n결제금액: ' + data.settle_price.toLocaleString() + '원\n\n* KCP 결제 연동은 운영 환경에서 활성화됩니다.');
-            location.href = '{% url "shop:order_list" %}';
+            var payType = document.querySelector('input[name="payway"]:checked').value;
+            var method = (payType === "BANK") ? "계좌이체" : "카드";
+            tossPayments.requestPayment(method, {
+                amount: Number(data.settle_price),
+                orderId: data.order_no,
+                orderName: data.good_name,
+                customerName: document.getElementById('ord_name').value,
+                successUrl: "{{ request.scheme }}://{{ request.get_host }}{% url 'shop:toss_success' %}",
+                failUrl: "{{ request.scheme }}://{{ request.get_host }}{% url 'shop:toss_fail' %}"
+            }).catch(function(error) {
+                if (error.code === "USER_CANCEL") {
+                    alert("결제를 취소하셨습니다.");
+                } else {
+                    alert(error.message || "결제 중 오류가 발생했습니다.");
+                }
+            });
         } else {
             alert(data.error || '주문 처리 중 오류가 발생하였습니다.');
         }
