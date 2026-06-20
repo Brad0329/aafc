@@ -67,8 +67,9 @@
 
 **.env Toss live 키 적용** (※ 시크릿키 끝 콜론 `:` 제거!)
 ```
-sudo sed -i 's|^TOSS_CLIENT_KEY=.*|TOSS_CLIENT_KEY=live_ck_PBal2vxj81PaxaKLkgL2r5RQgOAN|' /srv/aafc/.env
-sudo sed -i 's|^TOSS_SECRET_KEY=.*|TOSS_SECRET_KEY=live_sk_jExPeJWYVQ50KQAzLJejV49R5gvN|' /srv/aafc/.env
+# ⚠️ live 키 실제 값은 Toss 개발자센터 / 비밀번호 관리자에서 가져올 것 (문서에 평문 보관 금지)
+sudo sed -i 's|^TOSS_CLIENT_KEY=.*|TOSS_CLIENT_KEY=<live 클라이언트 키>|' /srv/aafc/.env
+sudo sed -i 's|^TOSS_SECRET_KEY=.*|TOSS_SECRET_KEY=<live 시크릿 키 · 끝 콜론 제거>|' /srv/aafc/.env
 sudo systemctl restart gunicorn
 ```
 
