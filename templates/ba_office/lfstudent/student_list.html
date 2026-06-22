@@ -238,6 +238,10 @@ function wait_Delete() {
 
 <div class="btn_right">
     <a href="javascript:proc_add();"><img src="{% static 'ba_office/images/btn_han.gif' %}" alt="처리" /></a>
+    <a href="{% url 'office_student_add' %}"><img src="{% static 'ba_office/images/btn_soo.gif' %}" alt="수강등록" /></a>
+    {% if sch_lecture_code %}
+    <a href="{% url 'office_lec_attendance_excel' %}?lecture_code={{ sch_lecture_code }}&sch_ym={{ sch_ym }}"><img src="{% static 'ba_office/images/btn_attendance_1.gif' %}" alt="출석부출력" /></a>
+    {% endif %}
 </div>
 </form>
 
@@ -299,7 +303,10 @@ function wait_Delete() {
     </tbody>
 </table>
 </div>
-<div class="btn_right"><a href="javascript:wait_Delete();"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a></div>
+<div class="btn_right">
+    <a href="{% url 'office_student_add' %}"><img src="{% static 'ba_office/images/btn_soo.gif' %}" alt="수강등록" /></a>
+    <a href="javascript:wait_Delete();"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a>
+</div>
 </form>
 {% endif %}
 

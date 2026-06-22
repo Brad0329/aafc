@@ -132,6 +132,8 @@ urlpatterns = [
 
     # 수강생관리 > 수강생등록
     path('lfstudent/student/add/', views.student_add, name='office_student_add'),
+    # 수강생관리 > 출석부출력 (ASP report/lec_attendance.asp)
+    path('lfstudent/lec-attendance/excel/', views.lec_attendance_excel, name='office_lec_attendance_excel'),
     path('lfstudent/ajax/child-search/', views.ajax_child_search, name='office_ajax_child_search'),
     path('lfstudent/ajax/course-list/', views.ajax_course_list, name='office_ajax_course_list'),
     path('lfstudent/ajax/course-days/', views.ajax_course_days, name='office_ajax_course_days'),

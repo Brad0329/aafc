@@ -2156,6 +2156,142 @@ def student_list(request):
     })
 
 
+@office_login_required
+@office_permission_required('H')
+def lec_attendance_excel(request):
+    """수강생 리스트 > 출석부출력 (ASP report/lec_attendance.asp)
+
+    특정 강좌(lecture_code)·기준월(sch_ym)의 출석부를 Excel로 다운로드.
+    학생별 행 + 수업일자별 출결(Y:출석/R:우천취소/N:결석/D:수업연기) 동적 컬럼.
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+    try:
+        lecture_code = int(request.GET.get('lecture_code', '0') or '0')
+    except ValueError:
+        lecture_code = 0
+    sch_ym = request.GET.get('sch_ym', '').strip()
+
+    # 필수값 검증 (원본: lecture_code=0 또는 month=0 이면 AlertBack)
+    if not lecture_code or not (len(sch_ym) == 6 and sch_ym.isdigit()):
+        return HttpResponse('<script>alert("필수정보가 부족합니다.");history.back();</script>')
+
+    year, month = int(sch_ym[:4]), int(sch_ym[4:6])
+    try:
+        course_ym_date = date(year, month, 1)
+    except ValueError:
+        return HttpResponse('<script>alert("기준월이 올바르지 않습니다.");history.back();</script>')
+
+    # 강좌 정보 (구장명, 강좌명)
+    lecture = Lecture.objects.filter(lecture_code=lecture_code).select_related('stadium').first()
+    if not lecture:
+        return HttpResponse('<script>alert("수업정보가 없습니다.");history.back();</script>')
+    sta_name = lecture.stadium.sta_name if lecture.stadium_id else ''
+    lec_name = lecture.lecture_title
+
+    # 수업일 목록 (LectureSelDay) - 일자 오름차순 (원본은 정렬 없음 → 출석부 가독성 위해 일자순)
+    sel_days = list(LectureSelDay.objects.filter(
+        lecture_code=lecture_code, syear=year, smonth=month,
+    ).values_list('sday', flat=True).distinct().order_by('sday'))
+
+    # 학생 목록: bill_code='1001', 해당 월·강좌, 수강상태 IN(LY,LP,PN)
+    course_qs = EnrollmentCourse.objects.filter(
+        bill_code='1001',
+        course_ym=course_ym_date,
+        lecture_code=lecture_code,
+        enrollment__lecture_stats__in=['LY', 'LP', 'PN'],
+    ).select_related(
+        'enrollment', 'enrollment__member', 'enrollment__child',
+    ).order_by('enrollment__child__name')
+
+    # child_id별 1행 (원본 temp_id 중복 제거)
+    seen, students = set(), []
+    for c in course_qs:
+        cid = c.enrollment.child_id
+        if cid in seen:
+            continue
+        seen.add(cid)
+        students.append(c)
+
+    # 출결 매핑: (child_id, day) -> attendance_gbn
+    # 원본 sql_gbn은 child_id+날짜만 조회하나, 출석부=해당 강좌이므로 lecture_code 포함(정확도↑)
+    att_map = {}
+    ym_prefix = f'{year:04d}-{month:02d}'
+    for cid, adt, gbn in Attendance.objects.filter(
+        lecture_code=lecture_code, attendance_dt__startswith=ym_prefix,
+    ).values_list('child_id', 'attendance_dt', 'attendance_gbn'):
+        try:
+            att_map[(cid, int(adt[8:10]))] = gbn
+        except (ValueError, IndexError):
+            continue
+
+    # ── 엑셀 생성 ──
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = '출석부'
+
+    header_fill = PatternFill(start_color='D9E1F2', end_color='D9E1F2', fill_type='solid')
+    thin = Border(left=Side(style='thin'), right=Side(style='thin'),
+                  top=Side(style='thin'), bottom=Side(style='thin'))
+    center = Alignment(horizontal='center')
+
+    # 상단 정보 (원본 헤더 테이블 재현)
+    ws.cell(row=1, column=1, value='AAFC 출석부').font = Font(bold=True, size=14)
+    ws.cell(row=2, column=1, value=f'구장명: {sta_name}')
+    ws.cell(row=2, column=4, value=f'기준월: {sch_ym}')
+    ws.cell(row=3, column=1, value=f'CLASS: {lec_name}')
+    ws.cell(row=3, column=4, value='Y:출석 / R:우천취소 / N:결석 / D:수업연기')
+
+    base_headers = ['부모명', '자녀명', '자녀아이디', '카드번호', '전화번호',
+                    '입단구분', '수강상태', '결제금액', '수강기간', '시작월',
+                    '종료월', '수업시작일자', '결제상태', '결제방법', '결제일']
+    headers = base_headers + [f'{d}일' for d in sel_days]
+    HROW = 5
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=HROW, column=col, value=h)
+        cell.fill = header_fill
+        cell.font = Font(bold=True)
+        cell.alignment = center
+        cell.border = thin
+
+    r = HROW + 1
+    for c in students:
+        e = c.enrollment
+        member, child = e.member, e.child
+        row_vals = [
+            member.name if member else '',
+            child.name if child else '',
+            e.child_id,
+            child.card_num if child else '',
+            member.phone if member else '',
+            APPLY_GUBUN_TEXT.get(e.apply_gubun, e.apply_gubun),
+            LECTURE_STATS_TEXT.get(e.lecture_stats, e.lecture_stats),
+            e.pay_price,
+            e.lec_period,
+            e.start_dt,
+            e.end_dt,
+            c.start_ymd.strftime('%Y%m%d') if c.start_ymd else '',
+            PAY_STATS_TEXT.get(e.pay_stats, e.pay_stats),
+            PAY_METHOD_TEXT.get(e.pay_method, e.pay_method),
+            e.pay_dt.strftime('%Y-%m-%d') if e.pay_dt else '',
+        ]
+        for d in sel_days:
+            row_vals.append(att_map.get((e.child_id, d), ''))
+        for col, val in enumerate(row_vals, 1):
+            cell = ws.cell(row=r, column=col, value=val)
+            cell.border = thin
+            if col > len(base_headers):
+                cell.alignment = center
+        r += 1
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename={lecture_code}_{sch_ym}.xlsx'
+    wb.save(response)
+    return response
+
+
 # ============================================================
 # 수강생관리 > 수강생조회(이름검색)
 # ============================================================
