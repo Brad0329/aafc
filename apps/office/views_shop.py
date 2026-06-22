@@ -16,7 +16,9 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from apps.shop.models import (
     Category, Order, OrderDelivery, OrderItem, OrderItemOption,
     Product, ProductOption, ProductOptionItem, ProductOptionStock,
+    ShopPaymentToss,
 )
+from apps.payments import toss
 from .decorators import office_login_required, office_permission_required
 
 STATE_NAMES = {
@@ -442,16 +444,41 @@ def order_delivery(request):
     return redirect(request.POST.get('next', '/ba_office/lfshop/order/list/'))
 
 
+def _cancel_toss_payment(order):
+    """Toss로 결제 완료된 주문이면 실제 취소(환불). 반환 (성공여부, 실패메시지)."""
+    # Toss 결제건이 아니거나 / 미결제 / 이미 취소된 주문은 PG 취소 불필요
+    if order.pg != 'TOSS' or order.is_finish != 'T' or order.is_cancel == 'T':
+        return True, ''
+    log = ShopPaymentToss.objects.filter(order=order).order_by('-id').first()
+    if not log or not log.payment_key:
+        return True, ''  # 결제 로그 없음
+    http_code, body = toss.cancel(log.payment_key, '관리자 주문취소')
+    # 200=정상 취소, ALREADY_CANCELED=이미 취소됨(둘 다 성공으로 간주)
+    if http_code == 200 or body.get('code') == 'ALREADY_CANCELED_PAYMENT':
+        return True, ''
+    return False, str(body.get('message', '결제 취소 실패')).replace('"', "'")
+
+
 @office_login_required
 @office_permission_required('S')
 def order_cancel(request):
-    """주문 취소(402)"""
+    """주문 취소(402) — Toss 결제건은 실제 환불까지 처리"""
     if request.method == 'POST':
         pk = request.POST.get('pk', '')
         if pk:
-            Order.objects.filter(pk=int(pk)).update(
-                state=402, is_cancel='T', cancel_date=timezone.now()
-            )
+            order = Order.objects.filter(pk=int(pk)).first()
+            if order:
+                # 1) Toss 실제 취소(환불) 먼저 — 실패 시 DB 상태를 바꾸지 않음(불일치 방지)
+                ok, msg = _cancel_toss_payment(order)
+                if not ok:
+                    return HttpResponse(
+                        '<script>alert("결제(Toss) 취소 실패: ' + msg
+                        + '\\n주문 취소를 중단합니다. 확인 후 다시 시도하세요.");history.back();</script>'
+                    )
+                # 2) Toss 취소 성공/불필요 시에만 DB 상태 변경
+                Order.objects.filter(pk=order.pk).update(
+                    state=402, is_cancel='T', cancel_date=timezone.now()
+                )
     return redirect(request.POST.get('next', '/ba_office/lfshop/order/list/'))
 
 
