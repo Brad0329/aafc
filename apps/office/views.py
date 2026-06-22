@@ -25,6 +25,20 @@ from apps.enrollment.models import (
     Attendance, ChangeHistory, WaitStudent,
 )
 from apps.consult.models import Consult, ConsultAnswer, ConsultFree, ConsultRegion
+from apps.payments.models import PaymentToss
+from apps.payments import toss
+
+
+def _refund_enrollment_toss(enrollment):
+    """입단 결제가 Toss면 실제 취소(환불). 반환 (성공여부, 실패메시지)."""
+    log = PaymentToss.objects.filter(pay_seq=enrollment.id).order_by('-id').first()
+    if not log or not log.payment_key:
+        return True, ''  # Toss 결제건 아님(과거/KCP 등) → 환불 스킵
+    http_code, body = toss.cancel(log.payment_key, '입단 취소')
+    # 200=정상 취소, ALREADY_CANCELED=이미 취소됨(둘 다 성공으로 간주)
+    if http_code == 200 or body.get('code') == 'ALREADY_CANCELED_PAYMENT':
+        return True, ''
+    return False, str(body.get('message', '환불 실패')).replace('"', "'")
 
 
 def login_view(request):
@@ -2225,6 +2239,11 @@ def student_detail(request, no_seq):
         action = request.POST.get('action', '')
 
         if action == 'update':
+            # 결제완료(PY) 건을 취소(중도취소 LN / 결제취소 PZ)로 바꾸면 Toss 실제 환불 먼저 (실패 시 중단)
+            if enrollment.pay_stats == 'PY' and (request.POST.get('lecture_stats') == 'LN' or request.POST.get('pay_stats') == 'PZ'):
+                _ok, _msg = _refund_enrollment_toss(enrollment)
+                if not _ok:
+                    return HttpResponse('<script>alert("Toss 환불 실패: ' + _msg + '\\n취소를 중단합니다. 확인 후 다시 시도하세요.");history.back();</script>')
             with transaction.atomic():
                 new_lecture_stats = request.POST.get('lecture_stats', enrollment.lecture_stats)
                 new_pay_stats = request.POST.get('pay_stats', enrollment.pay_stats)
@@ -2583,6 +2602,11 @@ def master_detail(request, no_seq):
     office_user = request.session.get('office_user', {})
 
     if request.method == 'POST':
+        # 결제완료(PY) 건을 취소(중도취소 LN / 결제취소 PZ)로 바꾸면 Toss 실제 환불 먼저 (실패 시 중단)
+        if enrollment.pay_stats == 'PY' and (request.POST.get('lecture_stats') == 'LN' or request.POST.get('pay_stats') == 'PZ'):
+            _ok, _msg = _refund_enrollment_toss(enrollment)
+            if not _ok:
+                return HttpResponse('<script>alert("Toss 환불 실패: ' + _msg + '\\n취소를 중단합니다. 확인 후 다시 시도하세요.");history.back();</script>')
         with transaction.atomic():
             new_lecture_stats = request.POST.get('lecture_stats', enrollment.lecture_stats)
             new_pay_stats = request.POST.get('pay_stats', enrollment.pay_stats)
