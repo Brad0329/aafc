@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>본인인증 완료</title></head>
+<body>
+본인인증이 완료되었습니다. 창이 자동으로 닫힙니다.
+<script>
+(function () {
+    var action = "{{ action|default:'join' }}";
+    var o = window.opener;
+    try {
+        if (o) {
+            if (action === 'join' && typeof o.niceDone === 'function') {
+                o.niceDone("{{ name|escapejs }}", "{{ phone|escapejs }}");
+            } else if (action === 'findid' && typeof o.niceFindId === 'function') {
+                o.niceFindId("{{ found_id|escapejs }}", "{{ error|escapejs }}");
+            } else if (action === 'findpw' && typeof o.niceFindPw === 'function') {
+                o.niceFindPw("{{ temp_pw|escapejs }}", "{{ error|escapejs }}");
+            }
+        }
+    } catch (e) {}
+    try { window.close(); } catch (e) {}
+})();
+</script>
+</body>
+</html>

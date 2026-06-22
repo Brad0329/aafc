@@ -1,0 +1,11 @@
+{# 회원 영역 공통 서브메뉴 — active: login/register/id_search/pw_search/privacy/terms #}
+<div class="sub_menu">
+    <ul>
+        <li{% if active == "login" %} class="present"{% endif %}><a href="{% url 'accounts:login' %}">로그인</a></li>
+        <li{% if active == "register" %} class="present"{% endif %}><a href="{% url 'accounts:register' %}">회원가입</a></li>
+        <li{% if active == "id_search" %} class="present"{% endif %}><a href="{% url 'accounts:id_search' %}">아이디 찾기</a></li>
+        <li{% if active == "pw_search" %} class="present"{% endif %}><a href="{% url 'accounts:pw_search' %}">비밀번호 찾기</a></li>
+        <li{% if active == "privacy" %} class="present"{% endif %}><a href="{% url 'accounts:privacy' %}">개인정보처리방침</a></li>
+        <li{% if active == "terms" %} class="present"{% endif %}><a href="{% url 'accounts:terms' %}">이용약관</a></li>
+    </ul>
+</div>

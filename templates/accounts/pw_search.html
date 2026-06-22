@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}비밀번호 찾기 - AAFC{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        {% include "accounts/includes/member_menu.html" with active="pw_search" %}
+        <div class="sub_contents">
+            <h2 class="sub_tit">비밀번호 찾기<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;회원&nbsp;&nbsp;>&nbsp;&nbsp;<b>비밀번호 찾기</b></span></h2>
+            <div class="member_search">
+                <h3><img src="{% static 'images/sub/pw_search_ico.png' %}" alt=""/></h3>
+                <p><b>본인인증</b>을 통해 <b>비밀번호 찾기</b>를 진행합니다.<br/>아이디 입력 후 아래 인증하기를 눌러<br/><b>비밀번호 찾기</b>를 진행하여 주세요.</p>
+                <div><input type="text" name="intid" id="intid" placeholder="아이디 입력"/></div>
+                <div><a href="javascript:snd_mobile();"><img src="{% static 'images/sub/citation_btn.png' %}" alt="본인인증"/></a></div>
+                <div id="findpw_div" style="display:none;"><p>임시비밀번호 <span id="findpw"></span> 가 발급되었습니다.<br/>로그인 후 <b>안전한 개인정보보호</b>를 위하여<br/><b>비밀번호</b>를 변경하여 주세요</p></div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function snd_mobile() {
+        var uid = document.getElementById('intid').value;
+        if (!uid) { alert('아이디를 입력하세요'); document.getElementById('intid').focus(); return; }
+        window.open("{% url 'accounts:nice_start' %}?purpose=findpw&userid=" + encodeURIComponent(uid), "nicePop",
+            "width=480,height=750,scrollbars=yes,resizable=yes");
+    }
+    // NICE 본인인증 콜백 → 임시비밀번호 표시
+    function niceFindPw(tempPw, error) {
+        if (error) { alert(error); return; }
+        document.getElementById('findpw').innerText = tempPw;
+        document.getElementById('findpw_div').style.display = '';
+    }
+</script>
+{% endblock %}

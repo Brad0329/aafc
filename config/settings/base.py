@@ -146,3 +146,14 @@ CKEDITOR_5_CONFIGS = {
 TOSS_CLIENT_KEY = config('TOSS_CLIENT_KEY', default='test_ck_PLACEHOLDER')
 TOSS_SECRET_KEY = config('TOSS_SECRET_KEY', default='test_sk_PLACEHOLDER')
 TOSS_CONFIRM_URL = 'https://api.tosspayments.com/v1/payments/confirm'
+
+# ── NICE 통합인증 (회원가입 휴대폰 본인확인) ──
+# NICE API 이용자포털(My App List)에서 발급한 client_id / client_secret.
+# 값은 .env 에 설정 (채팅/git 노출 금지). 비어 있으면 본인인증 호출이 실패한다.
+#   NICE_CLIENT_ID / NICE_CLIENT_SECRET : 인증키
+#   NICE_RETURN_URL : 인증 결과 콜백. NICE 포털에 등록한 return_url 과 반드시 일치.
+#   NICE_API_BASE   : 통합인증 API base URL (기본: 운영 도메인)
+NICE_CLIENT_ID = config('NICE_CLIENT_ID', default='')
+NICE_CLIENT_SECRET = config('NICE_CLIENT_SECRET', default='')
+NICE_RETURN_URL = config('NICE_RETURN_URL', default='http://localhost:8000/accounts/nice/callback/')
+NICE_API_BASE = config('NICE_API_BASE', default='https://auth.niceid.co.kr/ido/intc/v1.0')

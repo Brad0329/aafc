@@ -10,16 +10,7 @@
 {% block content %}
     <div id="sub_contents">
         <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
-        <div class="sub_menu">
-            <ul>
-                <li><a href="{% url 'accounts:login' %}">로그인</a></li>
-                <li class="present"><a href="{% url 'accounts:register' %}">회원가입</a></li>
-                <li><a href="#">아이디 찾기</a></li>
-                <li><a href="#">비밀번호 찾기</a></li>
-                <li><a href="#">개인정보처리방침</a></li>
-                <li><a href="#">이용약관</a></li>
-            </ul>
-        </div>
+        {% include "accounts/includes/member_menu.html" with active="register" %}
         <div class="sub_contents">
             <h2 class="sub_tit">회원가입<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;회원&nbsp;&nbsp;>&nbsp;&nbsp;<b>회원가입</b></span></h2>
 
@@ -39,11 +30,24 @@
             <!-- 회원정보 입력 (ASP join_02.asp) -->
             <form name="regform" method="post" id="register_form">
                 {% csrf_token %}
+                <input type="hidden" name="nice_verified" id="nice_verified" value="{% if nice_auth.verified %}1{% else %}0{% endif %}"/>
                 {% if form.non_field_errors %}
                 <p style="color:red;">
                     {% for error in form.non_field_errors %}{{ error }}<br/>{% endfor %}
                 </p>
                 {% endif %}
+
+                <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_06.png' %}" alt=""/>휴대폰 본인인증</h3>
+                <div class="citation">
+                    <p><strong>주니어 아카데미</strong>는 주민등록번호를 수집하지 않습니다. <strong>휴대폰 본인인증</strong>으로 회원가입을 진행합니다.</p>
+                    <div id="nice_btn_area" style="margin-top:10px;">
+                    {% if nice_auth.verified %}
+                        <span style="color:#2a8;font-weight:bold;">✓ 본인인증 완료 ({{ nice_auth.name }})</span>
+                    {% else %}
+                        <a href="javascript:nicePopup();" style="display:inline-block;padding:10px 24px;background:#d3a243;color:#fff;font-weight:bold;text-decoration:none;border-radius:3px;">휴대폰 본인인증</a>
+                    {% endif %}
+                    </div>
+                </div>
 
                 <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_06.png' %}" alt=""/>회원정보 입력</h3>
                 <div class="join_info">
@@ -52,7 +56,7 @@
                             <tr>
                                 <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>이름</th>
                                 <td>
-                                    <input type="text" name="name" id="id_name" maxlength="30" value="{{ form.name.value|default:'' }}" class="w_normal"/>
+                                    <input type="text" name="name" id="id_name" maxlength="30" value="{{ nice_auth.name|default:form.name.value|default:'' }}" class="w_normal" readonly/>
                                     {% for error in form.name.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
                                 </td>
                             </tr>
@@ -83,7 +87,7 @@
                             <tr class="contact">
                                 <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>휴대폰</th>
                                 <td>
-                                    <input type="text" name="phone" id="id_phone" maxlength="14" value="{{ form.phone.value|default:'' }}" placeholder="010-0000-0000"/>
+                                    <input type="text" name="phone" id="id_phone" maxlength="14" value="{{ nice_auth.phone|default:form.phone.value|default:'' }}" placeholder="휴대폰 본인인증 시 자동입력" readonly/>
                                     {% for error in form.phone.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
                                 </td>
                             </tr>
@@ -145,6 +149,7 @@
     }
 
     function member_write() {
+        if(document.getElementById('nice_verified').value != '1'){ alert("휴대폰 본인인증을 먼저 진행해주세요."); return; }
         if(!$("#chk_use").is(":checked")){ alert("이용약관에 동의해주세요"); return; }
         if(!$("#chk_pri").is(":checked")){ alert("개인정보 수집 및 이용에 동의해주세요"); return; }
         if(!$("#chk_sutak").is(":checked")){ alert("개인정보 처리 위탁에 동의해주세요"); return; }
@@ -167,6 +172,19 @@
         if(confirm("등록 하시겠습니까?")){
             document.getElementById('register_form').submit();
         }
+    }
+
+    function nicePopup() {
+        window.open("{% url 'accounts:nice_start' %}", "nicePop",
+            "width=480,height=750,scrollbars=yes,resizable=yes");
+    }
+    // NICE 본인인증 팝업 콜백 → 폼 자동입력
+    function niceDone(name, phone) {
+        document.getElementById('id_name').value = name;
+        document.getElementById('id_phone').value = phone;
+        document.getElementById('nice_verified').value = '1';
+        var area = document.getElementById('nice_btn_area');
+        if (area) area.innerHTML = '<span style="color:#2a8;font-weight:bold;">✓ 본인인증 완료 (' + name + ')</span>';
     }
 </script>
 {% endblock %}
