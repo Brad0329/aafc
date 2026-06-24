@@ -17,33 +17,28 @@
             <!-- 약관 본문 (ASP join_01.asp) -->
             <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_01.png' %}" alt=""/>이용약관</h3>
             <div class="policy">{% include "accounts/includes/policy/terms.html" %}</div>
+            <div class="chk_btn"><label><input type="checkbox" id="chk_use" onclick="eachChk();"/>이용약관에 동의합니다.</label></div>
 
             <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_01.png' %}" alt=""/>개인정보 수집 이용안내</h3>
             <div class="policy">{% include "accounts/includes/policy/collect.html" %}</div>
+            <div class="chk_btn"><label><input type="checkbox" id="chk_pri" onclick="eachChk();"/>개인정보 수집 및 이용 안내에 동의합니다.</label></div>
 
             <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_02.png' %}" alt=""/>개인정보 처리 위탁안내</h3>
             <div class="policy">{% include "accounts/includes/policy/entrust.html" %}</div>
+            <div class="chk_btn"><label><input type="checkbox" id="chk_sutak" onclick="eachChk();"/>개인정보 처리 위탁에 동의합니다.</label></div>
 
             <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_03.png' %}" alt=""/>만 14세 미만 아동의 개인정보 수집 및 이용안내</h3>
             <div class="policy">{% include "accounts/includes/policy/child14.html" %}</div>
+            <div class="chk_btn"><label><input type="checkbox" id="chk_14" onclick="eachChk();"/>본인은 위 만 14세미만 아동의 법정대리인으로서 상기와 같이 회사가 해당 아동의 개인정보를 수집 및 이용하는 것에 대하여 동의합니다.</label></div>
 
             <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_04.png' %}" alt=""/>상해보험 관련 안내</h3>
             <div class="policy">{% include "accounts/includes/policy/insurance.html" %}</div>
+            <div class="chk_btn"><label><input type="checkbox" id="chk_insu" onclick="eachChk();"/>상해보험가입안내 내용에 동의합니다.</label></div>
 
             <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_05.png' %}" alt=""/>개인정보 수집•이용 및 SMS(결제, 수업, 구장) 정보 수신 안내</h3>
             <div class="policy">{% include "accounts/includes/policy/marketing.html" %}</div>
+            <div class="chk_btn"><label><input type="checkbox" id="chk_mark" onclick="eachChk();"/>광고성 정보 수신에 동의합니다.</label></div>
 
-            <!-- 약관동의 (ASP join_01.asp) -->
-            <div class="policy_chk">
-                <ul>
-                    <li><label><input type="checkbox" id="chk_use" onclick="eachChk();"/>[필수] 이용약관에 동의합니다.</label></li>
-                    <li><label><input type="checkbox" id="chk_pri" onclick="eachChk();"/>[필수] 개인정보 수집 이용안내.</label></li>
-                    <li><label><input type="checkbox" id="chk_sutak" onclick="eachChk();"/>[필수] 개인정보 처리 위탁안내.</label></li>
-                    <li><label><input type="checkbox" id="chk_14" onclick="eachChk();"/>[필수] 만 14세 미만 아동의 개인정보 수집 및 이용안내.</label></li>
-                    <li><label><input type="checkbox" id="chk_insu" onclick="eachChk();"/>[필수] 상해보험 관련 안내.</label></li>
-                    <li><label><input type="checkbox" id="chk_mark" onclick="eachChk();"/>[필수] 개인정보 수집·이용 및 SMS(결제, 수업, 구장) 정보 수신 안내.</label></li>
-                </ul>
-            </div>
             <div class="chk_btn center"><label><input type="checkbox" id="chk_all_ag" onclick="allChk();"/>전체동의</label></div>
 
             <!-- 회원정보 입력 (ASP join_02.asp) -->
