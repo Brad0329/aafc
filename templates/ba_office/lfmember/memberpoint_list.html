@@ -120,19 +120,19 @@ function fn_search() {
 {% if histories.has_other_pages %}
 <div class="paging">
     {% if histories.has_previous %}
-    <a href="?page=1&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&laquo;</a>
-    <a href="?page={{ histories.previous_page_number }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&lt;</a>
+    <a href="?page=1&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}&sch_txt={{ sch_txt }}">&laquo;</a>
+    <a href="?page={{ histories.previous_page_number }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}&sch_txt={{ sch_txt }}">&lt;</a>
     {% endif %}
     {% for num in histories.paginator.page_range %}
         {% if histories.number == num %}
         <strong>{{ num }}</strong>
         {% elif num > histories.number|add:"-5" and num < histories.number|add:"5" %}
-        <a href="?page={{ num }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">{{ num }}</a>
+        <a href="?page={{ num }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}&sch_txt={{ sch_txt }}">{{ num }}</a>
         {% endif %}
     {% endfor %}
     {% if histories.has_next %}
-    <a href="?page={{ histories.next_page_number }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&gt;</a>
-    <a href="?page={{ histories.paginator.num_pages }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}">&raquo;</a>
+    <a href="?page={{ histories.next_page_number }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}&sch_txt={{ sch_txt }}">&gt;</a>
+    <a href="?page={{ histories.paginator.num_pages }}&sch_startdt={{ sch_startdt }}&sch_enddt={{ sch_enddt }}&sch_app_gbn={{ sch_app_gbn }}&sch_val={{ sch_val }}&sch_desc_gbn={{ sch_desc_gbn }}&sch_txt={{ sch_txt }}">&raquo;</a>
     {% endif %}
 </div>
 {% endif %}

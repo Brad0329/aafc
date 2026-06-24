@@ -1269,6 +1269,9 @@ def memberpoint_list(request):
     sch_enddt = request.GET.get('sch_enddt', '')
     sch_app_gbn = request.GET.get('sch_app_gbn', '')
     sch_val = request.GET.get('sch_val', '').strip()
+    # 검색 필드 선택자(ASP memberpoint_list.asp): member_id(아이디) | member_name(이름).
+    # 회원목록 '포인트' 링크는 member_id 로, 직접검색 폼은 회원명(기본)으로 진입.
+    sch_txt = request.GET.get('sch_txt', '')
     sch_desc_gbn = request.GET.get('sch_desc_gbn', '')
 
     # 검색 조건이 하나라도 있을 때만 조회
@@ -1286,7 +1289,12 @@ def memberpoint_list(request):
         if sch_app_gbn:
             qs = qs.filter(app_gbn=sch_app_gbn)
         if sch_val:
-            qs = qs.filter(member_name__icontains=sch_val)
+            # member_id 는 FK(to_field=username)라 icontains 불가 → 정확 일치
+            # (회원목록 링크가 정확한 로그인ID를 넘기므로 정밀하게 매칭). 그 외엔 회원명 부분일치.
+            if sch_txt == 'member_id':
+                qs = qs.filter(member_id=sch_val)
+            else:
+                qs = qs.filter(member_name__icontains=sch_val)
         if sch_desc_gbn:
             qs = qs.filter(point_desc__icontains=sch_desc_gbn)
 
@@ -1301,6 +1309,7 @@ def memberpoint_list(request):
         'sch_enddt': sch_enddt,
         'sch_app_gbn': sch_app_gbn,
         'sch_val': sch_val,
+        'sch_txt': sch_txt,
         'sch_desc_gbn': sch_desc_gbn,
         'total_count': total_count,
     })
