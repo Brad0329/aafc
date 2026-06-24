@@ -45,7 +45,7 @@ class PointHistory(models.Model):
         related_name='point_histories', verbose_name='회원',
         to_field='username', db_column='member_id',
     )
-    member_name = models.CharField('회원명', max_length=20, blank=True)
+    member_name = models.CharField('회원명', max_length=50, blank=True)
     app_gbn = models.CharField('적립/사용', max_length=2, choices=APP_GBN_CHOICES)
     app_point = models.IntegerField('포인트', default=0)
     point_desc = models.CharField('내용', max_length=200, blank=True)
