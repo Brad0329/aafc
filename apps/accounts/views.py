@@ -1,3 +1,4 @@
+import re
 import secrets
 import string
 from datetime import date
@@ -6,7 +7,7 @@ from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, PasswordChangeView
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
@@ -33,47 +34,98 @@ def _is_under_14(birth_yyyymmdd):
 
 
 def register_view(request):
+    """회원가입 1단계 — 약관 동의 + 휴대폰 본인인증 (ASP join_01.asp).
+    인증 성공 시 콜백이 부모창을 step2로 이동시킨다."""
+    return render(request, 'accounts/register.html')
+
+
+USERID_RE = re.compile(r'^[a-z0-9]{6,16}$')
+
+
+def _id_exists(uid):
+    """아이디 중복 — 회원/자녀/관리자 전체 (ASP join_write_proc 동일)."""
+    from apps.office.models import OfficeUser
+    return (Member.objects.filter(username=uid).exists()
+            or MemberChild.objects.filter(child_id=uid).exists()
+            or OfficeUser.objects.filter(office_id=uid).exists())
+
+
+def ajax_id_check(request):
+    """아이디 중복확인 AJAX (ASP member_idchk_proc.asp)."""
+    uid = request.GET.get('id', '').strip()
+    available = bool(USERID_RE.match(uid)) and not _id_exists(uid)
+    return JsonResponse({'available': available})
+
+
+def register_step2_view(request):
+    """회원가입 2단계 — 정보입력 + 가입 (ASP join_02.asp / join_write_proc.asp)."""
     nice_auth = request.session.get('nice_auth')
+    if not nice_auth or not nice_auth.get('verified'):
+        messages.error(request, '휴대폰 본인인증을 먼저 진행해주세요.')
+        return redirect('accounts:register')
+
     if request.method == 'POST':
-        # 1) 휴대폰 본인인증 필수 (세션의 서버측 인증값 기준)
-        if not nice_auth or not nice_auth.get('verified'):
-            messages.error(request, '휴대폰 본인인증을 먼저 진행해주세요.')
-            return render(request, 'accounts/register.html',
-                          {'form': RegisterForm(request.POST), 'nice_auth': nice_auth})
-        # 2) 만 14세 미만 차단
+        # 만 14세 미만 / DI 중복가입 차단
         if _is_under_14(nice_auth.get('birth', '')):
             request.session.pop('nice_auth', None)
             messages.error(request, '만 14세 미만은 가입할 수 없습니다.')
             return redirect('accounts:register')
-        # 3) DI 중복가입 차단 (정상회원 기준)
         di = nice_auth.get('di', '')
         if di and Member.objects.filter(join_safe_di=di, status='N').exists():
             request.session.pop('nice_auth', None)
             messages.error(request, '이미 가입된 사용자입니다.')
             return redirect('accounts:register')
 
-        form = RegisterForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            # 신원정보는 폼이 아닌 본인인증 세션값으로 확정 (위변조 방지)
-            user.name = nice_auth.get('name') or user.name
-            user.phone = nice_auth.get('phone') or user.phone
-            user.birth = nice_auth.get('birth', '')
-            user.gender = nice_auth.get('gender', '')
-            user.join_safe_di = di
-            user.join_ncsafe = nice_auth.get('ci', '')   # 연계정보(CI) 보관
-            user.join_safegbn = 'M'                       # 휴대폰 본인확인
-            user.sms_consent = 'Y'
-            user.mail_consent = 'N'
-            user.save()
-            request.session.pop('nice_auth', None)
-            login(request, user)
-            messages.success(request, '회원가입이 완료되었습니다.')
-            return redirect('/')
-    else:
-        form = RegisterForm()
-    return render(request, 'accounts/register.html',
-                  {'form': form, 'nice_auth': nice_auth})
+        username = request.POST.get('username', '').strip()
+        pwd1 = request.POST.get('password1', '')
+        pwd2 = request.POST.get('password2', '')
+        phone = '-'.join(p for p in [request.POST.get('mhtel1', ''),
+                                     request.POST.get('mhtel2', '').strip(),
+                                     request.POST.get('mhtel3', '').strip()] if p)
+        mail1 = request.POST.get('member_mail1', '').strip()
+        mail2 = request.POST.get('member_mail2', '').strip()
+        email = f'{mail1}@{mail2}' if mail1 and mail2 else ''
+        zipcode = request.POST.get('zipcode', '').strip()
+        address1 = request.POST.get('address1', '').strip()
+        address2 = request.POST.get('address2', '').strip()
+        ctx = {'nice_auth': nice_auth, 'post': request.POST}
+
+        if not USERID_RE.match(username):
+            messages.error(request, '아이디는 영문 소문자·숫자 6~16자로 입력하세요.')
+            return render(request, 'accounts/register_step2.html', ctx)
+        if _id_exists(username):
+            messages.error(request, f'{username} 은(는) 이미 사용중인 아이디입니다.')
+            return render(request, 'accounts/register_step2.html', ctx)
+        if not pwd1 or pwd1 != pwd2:
+            messages.error(request, '비밀번호를 확인하여 주세요.')
+            return render(request, 'accounts/register_step2.html', ctx)
+        if not re.match(r'^(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]{8,}$', pwd1):
+            messages.error(request, '비밀번호는 영문·숫자 조합 8자 이상이어야 합니다.')
+            return render(request, 'accounts/register_step2.html', ctx)
+        if username == pwd1:
+            messages.error(request, '아이디와 비밀번호를 같게 사용할 수 없습니다.')
+            return render(request, 'accounts/register_step2.html', ctx)
+        if not phone or not email or not (zipcode and address1 and address2):
+            messages.error(request, '필수정보가 부족합니다.')
+            return render(request, 'accounts/register_step2.html', ctx)
+
+        # 가입 (신원정보는 본인인증 세션값으로 확정 — 위변조 방지)
+        user = Member(
+            username=username, name=nice_auth.get('name', ''),
+            phone=phone, email=email, zipcode=zipcode,
+            address1=address1, address2=address2,
+            birth=nice_auth.get('birth', ''), gender=nice_auth.get('gender', ''),
+            join_safe_di=di, join_ncsafe=nice_auth.get('ci', ''),
+            join_safegbn='M', sms_consent='Y', mail_consent='N', status='N',
+        )
+        user.set_password(pwd1)
+        user.save()
+        request.session.pop('nice_auth', None)
+        login(request, user)
+        messages.success(request, '회원가입이 완료되었습니다.')
+        return redirect('/')
+
+    return render(request, 'accounts/register_step2.html', {'nice_auth': nice_auth})
 
 
 # ── NICE 통합인증 (회원가입 휴대폰 본인확인) ──
@@ -165,11 +217,7 @@ def nice_callback(request):
         'phone': phone,
         'verified': True,
     }
-    return render(request, 'accounts/nice_callback.html', {
-        'action': 'join',
-        'name': request.session['nice_auth']['name'],
-        'phone': phone,
-    })
+    return render(request, 'accounts/nice_callback.html', {'action': 'join_step2'})
 
 
 def _nice_fail(msg):

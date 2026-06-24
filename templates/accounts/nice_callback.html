@@ -9,8 +9,8 @@
     var o = window.opener;
     try {
         if (o) {
-            if (action === 'join' && typeof o.niceDone === 'function') {
-                o.niceDone("{{ name|escapejs }}", "{{ phone|escapejs }}");
+            if (action === 'join_step2') {
+                o.location.href = "/accounts/register/step2/";
             } else if (action === 'findid' && typeof o.niceFindId === 'function') {
                 o.niceFindId("{{ found_id|escapejs }}", "{{ error|escapejs }}");
             } else if (action === 'findpw' && typeof o.niceFindPw === 'function') {

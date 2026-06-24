@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}회원가입 - AAFC{% endblock %}
+
+{% block extra_css %}
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+{% endblock %}
+
+{% block content %}
+    <div id="sub_contents">
+        <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+        {% include "accounts/includes/member_menu.html" with active="register" %}
+        <div class="sub_contents">
+            <h2 class="sub_tit">회원가입<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;회원&nbsp;&nbsp;>&nbsp;&nbsp;<b>회원가입</b></span></h2>
+            {% if messages %}
+            <div style="margin:10px 0;">{% for m in messages %}<p style="color:red;">{{ m }}</p>{% endfor %}</div>
+            {% endif %}
+            <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_06.png' %}" alt=""/>회원정보 입력</h3>
+
+            <form name="regform" method="post" id="register_form" action="{% url 'accounts:register_step2' %}">
+                {% csrf_token %}
+                <input type="hidden" name="id_dup_chk" id="id_dup_chk" value="F"/>
+                <div class="join_info">
+                    <table summary="">
+                        <tbody>
+                            <tr>
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>회원명</th>
+                                <td><input type="text" id="member_name" maxlength="30" value="{{ nice_auth.name }}" class="w_normal" readonly/></td>
+                            </tr>
+                            <tr>
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>아이디</th>
+                                <td>
+                                    <input type="text" name="username" id="member_id" maxlength="16" value="{{ post.username|default:'' }}" class="w_normal"/><a href="javascript:userID_check();"><img src="{% static 'images/sub/overlap_btn.png' %}" alt="중복확인"/></a>
+                                    <span class="necessary">영문 소문자/숫자를 6~16자 이내로 공백없이 입력하십시오.</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>비밀번호</th>
+                                <td>
+                                    <input type="password" name="password1" id="member_pwd" maxlength="16" class="w_normal"/>
+                                    <span class="necessary red">영문/숫자를 8~16자 이내로 공백없이 입력하십시오.</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>비밀번호 확인</th>
+                                <td>
+                                    <input type="password" name="password2" id="member_pwd_con" maxlength="16" class="w_normal"/>
+                                    <span class="necessary">비밀번호를 다시 한번 입력해주세요.</span>
+                                </td>
+                            </tr>
+                            <tr class="contact">
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>휴대폰</th>
+                                <td>
+                                    <select name="mhtel1" id="mhtel1">
+                                        <option value="">선택</option>
+                                        <option value="010">010</option>
+                                        <option value="011">011</option>
+                                        <option value="016">016</option>
+                                        <option value="017">017</option>
+                                        <option value="018">018</option>
+                                        <option value="019">019</option>
+                                    </select><span>-</span><input type="text" name="mhtel2" id="mhtel2" maxlength="4"/><span>-</span><input type="text" name="mhtel3" id="mhtel3" maxlength="4"/>
+                                </td>
+                            </tr>
+                            <tr class="email">
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>이메일</th>
+                                <td><input type="text" name="member_mail1" id="member_mail1" maxlength="30"/><span>@</span><input type="text" name="member_mail2" id="member_mail2" maxlength="30"/></td>
+                            </tr>
+                            <tr class="none">
+                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주소</th>
+                                <td><input type="text" name="zipcode" id="zipcode" class="w_normal" readonly/><a href="javascript:fn_zipcode();"><img src="{% static 'images/sub/address_btn.png' %}" alt="주소검색"/></a></td>
+                            </tr>
+                            <tr class="none">
+                                <th>&nbsp;</th>
+                                <td><input type="text" name="address1" id="address1" maxlength="100" readonly class="w_max"/></td>
+                            </tr>
+                            <tr>
+                                <th>&nbsp;</th>
+                                <td><input type="text" name="address2" id="address2" maxlength="100" class="w_max"/></td>
+                            </tr>
+                            <tr>
+                                <th colspan="2">회원가입 후 마이아카데미에서 자녀정보를 등록하여 주세요</th>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+            <div class="join_btn">
+                <a href="/"><img src="{% static 'images/sub/join_cancel_bts.png' %}" alt="취소"/></a><a href="javascript:member_write();"><img src="{% static 'images/sub/join_bts.png' %}" alt="가입"/></a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function fn_zipcode(){
+        new daum.Postcode({
+            oncomplete: function(data) {
+                document.getElementById('zipcode').value = data.zonecode;
+                document.getElementById('address1').value = data.address;
+                document.getElementById('address2').focus();
+            }
+        }).open();
+    }
+
+    // 아이디 중복확인 (ASP member_idchk_proc.asp)
+    function userID_check(){
+        var uid = $("#member_id").val();
+        if(uid.length < 6){ alert("아이디는 6자 이상 입력하세요"); $("#member_id").focus(); return; }
+        if(!/^[a-z0-9]{6,16}$/.test(uid)){ alert("아이디는 영문 소문자·숫자만 가능합니다"); $("#member_id").focus(); return; }
+        $.getJSON("{% url 'accounts:ajax_id_check' %}", {id: uid}, function(d){
+            if(d.available){
+                if(confirm("사용 가능한 아이디입니다. 사용하시겠습니까?")){ $("#id_dup_chk").val("T"); }
+                else { $("#member_id").val(""); $("#id_dup_chk").val("F"); }
+            } else {
+                alert("중복되었거나 사용할 수 없는 아이디입니다.");
+                $("#member_id").focus(); $("#id_dup_chk").val("F");
+            }
+        });
+    }
+
+    function member_write(){
+        if($("#id_dup_chk").val() != "T"){ alert("아이디 중복확인을 해주세요"); $("#member_id").focus(); return; }
+        if($("#member_pwd").val() == ""){ alert("비밀번호를 입력하세요"); $("#member_pwd").focus(); return; }
+        if($("#member_pwd_con").val() == ""){ alert("비밀번호 확인을 입력하세요"); $("#member_pwd_con").focus(); return; }
+        if($("#member_pwd").val() != $("#member_pwd_con").val()){ alert("비밀번호를 확인하여 주세요"); $("#member_pwd_con").val(""); $("#member_pwd_con").focus(); return; }
+        if(!/^(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]{8,}$/.test($("#member_pwd").val())){ alert("비밀번호는 숫자와 영문자 조합으로 8자리 이상을 사용해야 합니다."); return; }
+        if($("#member_id").val() == $("#member_pwd").val()){ alert("아이디와 비밀번호를 같게 사용할 수 없습니다."); return; }
+        if($("#mhtel1").val()=="" || $("#mhtel2").val()=="" || $("#mhtel3").val()==""){ alert("휴대폰을 입력하세요"); return; }
+        if($("#member_mail1").val()=="" || $("#member_mail2").val()==""){ alert("이메일을 입력하여 주세요"); return; }
+        if($("#zipcode").val()=="" || $("#address1").val()==""){ alert("주소를 입력하여 주세요"); return; }
+        if($("#address2").val()==""){ alert("상세주소를 입력하여 주세요"); $("#address2").focus(); return; }
+        if(confirm("등록 하시겠습니까?")){ document.getElementById('register_form').submit(); }
+    }
+</script>
+{% endblock %}

@@ -3,18 +3,17 @@
 
 {% block title %}회원가입 - AAFC{% endblock %}
 
-{% block extra_css %}
-<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
-{% endblock %}
-
 {% block content %}
     <div id="sub_contents">
         <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
         {% include "accounts/includes/member_menu.html" with active="register" %}
         <div class="sub_contents">
             <h2 class="sub_tit">회원가입<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;회원&nbsp;&nbsp;>&nbsp;&nbsp;<b>회원가입</b></span></h2>
+            {% if messages %}
+            <div style="margin:10px 0;">{% for m in messages %}<p style="color:red;">{{ m }}</p>{% endfor %}</div>
+            {% endif %}
 
-            <!-- 약관 본문 (ASP join_01.asp) -->
+            <!-- 약관 본문 + 동의 (ASP join_01.asp) -->
             <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_01.png' %}" alt=""/>이용약관</h3>
             <div class="policy">{% include "accounts/includes/policy/terms.html" %}</div>
             <div class="chk_btn"><label><input type="checkbox" id="chk_use" onclick="eachChk();"/>이용약관에 동의합니다.</label></div>
@@ -41,98 +40,11 @@
 
             <div class="chk_btn center"><label><input type="checkbox" id="chk_all_ag" onclick="allChk();"/>전체동의</label></div>
 
-            <!-- 회원정보 입력 (ASP join_02.asp) -->
-            <form name="regform" method="post" id="register_form">
-                {% csrf_token %}
-                <input type="hidden" name="nice_verified" id="nice_verified" value="{% if nice_auth.verified %}1{% else %}0{% endif %}"/>
-                {% if form.non_field_errors %}
-                <p style="color:red;">
-                    {% for error in form.non_field_errors %}{{ error }}<br/>{% endfor %}
-                </p>
-                {% endif %}
-
-                <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_06.png' %}" alt=""/>휴대폰 본인인증</h3>
-                <div class="citation">
-                    <p><strong>주니어 아카데미</strong>는 주민등록번호를 수집하지 않습니다. <strong>휴대폰 본인인증</strong>으로 회원가입을 진행합니다.</p>
-                    <div id="nice_btn_area" style="margin-top:10px;">
-                    {% if nice_auth.verified %}
-                        <span style="color:#2a8;font-weight:bold;">✓ 본인인증 완료 ({{ nice_auth.name }})</span>
-                    {% else %}
-                        <a href="javascript:nicePopup();" style="display:inline-block;padding:10px 24px;background:#d3a243;color:#fff;font-weight:bold;text-decoration:none;border-radius:3px;">휴대폰 본인인증</a>
-                    {% endif %}
-                    </div>
-                </div>
-
-                <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_06.png' %}" alt=""/>회원정보 입력</h3>
-                <div class="join_info">
-                    <table summary="">
-                        <tbody>
-                            <tr>
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>이름</th>
-                                <td>
-                                    <input type="text" name="name" id="id_name" maxlength="30" value="{{ nice_auth.name|default:form.name.value|default:'' }}" class="w_normal" readonly/>
-                                    {% for error in form.name.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>아이디</th>
-                                <td>
-                                    <input type="text" name="username" id="id_username" maxlength="16" value="{{ form.username.value|default:'' }}" class="w_normal"/>
-                                    <span class="necessary">영문/숫자를 6~12자 이내로 공백없이 입력하십시오.</span>
-                                    {% for error in form.username.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>비밀번호</th>
-                                <td>
-                                    <input type="password" name="password1" id="id_password1" maxlength="16" class="w_normal"/>
-                                    <span class="necessary red">영문/숫자를 8~16자 이내로 공백없이 입력하십시오.</span>
-                                    {% for error in form.password1.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>비밀번호 확인</th>
-                                <td>
-                                    <input type="password" name="password2" id="id_password2" maxlength="16" class="w_normal"/>
-                                    <span class="necessary">비밀번호를 다시 한번 입력해주세요.</span>
-                                    {% for error in form.password2.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
-                                </td>
-                            </tr>
-                            <tr class="contact">
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>휴대폰</th>
-                                <td>
-                                    <input type="text" name="phone" id="id_phone" maxlength="14" value="{{ nice_auth.phone|default:form.phone.value|default:'' }}" placeholder="휴대폰 본인인증 시 자동입력" readonly/>
-                                    {% for error in form.phone.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
-                                </td>
-                            </tr>
-                            <tr class="email">
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>이메일</th>
-                                <td>
-                                    <input type="text" name="email" id="id_email" maxlength="200" value="{{ form.email.value|default:'' }}"/>
-                                    {% for error in form.email.errors %}<div style="color:red;">{{ error }}</div>{% endfor %}
-                                </td>
-                            </tr>
-                            <tr class="none">
-                                <th><img src="{% static 'images/sub/join_info_ico.png' %}" alt=""/>주소</th>
-                                <td><input type="text" name="zipcode" id="id_zipcode" maxlength="7" value="{{ form.zipcode.value|default:'' }}" readonly class="w_normal"/><a href="javascript:fn_zipcode();"><img src="{% static 'images/sub/address_btn.png' %}" alt="주소검색"/></a></td>
-                            </tr>
-                            <tr class="none">
-                                <th>&nbsp;</th>
-                                <td><input type="text" name="address1" id="id_address1" maxlength="100" value="{{ form.address1.value|default:'' }}" readonly class="w_max"/></td>
-                            </tr>
-                            <tr>
-                                <th>&nbsp;</th>
-                                <td><input type="text" name="address2" id="id_address2" maxlength="100" value="{{ form.address2.value|default:'' }}" class="w_max"/></td>
-                            </tr>
-                            <tr>
-                                <th colspan="2">회원가입 후 마이아카데미에서 자녀정보를 등록하여 주세요</th>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </form>
-            <div class="join_btn">
-                <a href="/"><img src="{% static 'images/sub/join_cancel_bts.png' %}" alt="취소"/></a><a href="javascript:member_write();"><img src="{% static 'images/sub/join_bts.png' %}" alt="가입"/></a>
+            <!-- 휴대폰 본인인증 (ASP join_01 → 인증 성공 시 정보입력 단계로 이동) -->
+            <div class="citation">
+                <div><img src="{% static 'images/sub/citation_ico.png' %}" alt=""/></div>
+                <p><strong>주니어 아카데미</strong>는 회원님의 <strong>주민등록번호</strong>를 수집하지 않습니다.<br/>약관 동의 후 <strong>휴대폰 본인인증</strong>을 통하여 회원가입을 진행하실 수 있습니다.</p>
+                <div style="margin-top:10px;"><a href="javascript:goAuth();"><img src="{% static 'images/sub/citation_btn.png' %}" alt="휴대폰 본인인증"/></a></div>
             </div>
         </div>
     </div>
@@ -140,65 +52,26 @@
 
 {% block extra_js %}
 <script>
-    function fn_zipcode(){
-        new daum.Postcode({
-            oncomplete: function(data) {
-                document.getElementById('id_zipcode').value = data.zonecode;
-                document.getElementById('id_address1').value = data.address;
-                document.getElementById('id_address2').focus();
-            }
-        }).open();
-    }
-
     function allChk() {
         var checked = $("#chk_all_ag").is(":checked");
         $("#chk_use, #chk_pri, #chk_sutak, #chk_14, #chk_insu, #chk_mark").prop("checked", checked);
     }
-
     function eachChk() {
         var all = $("#chk_use").is(":checked") && $("#chk_pri").is(":checked") &&
                   $("#chk_sutak").is(":checked") && $("#chk_14").is(":checked") &&
                   $("#chk_insu").is(":checked") && $("#chk_mark").is(":checked");
         $("#chk_all_ag").prop("checked", all);
     }
-
-    function member_write() {
-        if(document.getElementById('nice_verified').value != '1'){ alert("휴대폰 본인인증을 먼저 진행해주세요."); return; }
+    // 약관 동의 검증 후 휴대폰 본인인증 팝업 → 성공 시 콜백이 step2로 이동
+    function goAuth() {
         if(!$("#chk_use").is(":checked")){ alert("이용약관에 동의해주세요"); return; }
         if(!$("#chk_pri").is(":checked")){ alert("개인정보 수집 및 이용에 동의해주세요"); return; }
         if(!$("#chk_sutak").is(":checked")){ alert("개인정보 처리 위탁에 동의해주세요"); return; }
         if(!$("#chk_14").is(":checked")){ alert("만 14세 미만 아동의 개인정보 수집 및 이용안내에 동의해주세요"); return; }
         if(!$("#chk_insu").is(":checked")){ alert("상해보험 가입안내에 동의해주세요"); return; }
         if(!$("#chk_mark").is(":checked")){ alert("개인정보 수집·이용 및 SMS 정보 수신 안내에 동의해주세요"); return; }
-
-        if($("#id_name").val() == ""){ alert("이름을 입력하세요"); $("#id_name").focus(); return; }
-        if($("#id_username").val() == ""){ alert("아이디를 입력하세요"); $("#id_username").focus(); return; }
-        if($("#id_username").val().length < 6){ alert("아이디는 6자이상 입력하세요"); $("#id_username").focus(); return; }
-        if($("#id_password1").val() == ""){ alert("비밀번호를 입력하세요"); $("#id_password1").focus(); return; }
-        if($("#id_password2").val() == ""){ alert("비밀번호 확인을 입력하세요"); $("#id_password2").focus(); return; }
-        if($("#id_password1").val() != $("#id_password2").val()){ alert("비밀번호를 확인하여 주세요"); $("#id_password2").val(""); $("#id_password2").focus(); return; }
-
-        var password = $("#id_password1").val();
-        if(!/^[a-zA-Z0-9]{8,}$/.test(password)){ alert('비밀번호는 숫자와 영문자 조합으로 8자리 이상을 사용해야 합니다.'); return; }
-
-        if($("#id_phone").val() == ""){ alert("휴대폰을 입력하세요"); $("#id_phone").focus(); return; }
-
-        if(confirm("등록 하시겠습니까?")){
-            document.getElementById('register_form').submit();
-        }
-    }
-
-    function nicePopup() {
-        window.open("{% url 'accounts:nice_start' %}", "nicePop",
+        window.open("{% url 'accounts:nice_start' %}?purpose=join", "nicePop",
             "width=480,height=750,scrollbars=yes,resizable=yes");
-    }
-    // NICE 본인인증 팝업 콜백 → 폼 자동입력
-    function niceDone(name, phone) {
-        document.getElementById('id_name').value = name;
-        document.getElementById('id_phone').value = phone;
-        document.getElementById('nice_verified').value = '1';
-        var area = document.getElementById('nice_btn_area');
-        if (area) area.innerHTML = '<span style="color:#2a8;font-weight:bold;">✓ 본인인증 완료 (' + name + ')</span>';
     }
 </script>
 {% endblock %}
