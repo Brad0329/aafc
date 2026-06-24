@@ -32,6 +32,20 @@ def safe_str(val):
     return str(val).strip()
 
 
+def asp_decode(s):
+    """ASP 출력측 디코드 재현: text2Tag(decQuote()).
+    원본은 저장 시 ReplaceTagText로 escape(&<>'등) → 출력 시 디코드.
+    Django는 |safe로 그냥 출력하므로 저장 시점에 디코드해 정상 HTML로 보관."""
+    if not s:
+        return s
+    # decQuote
+    s = s.replace('&#39;', "'").replace('&quot;', '"')
+    # text2Tag (순서 중요: gt → lt → amp → nbsp)
+    s = s.replace('&gt;', '>').replace('&lt;', '<').replace('&amp;', '&')
+    s = s.replace('&nbsp;', ' ')
+    return s
+
+
 def checkint(val):
     if val is None:
         return 0
@@ -80,8 +94,8 @@ def migrate_board():
             b_step=checkint(row[3]),
             b_gbn=safe_str(row[4]),
             b_notice_yn=safe_str(row[5]) or 'N',
-            b_title=safe_str(row[6]),
-            b_content=safe_str(row[7]),
+            b_title=asp_decode(safe_str(row[6])),
+            b_content=asp_decode(safe_str(row[7])),
             b_hit=checkint(row[8]),
             b_commend=checkint(row[9]),
             insert_name=safe_str(row[10]),
