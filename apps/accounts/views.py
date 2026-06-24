@@ -3,13 +3,14 @@ import secrets
 import string
 from datetime import date
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
 
 from . import nice
@@ -135,7 +136,11 @@ def nice_start(request):
     token = nice.get_access_token()
     if not token:
         return _nice_fail('본인인증 설정 오류입니다. 관리자에게 문의하세요.')
-    info = nice.request_auth_url(token['access_token'])
+    # 콜백(return_url)은 접속한 호스트 기준으로 동적 생성 → 로컬/EC2/도메인 자동 대응.
+    # settings.NICE_RETURN_URL 이 명시돼 있으면 그 값을 우선(고정 URL 강제 필요 시).
+    return_url = settings.NICE_RETURN_URL or request.build_absolute_uri(
+        reverse('accounts:nice_callback'))
+    info = nice.request_auth_url(token['access_token'], return_url=return_url)
     if not info:
         return _nice_fail('본인인증 요청에 실패했습니다. 잠시 후 다시 시도하세요.')
     # 콜백 복호화에 필요한 값 세션 보관 (트랜잭션 10분 유효)
