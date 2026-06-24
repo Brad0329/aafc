@@ -30,7 +30,7 @@ EC2 (Ubuntu 22.04, t3.micro)
 | S3 | aafc-bucket | 미디어 파일 (media/ 동기화) |
 | 보안 그룹 | launch-wizard-1 | EC2용 (SSH:내IP, HTTP:80, HTTPS:443) |
 
-- EC2 퍼블릭 IP: `43.201.113.91`
+- EC2 퍼블릭 IP: `3.34.153.141` (Elastic IP 고정, 2026-06-05)
 - RDS 엔드포인트: `aafc-db.cdaqmq8yqnjw.ap-northeast-2.rds.amazonaws.com`
 - S3 URL: `https://aafc-bucket.s3.ap-northeast-2.amazonaws.com/`
 - PEM 키: `C:\Users\user\Downloads\aafc-key.pem`
@@ -42,8 +42,8 @@ EC2 (Ubuntu 22.04, t3.micro)
 | 항목 | URL |
 |------|-----|
 | AWS 콘솔 | https://console.aws.amazon.com (pesseq@gmail.com) |
-| 메인 사이트 | http://43.201.113.91 |
-| 관리자 페이지 | http://43.201.113.91/ba_office/ |
+| 메인 사이트 | http://3.34.153.141 |
+| 관리자 페이지 | http://3.34.153.141/ba_office/ |
 | 관리자 계정 | junior2019 / test1234 |
 
 ---
@@ -52,7 +52,7 @@ EC2 (Ubuntu 22.04, t3.micro)
 
 ```powershell
 # 로컬 PowerShell
-ssh -i "C:\Users\user\Downloads\aafc-key.pem" ubuntu@43.201.113.91
+ssh -i "C:\Users\user\Downloads\aafc-key.pem" ubuntu@3.34.153.141
 ```
 
 > SSH 접속 안 될 경우: EC2 보안 그룹 → launch-wizard-1 → 인바운드 규칙 → SSH 22번 소스를 "내 IP"로 변경
@@ -228,7 +228,7 @@ python manage.py createsuperuser  # admin / admin1234
 & "C:\Program Files\PostgreSQL\16\bin\pg_dump.exe" -U postgres -d aafc_dev -F c -f C:\Users\user\Downloads\aafc_dump_YYYYMMDD.dump
 
 # 2. EC2로 전송
-scp -i "C:\Users\user\Downloads\aafc-key.pem" "C:\Users\user\Downloads\aafc_dump_YYYYMMDD.dump" ubuntu@43.201.113.91:/srv/aafc/aafc_dump.dump
+scp -i "C:\Users\user\Downloads\aafc-key.pem" "C:\Users\user\Downloads\aafc_dump_YYYYMMDD.dump" ubuntu@3.34.153.141:/srv/aafc/aafc_dump.dump
 ```
 
 ```bash
@@ -263,6 +263,9 @@ ORDER BY count DESC;
 | dump 파일명 | 날짜 포함 권장 (`aafc_dump_20260416.dump`) - 이전 파일과 혼동 방지 |
 | 소요 시간 | 전체 약 30~40분 (enrollment/notifications/reports가 대부분) |
 | migrate_reports.py | DailyTotalData 등 4개 모델 제거됨 - Attendance/ChangeHistory/MonthlyData만 이관 |
+| migrate_points.py | PointHistory.member_name에 30자 외국인 이름 존재 → 모델 varchar(50) 확장 반영됨 (커밋 0abda08, points 0002). 그 이전 코드로 이관 시 varchar(20) 초과 DataError |
+| 스크립트 순서 | common→members→courses→course_src→enrollment→board→consult→shop→points→**notifications→reports**→training→office→popup (notifications/reports 누락 주의) |
+| migrate_board.py | 게시판 본문/제목이 ASP escape 상태로 저장됨 → `asp_decode`로 디코드 반영(커밋 5508916). 구코드로 이관 시 `&lt;br&gt;` 등이 |safe 출력에서 글자로 노출됨. 이미 이관된 데이터는 `scripts/decode_board.py`로 일괄 디코드 |
 
 ---
 
@@ -301,7 +304,7 @@ pg_dump -h aafc-db.cdaqmq8yqnjw.ap-northeast-2.rds.amazonaws.com -U aafc_user -d
 ```ini
 DJANGO_SECRET_KEY=...
 DJANGO_SETTINGS_MODULE=config.settings.prod
-ALLOWED_HOSTS=43.201.113.91
+ALLOWED_HOSTS=3.34.153.141
 
 DB_NAME=aafc_prod
 DB_USER=aafc_user
@@ -327,6 +330,15 @@ AWS_S3_REGION_NAME=ap-northeast-2
 4. **정적 파일**: EC2의 `/srv/aafc/staticfiles/`에 저장. 변경 시 collectstatic 실행
 5. **DB 마이그레이션**: 로컬에서 확인 후 EC2에서 재실행. RDS는 되돌리기 어려우므로 신중하게
 6. **settings**: EC2는 `config.settings.prod` 사용. 로컬은 `config.settings.local`
+
+---
+
+## 도메인 전환 / 오픈 컷오버
+
+기존 ASP 사이트 → 새 도메인 + AWS Django 컷오버 시나리오는 별도 문서로 정리.
+정상(2~4주)과 긴급(1일) 양쪽 시나리오, 단계별 명령어, 롤백 절차 포함.
+
+→ **`도메인전환_시나리오.md` 참조**
 
 ---
 
