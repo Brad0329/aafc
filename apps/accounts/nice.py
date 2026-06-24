@@ -100,7 +100,12 @@ def request_auth_url(access_token, return_url=None):
             'request_no': req_no,
             'return_url': return_url or settings.NICE_RETURN_URL,
             'svc_types': ['M'],      # M: 휴대폰 본인확인
-            'method_type': 'POST',   # 콜백 전송 방식
+            # 콜백 전송 방식 = GET(최상위 네비게이션). POST 로 받으면 ①NICE(HTTPS)→
+            # 콜백(HTTP) 폼전송 "안전하지 않음" 경고 ②세션쿠키(SameSite=Lax)가
+            # 크로스사이트 POST엔 안 실려 nice_pending 유실("세션 만료"). GET 이면
+            # 둘 다 해결(Lax 는 크로스사이트 top-level GET 에 쿠키 전송).
+            # web_transaction_id 만 쿼리로 수신 → 민감정보는 서버에서 /auth/result 로 조회.
+            'method_type': 'GET',
         },
         {'Authorization': f'Bearer {access_token}'},
     )
