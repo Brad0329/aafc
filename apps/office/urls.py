@@ -53,6 +53,7 @@ urlpatterns = [
 
     # 회원관리 > SMS/LMS
     path('lfmember/sms/', views.sms_send, name='office_sms_send'),
+    path('lfmember/sms/excel/', views.sms_excel_upload, name='office_sms_excel_upload'),
     path('lfmember/sms/list/', views.sms_send_list, name='office_sms_send_list'),
 
     # 회원관리 > 회원포인트내역

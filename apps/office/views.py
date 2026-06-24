@@ -1,5 +1,6 @@
 import hashlib
 import os
+import re
 import calendar
 from datetime import datetime, date
 from django.shortcuts import render, redirect, get_object_or_404
@@ -1218,12 +1219,85 @@ def member_stat(request):
 # 회원관리 > SMS/LMS
 # ============================================================
 
+_PHONE_RE = re.compile(r'^0\d{1,2}-?\d{3,4}-?\d{4}$')
+
+
+def _normalize_phone(raw):
+    """숫자만 추출 + 앞 0 유실(엑셀 숫자셀) 보정. 유효시 digits, 아니면 None."""
+    d = re.sub(r'\D', '', str(raw if raw is not None else ''))
+    if not d:
+        return None
+    if not d.startswith('0'):
+        d = '0' + d
+    return d if 10 <= len(d) <= 11 else None
+
+
+def _parse_excel_phones(f):
+    """업로드 엑셀(.xls/.xlsx)에서 전화번호 추출. 시트 'sms'·'번호' 컬럼 우선, 없으면 전체 스캔."""
+    name = (f.name or '').lower()
+    rows = []
+    if name.endswith('.xls'):
+        import xlrd
+        wb = xlrd.open_workbook(file_contents=f.read())
+        names = wb.sheet_names()
+        sh = wb.sheet_by_name('sms') if 'sms' in names else wb.sheet_by_index(0)
+        rows = [[sh.cell_value(r, c) for c in range(sh.ncols)] for r in range(sh.nrows)]
+    else:
+        from openpyxl import load_workbook
+        wb = load_workbook(f, read_only=True, data_only=True)
+        ws = wb['sms'] if 'sms' in wb.sheetnames else wb.worksheets[0]
+        rows = [list(row) for row in ws.iter_rows(values_only=True)]
+
+    if not rows:
+        return []
+
+    # 헤더에서 '번호'(전화/휴대/연락처) 컬럼 찾기
+    header = [str(c or '').strip() for c in rows[0]]
+    col = next((i for i, h in enumerate(header)
+                if any(k in h for k in ('번호', '전화', '휴대', '연락처', 'phone', 'mobile', 'hp'))), None)
+
+    phones, seen = [], set()
+    if col is not None:
+        for row in rows[1:]:
+            p = _normalize_phone(row[col]) if col < len(row) else None
+            if p and p not in seen:
+                seen.add(p); phones.append(p)
+    else:
+        # 헤더 매칭 실패 → 전 셀에서 전화패턴(대시 포함)만 추출
+        for row in rows:
+            for cell in row:
+                s = str(cell if cell is not None else '').strip()
+                if _PHONE_RE.match(s):
+                    p = re.sub(r'\D', '', s)
+                    if p not in seen:
+                        seen.add(p); phones.append(p)
+    return phones
+
+
+@office_login_required
+@office_permission_required('M')
+def sms_excel_upload(request):
+    """SMS 엑셀 일괄발송 — 업로드 엑셀에서 전화번호 추출(AJAX). JSON 반환."""
+    f = request.FILES.get('excel_file')
+    if request.method != 'POST' or not f:
+        return JsonResponse({'ok': False, 'error': '파일이 없습니다.'})
+    if not (f.name or '').lower().endswith(('.xls', '.xlsx')):
+        return JsonResponse({'ok': False, 'error': '엑셀(.xls/.xlsx) 파일만 업로드 가능합니다.'})
+    try:
+        phones = _parse_excel_phones(f)
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': f'엑셀을 읽지 못했습니다: {e}'})
+    if not phones:
+        return JsonResponse({'ok': False, 'error': "전화번호를 찾지 못했습니다. (시트 'sms'의 '번호' 컬럼 확인)"})
+    return JsonResponse({'ok': True, 'count': len(phones), 'numbers': phones})
+
+
 @office_login_required
 @office_permission_required('M')
 def sms_send(request):
     """SMS/LMS 발송 폼 + 발송 처리.
 
-    수신대상: individual(직접입력, 콤마/줄바꿈으로 여러 건) / coach(코치 다중선택).
+    수신대상: individual(직접입력, 콤마/줄바꿈) / excel(엑셀 일괄) / coach(코치 다중선택).
     메시지 90byte 초과 시 자동 LMS. 인포뱅크 자격증명 미설정 시 테스트모드(실발송 X, 이력만).
     """
     coaches = Coach.objects.filter(use_gbn='Y').order_by('coach_name')
@@ -1239,9 +1313,9 @@ def sms_send(request):
             codes = set(request.POST.getlist('coach_code'))
             recipients = [c.phone for c in coaches if str(c.coach_code) in codes and c.phone]
         else:
-            raw = request.POST.get('rcv_num', '').replace('\r', '')
-            recipients = [n.strip() for part in raw.split('\n')
-                          for n in part.split(',') if n.strip()]
+            # individual=rcv_num(직접입력) / excel=excel_numbers(업로드 파싱결과)
+            raw = request.POST.get('excel_numbers' if rcv_type == 'excel' else 'rcv_num', '')
+            recipients = [n.strip() for n in re.split(r'[,\n\r]+', raw) if n.strip()]
 
         errors = []
         if not callback:

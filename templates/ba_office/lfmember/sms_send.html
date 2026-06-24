@@ -7,10 +7,11 @@
 
 {% block extra_js %}
 <script>
-// 수신대상 전환(개별/코치)
+// 수신대상 전환(개별/엑셀/코치)
 function rcvToggle() {
     var t = document.querySelector('input[name=rcv_type]:checked').value;
     document.getElementById('row_indiv').style.display = (t === 'individual') ? '' : 'none';
+    document.getElementById('row_excel').style.display = (t === 'excel') ? '' : 'none';
     document.getElementById('row_coach').style.display = (t === 'coach') ? '' : 'none';
 }
 // 메시지 바이트 계산(비ASCII=2byte) → SMS/LMS 표시
@@ -20,6 +21,27 @@ function calcByte() {
     document.getElementById('byteCnt').innerText = n;
     document.getElementById('msgType').innerText = (n > 90) ? 'LMS(장문)' : 'SMS(단문)';
 }
+// 엑셀 업로드 → 서버 파싱(AJAX) → 미리보기 목록 + 숨김필드 채움
+function excelUpload() {
+    var fi = document.getElementById('excel_file');
+    if (!fi.files.length) { alert('엑셀 파일을 선택하세요.'); return; }
+    var fd = new FormData();
+    fd.append('excel_file', fi.files[0]);
+    fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    $.ajax({
+        url: "{% url 'office_sms_excel_upload' %}",
+        type: 'POST', data: fd, processData: false, contentType: false,
+        success: function (res) {
+            if (!res.ok) { alert(res.error); return; }
+            var sel = document.getElementById('excel_list');
+            sel.innerHTML = '';
+            res.numbers.forEach(function (n) { var o = new Option(n, n); sel.add(o); });
+            document.getElementById('excel_numbers').value = res.numbers.join(',');
+            document.getElementById('excel_count').innerText = res.count;
+        },
+        error: function () { alert('업로드에 실패했습니다.'); }
+    });
+}
 // 발송 전 검증
 function sendSms() {
     var f = document.smsform;
@@ -28,6 +50,8 @@ function sendSms() {
     var t = document.querySelector('input[name=rcv_type]:checked').value;
     if (t === 'individual') {
         if (!f.rcv_num.value.trim()) { alert('수신번호를 입력하세요.'); f.rcv_num.focus(); return; }
+    } else if (t === 'excel') {
+        if (!f.excel_numbers.value.trim()) { alert('엑셀을 업로드하여 수신번호를 불러오세요.'); return; }
     } else {
         var sel = f.coach_code, any = false;
         for (var i = 0; i < sel.options.length; i++) if (sel.options[i].selected) any = true;
@@ -36,7 +60,7 @@ function sendSms() {
     if (!confirm('문자를 발송하시겠습니까?')) return;
     f.submit();
 }
-$(function(){ rcvToggle(); calcByte(); });
+$(function () { rcvToggle(); calcByte(); });
 </script>
 {% endblock %}
 
@@ -76,11 +100,23 @@ $(function(){ rcvToggle(); calcByte(); });
         <tr><th scope="col">수신대상</th>
         <td class="left">
             <label><input type="radio" name="rcv_type" value="individual" onclick="rcvToggle();" checked /> 개별(직접입력)</label> &nbsp;&nbsp;
+            <label><input type="radio" name="rcv_type" value="excel" onclick="rcvToggle();" /> 엑셀(일괄)</label> &nbsp;&nbsp;
             <label><input type="radio" name="rcv_type" value="coach" onclick="rcvToggle();" /> 코치</label>
         </td></tr>
         <tr id="row_indiv"><th scope="col">수신번호</th>
         <td class="left">
             <textarea name="rcv_num" rows="3" style="width:80%;" placeholder="010-0000-0000 (여러 명은 콤마 또는 줄바꿈으로 구분)"></textarea>
+        </td></tr>
+        <tr id="row_excel" style="display:none;"><th scope="col">엑셀 업로드</th>
+        <td class="left">
+            <input type="file" id="excel_file" accept=".xls,.xlsx" />
+            <input type="button" value="업로드" onclick="excelUpload();" />
+            &nbsp;샘플: <a href="{% static 'ba_office/sms_sample.xlsx' %}">sms_sample.xlsx</a>
+            <span style="color:#999;">※ 시트명 'sms', '번호' 컬럼에 전화번호</span>
+            <br />
+            <input type="hidden" name="excel_numbers" id="excel_numbers" />
+            <div style="margin-top:4px;">불러온 수신자 <b id="excel_count">0</b>명</div>
+            <select id="excel_list" multiple size="6" style="width:200px;" disabled></select>
         </td></tr>
         <tr id="row_coach" style="display:none;"><th scope="col">코치선택</th>
         <td class="left">
