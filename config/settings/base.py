@@ -158,3 +158,13 @@ NICE_CLIENT_ID = config('NICE_CLIENT_ID', default='')
 NICE_CLIENT_SECRET = config('NICE_CLIENT_SECRET', default='')
 NICE_RETURN_URL = config('NICE_RETURN_URL', default='')
 NICE_API_BASE = config('NICE_API_BASE', default='https://auth.niceid.co.kr/ido/intc/v1.0')
+
+# ── 인포뱅크(InfoBank) OMNI API — SMS/LMS/MMS 발송 ──
+# 자격증명(.env): INFOBANK_CLIENT_ID / INFOBANK_CLIENT_PASSWD (인포뱅크 발급 ID/PW).
+#   비어 있으면 테스트(dry-run) 모드 — 실제 발송 없이 발송내역(SMSLog)에만 기록한다.
+#   엔드포인트는 계정/상품에 따라 다를 수 있어 .env 로 덮어쓸 수 있게 둠.
+INFOBANK_CLIENT_ID = config('INFOBANK_CLIENT_ID', default='')
+INFOBANK_CLIENT_PASSWD = config('INFOBANK_CLIENT_PASSWD', default='')
+INFOBANK_AUTH_URL = config('INFOBANK_AUTH_URL', default='https://omni.ibapi.kr/v1/auth/token')
+INFOBANK_SEND_URL = config('INFOBANK_SEND_URL', default='https://mars.ibapi.kr/api/comm/v1/send/omni')
+INFOBANK_DEFAULT_CALLBACK = config('INFOBANK_DEFAULT_CALLBACK', default='1811-7909')

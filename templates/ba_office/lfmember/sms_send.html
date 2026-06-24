@@ -5,33 +5,91 @@
 {% include "ba_office/includes/lfmember_left.html" %}
 {% endblock %}
 
+{% block extra_js %}
+<script>
+// 수신대상 전환(개별/코치)
+function rcvToggle() {
+    var t = document.querySelector('input[name=rcv_type]:checked').value;
+    document.getElementById('row_indiv').style.display = (t === 'individual') ? '' : 'none';
+    document.getElementById('row_coach').style.display = (t === 'coach') ? '' : 'none';
+}
+// 메시지 바이트 계산(비ASCII=2byte) → SMS/LMS 표시
+function calcByte() {
+    var s = document.smsform.smsMsg.value, n = 0;
+    for (var i = 0; i < s.length; i++) n += (s.charCodeAt(i) > 127) ? 2 : 1;
+    document.getElementById('byteCnt').innerText = n;
+    document.getElementById('msgType').innerText = (n > 90) ? 'LMS(장문)' : 'SMS(단문)';
+}
+// 발송 전 검증
+function sendSms() {
+    var f = document.smsform;
+    if (!f.callback.value) { alert('발신번호를 선택하세요.'); return; }
+    if (!f.smsMsg.value.trim()) { alert('메시지를 입력하세요.'); f.smsMsg.focus(); return; }
+    var t = document.querySelector('input[name=rcv_type]:checked').value;
+    if (t === 'individual') {
+        if (!f.rcv_num.value.trim()) { alert('수신번호를 입력하세요.'); f.rcv_num.focus(); return; }
+    } else {
+        var sel = f.coach_code, any = false;
+        for (var i = 0; i < sel.options.length; i++) if (sel.options[i].selected) any = true;
+        if (!any) { alert('코치를 1명 이상 선택하세요.'); return; }
+    }
+    if (!confirm('문자를 발송하시겠습니까?')) return;
+    f.submit();
+}
+$(function(){ rcvToggle(); calcByte(); });
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="navi">HOME  &gt;  회원관리  &gt;  SMS/LMS</div>
 <div class="h_55"></div>
 
 <p class="title">SMS/LMS 발송</p>
 
+{% if not configured %}
+<p style="padding:10px; margin-bottom:8px; background:#fff7e6; border:1px solid #f0c36d; color:#8a6d3b;">
+※ <b>테스트 모드</b>입니다 — 인포뱅크 API 키 미설정 상태라 <b>실제 발송 없이 발송내역에만 기록</b>됩니다.
+(.env 에 <code>INFOBANK_CLIENT_ID/PASSWD</code> 설정 시 실발송 전환)
+</p>
+{% endif %}
+
+{% if result %}
+  {% if result.error %}
+  <p style="padding:10px; margin-bottom:8px; background:#fdecea; border:1px solid #e0b4b4; color:#cc0000;">
+  ※ {{ result.error }}
+  </p>
+  {% else %}
+  <p style="padding:10px; margin-bottom:8px; background:#eaf6ea; border:1px solid #a3d9a3; color:#2e7d32;">
+  ※ {% if result.test %}[테스트모드] {% endif %}{{ result.service }} 발송요청 완료 —
+  총 {{ result.total }}건 중 <b>성공 {{ result.sent }}</b> / 실패 {{ result.failed }}건.
+  <a href="{% url 'office_sms_send_list' %}">발송내역 보기 &raquo;</a>
+  </p>
+  {% endif %}
+{% endif %}
+
+<form name="smsform" method="post" action="{% url 'office_sms_send' %}">
+{% csrf_token %}
 <div class="tb_basic">
 <table summary="SMS" border="0" cellpadding="0" cellspacing="0">
     <colgroup><col width="15%" /><col width="85%" /></colgroup>
     <tbody>
         <tr><th scope="col">수신대상</th>
         <td class="left">
-            <input type="radio" name="rcv_type" value="individual" checked /> 개별 &nbsp;
-            <input type="radio" name="rcv_type" value="coach" /> 코치
+            <label><input type="radio" name="rcv_type" value="individual" onclick="rcvToggle();" checked /> 개별(직접입력)</label> &nbsp;&nbsp;
+            <label><input type="radio" name="rcv_type" value="coach" onclick="rcvToggle();" /> 코치</label>
         </td></tr>
-        <tr><th scope="col">수신번호</th>
+        <tr id="row_indiv"><th scope="col">수신번호</th>
         <td class="left">
-            <input type="text" name="rcv_num" size="15" class="input" placeholder="010-0000-0000" />
+            <textarea name="rcv_num" rows="3" style="width:80%;" placeholder="010-0000-0000 (여러 명은 콤마 또는 줄바꿈으로 구분)"></textarea>
         </td></tr>
-        <tr><th scope="col">코치선택</th>
+        <tr id="row_coach" style="display:none;"><th scope="col">코치선택</th>
         <td class="left">
-            <select name="coach_code" class="select" style="width:200px;">
-                <option value="">코치선택</option>
+            <select name="coach_code" multiple size="8" style="width:300px;">
                 {% for coach in coaches %}
                 <option value="{{ coach.coach_code }}">{{ coach.coach_name }} ({{ coach.phone }})</option>
                 {% endfor %}
             </select>
+            <br /><span style="color:#999;">※ Ctrl/Shift 로 여러 명 선택</span>
         </td></tr>
         <tr><th scope="col">발신번호</th>
         <td class="left">
@@ -39,21 +97,22 @@
                 <option value="1811-7909">1811-7909</option>
                 <option value="02-3412-4940">02-3412-4940</option>
             </select>
+            <span style="color:#999;">※ 인포뱅크에 사전등록된 발신번호만 가능</span>
         </td></tr>
         <tr><th scope="col">메시지</th>
         <td class="left">
-            <textarea name="smsMsg" rows="5" cols="60" style="width:80%;"></textarea>
-            <br /><span style="color:#999;">※ SMS: 80byte 이내 / LMS: 80byte 초과</span>
+            <textarea name="smsMsg" rows="5" cols="60" style="width:80%;" onkeyup="calcByte();"></textarea>
+            <br /><span style="color:#999;">
+                <b id="byteCnt">0</b> byte / 구분: <b id="msgType">SMS(단문)</b>
+                &nbsp;— 90byte 이하 SMS, 초과 시 자동 LMS
+            </span>
         </td></tr>
     </tbody>
 </table>
 </div>
 
 <div class="btn_right">
-    <a href="javascript:alert('SMS 발송 기능은 운영 환경에서 활성화됩니다.');"><img src="{% static 'ba_office/images/btn_send.gif' %}" alt="발송" /></a>
+    <a href="javascript:sendSms();"><img src="{% static 'ba_office/images/btn_send.gif' %}" alt="발송" /></a>
 </div>
-
-<p style="padding:10px; color:#cc0000; font-weight:bold;">
-※ SMS 실제 발송은 운영 환경에서 InfoBank API 연동 후 활성화됩니다.
-</p>
+</form>
 {% endblock %}

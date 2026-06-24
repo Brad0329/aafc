@@ -13,6 +13,7 @@ from django.db.models.functions import Coalesce
 from .models import OfficeUser, OfficeLoginHistory
 from .decorators import office_login_required, office_permission_required
 from apps.notifications.models import OfficeNotification, Notification, SMSLog
+from apps.notifications import infobank
 from apps.common.models import CodeGroup, CodeValue, Setting
 from apps.points.models import PointConfig, PointHistory
 from apps.courses.models import (
@@ -1220,10 +1221,57 @@ def member_stat(request):
 @office_login_required
 @office_permission_required('M')
 def sms_send(request):
-    """SMS/LMS 발송 폼"""
+    """SMS/LMS 발송 폼 + 발송 처리.
+
+    수신대상: individual(직접입력, 콤마/줄바꿈으로 여러 건) / coach(코치 다중선택).
+    메시지 90byte 초과 시 자동 LMS. 인포뱅크 자격증명 미설정 시 테스트모드(실발송 X, 이력만).
+    """
     coaches = Coach.objects.filter(use_gbn='Y').order_by('coach_name')
+    result = None
+
+    if request.method == 'POST':
+        callback = request.POST.get('callback', '').strip()
+        message = request.POST.get('smsMsg', '').strip()
+        rcv_type = request.POST.get('rcv_type', 'individual')
+
+        # 수신번호 목록 구성
+        if rcv_type == 'coach':
+            codes = set(request.POST.getlist('coach_code'))
+            recipients = [c.phone for c in coaches if str(c.coach_code) in codes and c.phone]
+        else:
+            raw = request.POST.get('rcv_num', '').replace('\r', '')
+            recipients = [n.strip() for part in raw.split('\n')
+                          for n in part.split(',') if n.strip()]
+
+        errors = []
+        if not callback:
+            errors.append('발신번호를 선택하세요.')
+        if not message:
+            errors.append('메시지를 입력하세요.')
+        if not recipients:
+            errors.append('수신번호가 없습니다.')
+
+        if errors:
+            result = {'error': ' '.join(errors)}
+        else:
+            broadcast = len(recipients) > 1
+            sent = failed = 0
+            for to in recipients:
+                res = infobank.send_and_log(to, message, callback, broadcast=broadcast)
+                if res.get('ok'):
+                    sent += 1
+                else:
+                    failed += 1
+            result = {
+                'sent': sent, 'failed': failed, 'total': len(recipients),
+                'test': not infobank.is_configured(),
+                'service': 'LMS' if infobank.sms_byte_len(message) > 90 else 'SMS',
+            }
+
     return render(request, 'ba_office/lfmember/sms_send.html', {
         'coaches': coaches,
+        'configured': infobank.is_configured(),
+        'result': result,
     })
 
 
