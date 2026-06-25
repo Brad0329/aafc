@@ -149,21 +149,21 @@ urlpatterns = [
     # 과정관리 > 구장정보
     path('lfcourse/stadium/', views.stadium_list, name='office_stadium_list'),
     path('lfcourse/stadium/write/', views.stadium_write, name='office_stadium_write'),
-    path('lfcourse/stadium/modify/<int:pk>/', views.stadium_modify, name='office_stadium_modify'),
+    path('lfcourse/stadium/modify/<int:sta_code>/', views.stadium_modify, name='office_stadium_modify'),
     path('lfcourse/stadium/goal/<int:sta_code>/', views.stadium_goal, name='office_stadium_goal'),
     path('lfcourse/stadium/goal/del/<int:sta_code>/', views.stadium_goal_del, name='office_stadium_goal_delete'),
 
     # 과정관리 > 코칭스탭관리
     path('lfcourse/coach/', views.coach_list, name='office_coach_list'),
     path('lfcourse/coach/write/', views.coach_write, name='office_coach_write'),
-    path('lfcourse/coach/modify/<int:pk>/', views.coach_modify, name='office_coach_modify'),
-    path('lfcourse/coach/del/<int:pk>/', views.coach_del, name='office_coach_delete'),
+    path('lfcourse/coach/modify/<int:coach_code>/', views.coach_modify, name='office_coach_modify'),
+    path('lfcourse/coach/del/<int:coach_code>/', views.coach_del, name='office_coach_delete'),
 
     # 과정관리 > 과정관리(강좌)
     path('lfcourse/lecture/', views.lecture_list, name='office_lecture_list'),
     path('lfcourse/lecture/write/', views.lecture_write, name='office_lecture_write'),
-    path('lfcourse/lecture/modify/<int:pk>/', views.lecture_modify, name='office_lecture_modify'),
-    path('lfcourse/lecture/del/<int:pk>/', views.lecture_del, name='office_lecture_delete'),
+    path('lfcourse/lecture/modify/<int:lecture_code>/', views.lecture_modify, name='office_lecture_modify'),
+    path('lfcourse/lecture/del/<int:lecture_code>/', views.lecture_del, name='office_lecture_delete'),
     path('lfcourse/lecture/timetable/<int:lecture_code>/', views.lecture_timetable, name='office_lecture_timetable'),
 
     # 과정관리 > 훈련일정관리

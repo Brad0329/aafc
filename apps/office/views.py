@@ -4445,9 +4445,10 @@ def stadium_write(request):
 
 @office_login_required
 @office_permission_required('L')
-def stadium_modify(request, pk):
-    """구장 수정"""
-    stadium = get_object_or_404(Stadium, pk=pk)
+def stadium_modify(request, sta_code):
+    """구장 수정 — 구장은 sta_code(구장코드)로 식별(list/goal/시간표 등 전 시스템 동일).
+    주의: Django pk(id)와 sta_code 는 다른 값. pk로 조회하면 엉뚱한 구장이 열림."""
+    stadium = get_object_or_404(Stadium, sta_code=sta_code)
 
     if request.method == 'POST':
         stadium.sta_name = request.POST.get('sta_name', '')
@@ -4637,9 +4638,9 @@ def coach_write(request):
 
 @office_login_required
 @office_permission_required('L')
-def coach_modify(request, pk):
-    """코치 수정"""
-    coach = get_object_or_404(Coach, pk=pk)
+def coach_modify(request, coach_code):
+    """코치 수정 — 코치는 coach_code(코치코드)로 식별(목록/삭제 링크 동일). pk(id)와 다른 값."""
+    coach = get_object_or_404(Coach, coach_code=coach_code)
 
     if request.method == 'POST':
         coach.coach_name = request.POST.get('coach_name', '')
@@ -4693,10 +4694,10 @@ def coach_modify(request, pk):
 
 @office_login_required
 @office_permission_required('L')
-def coach_del(request, pk):
+def coach_del(request, coach_code):
     """코치 삭제 (소프트)"""
     if request.method == 'POST':
-        coach = get_object_or_404(Coach, pk=pk)
+        coach = get_object_or_404(Coach, coach_code=coach_code)
         coach.use_gbn = 'N'
         coach.save()
     return redirect('office_coach_list')
@@ -4875,9 +4876,9 @@ def lecture_write(request):
 
 @office_login_required
 @office_permission_required('L')
-def lecture_modify(request, pk):
-    """강좌 수정"""
-    lecture = get_object_or_404(Lecture, pk=pk)
+def lecture_modify(request, lecture_code):
+    """강좌 수정 — 강좌는 lecture_code(강좌코드)로 식별(목록/삭제/시간표 동일). pk(id)와 다른 값."""
+    lecture = get_object_or_404(Lecture, lecture_code=lecture_code)
 
     if request.method == 'POST':
         sta_code = int(request.POST.get('sta_code', '0') or '0')
@@ -4932,10 +4933,10 @@ def lecture_modify(request, pk):
 
 @office_login_required
 @office_permission_required('L')
-def lecture_del(request, pk):
+def lecture_del(request, lecture_code):
     """강좌 삭제 (소프트)"""
     if request.method == 'POST':
-        lecture = get_object_or_404(Lecture, pk=pk)
+        lecture = get_object_or_404(Lecture, lecture_code=lecture_code)
         lecture.use_gbn = 'N'
         lecture.save()
     return redirect('office_lecture_list')
