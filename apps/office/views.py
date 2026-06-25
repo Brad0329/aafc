@@ -25,6 +25,7 @@ from apps.accounts.models import Member, MemberChild, OutMember
 from apps.enrollment.models import (
     Enrollment, EnrollmentCourse, EnrollmentBill,
     Attendance, ChangeHistory, WaitStudent,
+    EnrollmentSrc, EnrollmentBillSrc, EnrollmentCourseSrc,
 )
 from apps.consult.models import Consult, ConsultAnswer, ConsultFree, ConsultRegion
 from apps.payments.models import PaymentToss
@@ -3100,10 +3101,10 @@ def chghis_list(request):
     # 변경 전/후 비교 데이터 조회
     no_seqs = set(h.no_seq for h in histories if h.no_seq)
     src_seqs = set(h.src_seq for h in histories if h.src_seq)
-    # 현재 enrollment (변경 후)
+    # 현재 enrollment (변경 후 = no_seq → Enrollment.id)
     cur_map = {e.id: e for e in Enrollment.objects.filter(id__in=no_seqs)}
-    # 변경 전 enrollment (src_seq)
-    src_map = {e.id: e for e in Enrollment.objects.filter(id__in=src_seqs)}
+    # 변경 전 = src_seq → EnrollmentSrc 스냅샷 (Enrollment 아님! src_seq는 master_src PK)
+    src_map = {e.src_seq: e for e in EnrollmentSrc.objects.filter(src_seq__in=src_seqs)}
 
     # 각 history 객체에 이름/비교 속성 부여
     for h in histories:
@@ -3141,38 +3142,38 @@ def chghis_detail(request, pk):
     if history.no_seq:
         enrollment = Enrollment.objects.filter(id=history.no_seq).select_related('member', 'child').first()
 
-    # 변경 전 Enrollment 정보 (src_seq)
+    # 변경 전 = src_seq → EnrollmentSrc 스냅샷 (Enrollment 아님)
     src_enrollment = None
     if history.src_seq:
-        src_enrollment = Enrollment.objects.filter(id=history.src_seq).first()
+        src_enrollment = EnrollmentSrc.objects.filter(src_seq=history.src_seq).first()
 
-    # 수강과정/청구 (현재)
+    # 수강과정/청구 (현재=변경 후). ASP 동일: bill_code='1001', course_ym 오름차순
     course_entries = []
     lectures_map = {}
     bills = []
     if enrollment:
         course_entries = EnrollmentCourse.objects.filter(
             enrollment=enrollment, bill_code='1001'
-        ).order_by('-course_ym')
+        ).order_by('course_ym', 'lecture_code')
         lec_codes = set(c.lecture_code for c in course_entries)
         if lec_codes:
             for l in Lecture.objects.filter(lecture_code__in=lec_codes).select_related('stadium'):
                 lectures_map[l.lecture_code] = l
         bills = EnrollmentBill.objects.filter(enrollment=enrollment).order_by('bill_code')
 
-    # 수강과정/청구 (변경 전)
+    # 수강과정/청구 (변경 전 = 스냅샷, src_seq 기준)
     src_course_entries = []
     src_bills = []
     if src_enrollment:
-        src_course_entries = EnrollmentCourse.objects.filter(
-            enrollment=src_enrollment, bill_code='1001'
-        ).order_by('-course_ym')
+        src_course_entries = EnrollmentCourseSrc.objects.filter(
+            src_seq=history.src_seq, bill_code='1001'
+        ).order_by('course_ym', 'lecture_code')
         src_lec_codes = set(c.lecture_code for c in src_course_entries)
         if src_lec_codes:
             for l in Lecture.objects.filter(lecture_code__in=src_lec_codes).select_related('stadium'):
                 if l.lecture_code not in lectures_map:
                     lectures_map[l.lecture_code] = l
-        src_bills = EnrollmentBill.objects.filter(enrollment=src_enrollment).order_by('bill_code')
+        src_bills = EnrollmentBillSrc.objects.filter(src_seq=history.src_seq).order_by('bill_code')
 
     # 멤버/자녀 이름
     member_name = ''

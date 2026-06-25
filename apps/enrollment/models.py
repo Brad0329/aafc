@@ -176,6 +176,58 @@ class Attendance(models.Model):
         return f'{self.child_id} {self.attendance_dt} {self.attendance_gbn}'
 
 
+class EnrollmentSrc(models.Model):
+    """입단 변경원본 (lf_fcjoin_master_src) — 변경 시점의 입단 마스터 스냅샷.
+    변경이력(ChangeHistory.src_seq)이 가리키는 '변경 전' 상태. no_seq=원본 입단번호."""
+    src_seq = models.IntegerField('원본번호', primary_key=True)
+    no_seq = models.IntegerField('입단번호', default=0, db_index=True)
+    member_id = models.CharField('학부모ID', max_length=30, blank=True)
+    child_id = models.CharField('자녀ID', max_length=30, blank=True)
+    pay_stats = models.CharField('결제상태', max_length=2, blank=True)
+    pay_method = models.CharField('결제방법', max_length=10, blank=True)
+    pay_price = models.IntegerField('결제금액', default=0)
+    lecture_stats = models.CharField('수강상태', max_length=2, blank=True)
+    lec_cycle = models.IntegerField('주간횟수', default=0)
+    lec_period = models.IntegerField('수강기간(월)', default=0)
+    start_dt = models.CharField('시작년월', max_length=6, blank=True)
+    end_dt = models.CharField('종료년월', max_length=6, blank=True)
+    apply_gubun = models.CharField('신청구분', max_length=5, blank=True)
+    cancel_code = models.CharField('취소사유코드', max_length=10, blank=True)
+    cancel_desc = models.CharField('취소사유', max_length=200, blank=True)
+    del_chk = models.CharField('삭제여부', max_length=1, default='N')
+    insert_id = models.CharField('등록자', max_length=30, blank=True)
+    insert_dt = models.DateTimeField('등록일', null=True, blank=True)
+
+    class Meta:
+        db_table = 'enrollment_enrollmentsrc'
+        verbose_name = '입단 변경원본'
+        verbose_name_plural = '입단 변경원본'
+
+    def __str__(self):
+        return f'원본#{self.src_seq} (입단#{self.no_seq})'
+
+
+class EnrollmentBillSrc(models.Model):
+    """청구 변경원본 (lf_fcjoin_bill_src) — 변경 전 청구내역 스냅샷."""
+    src_seq = models.IntegerField('원본번호', default=0, db_index=True)
+    no_seq = models.IntegerField('입단번호', default=0)
+    pknum = models.IntegerField('원본PK', default=0)
+    bill_code = models.CharField('청구코드', max_length=4)
+    bill_desc = models.CharField('청구설명', max_length=100, blank=True)
+    bill_amt = models.IntegerField('청구금액', default=0)
+    pay_stats = models.CharField('결제상태', max_length=2, blank=True)
+    insert_id = models.CharField('등록자', max_length=30, blank=True)
+    insert_dt = models.DateTimeField('등록일', null=True, blank=True)
+
+    class Meta:
+        db_table = 'enrollment_enrollmentbillsrc'
+        verbose_name = '청구 변경원본'
+        verbose_name_plural = '청구 변경원본'
+
+    def __str__(self):
+        return f'원본#{self.src_seq} {self.bill_code} {self.bill_amt}'
+
+
 class EnrollmentCourseSrc(models.Model):
     """수강과정 변경원본 (lf_fcjoin_course_src)"""
     src_seq = models.IntegerField('원본번호', default=0, db_index=True)

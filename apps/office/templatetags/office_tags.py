@@ -27,3 +27,23 @@ def dict_get(d, key):
     if isinstance(d, dict):
         return d.get(key, '')
     return ''
+
+
+# 원본 ASP function.Util.asp 의 getApplyGubun / getLectureStats 와 동일 매핑
+_APPLY_GUBUN = {'NEW': '신규입단', 'AGAIN': '재수강', 'RENEW': '재입단'}
+_LECTURE_STATS = {
+    'LY': '수강확정', 'LP': '수강예정', 'LN': '퇴단', 'PN': '일시중지', 'LS': '중도취소',
+    'C': '수강확정', 'E': '수강예정', 'F': '수강취소',
+}
+
+
+@register.filter
+def apply_gubun_label(code):
+    """신청구분 코드 → 라벨 (ASP getApplyGubun 동일): {{ code|apply_gubun_label }}"""
+    return _APPLY_GUBUN.get((code or '').strip(), '-')
+
+
+@register.filter
+def lecture_stats_label(code):
+    """수강상태 코드 → 라벨 (ASP getLectureStats 동일): {{ code|lecture_stats_label }}"""
+    return _LECTURE_STATS.get((code or '').strip(), '-')
