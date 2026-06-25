@@ -6,6 +6,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script type="text/javascript" src="https://cdn.ckeditor.com/4.22.1/standard/ckeditor.js"></script>
 <script>
 function sendChk() {
     if (chec_fun(reg_form.sta_name, "구장명") == false) { return; }
@@ -29,6 +30,8 @@ function sendChk() {
 
     var con = confirm("등록 하시겠습니까?");
     if (con == true) {
+        // CKEditor(소개) 내용을 textarea 로 동기화 후 전송
+        if (window.CKEDITOR) { for (var k in CKEDITOR.instances) CKEDITOR.instances[k].updateElement(); }
         reg_form.submit();
     }
 }
@@ -136,6 +139,18 @@ function sendChk() {
                 <th scope="col">소개</th>
                 <td class="left" colspan="3">
                     <textarea name="sta_desc" id="sta_desc" rows="10" style="width:600px;"></textarea>
+                    <script type="text/javascript">
+                        CKEDITOR.replace('sta_desc', {
+                            resize_enabled: false,
+                            enterMode: CKEDITOR.ENTER_BR,
+                            shiftEnterMode: CKEDITOR.ENTER_P,
+                            toolbarCanCollapse: true,
+                            removePlugins: "elementspath",
+                            removeButtons: "Save",
+                            readOnly: false,
+                            height: 400
+                        });
+                    </script>
                 </td>
             </tr>
             <tr>
