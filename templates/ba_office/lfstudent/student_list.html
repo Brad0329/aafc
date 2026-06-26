@@ -163,8 +163,11 @@ function wait_Delete() {
         <option value="">==선택==</option>
         <option value="D">익월 수강예정 대상자(기존)</option>
         <option value="DN">익월 수강예정 대상자(개월선택)</option>
+        {# [원본 ASP 재현] 수강확정·수강확정+결제완료는 power_id 화이트리스트(office_can_confirm) 계정만 노출 #}
+        {% if office_can_confirm %}
         <option value="Y">수강확정</option>
         <option value="T">수강확정+결제완료</option>
+        {% endif %}
         <option value="L">결제안내 LMS 전송</option>
     </select>
     처리합니다. <span style="color:blue;">(변경 후 하단 처리버튼 꼭 클릭)</span>

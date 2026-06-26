@@ -258,7 +258,10 @@ function snd_alim(mode) {
                     <span class="field_txt">{{ lecture_stats_text }}</span>
                     <span class="field_sel" style="display:none;">
                     <select name="lecture_stats" id="lecture_stats" class="select" onchange="set_lecture_stats(this.value);">
+                        {# [원본 ASP 재현] 수강확정(LY)은 power_id 화이트리스트(office_can_confirm) 계정만 노출 #}
+                        {% if office_can_confirm %}
                         <option value="LY" {% if enrollment.lecture_stats == "LY" %}selected{% endif %}>수강확정</option>
+                        {% endif %}
                         <option value="LP" {% if enrollment.lecture_stats == "LP" %}selected{% endif %}>수강예정</option>
                         <option value="PN" {% if enrollment.lecture_stats == "PN" %}selected{% endif %}>일시중지</option>
                         <option value="LN" {% if enrollment.lecture_stats == "LN" %}selected{% endif %}>퇴단</option>
@@ -299,7 +302,10 @@ function snd_alim(mode) {
                     <span class="field_sel" style="display:none;">
                     <select name="pay_stats" id="pay_stats" class="select">
                         <option value="PP" {% if enrollment.pay_stats == "PP" %}selected{% endif %}>결제대기</option>
+                        {# [원본 ASP 재현] 결제완료(PY)는 power_id 화이트리스트(office_can_confirm) 계정만 노출 #}
+                        {% if office_can_confirm %}
                         <option value="PY" {% if enrollment.pay_stats == "PY" %}selected{% endif %}>결제완료</option>
+                        {% endif %}
                         <option value="PN" {% if enrollment.pay_stats == "PN" %}selected{% endif %}>결제취소</option>
                         <option value="PZ" {% if enrollment.pay_stats == "PZ" %}selected{% endif %}>결제대기취소</option>
                         <option value="PQ" {% if enrollment.pay_stats == "PQ" %}selected{% endif %}>입금확인대기</option>

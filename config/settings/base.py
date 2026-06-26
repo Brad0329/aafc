@@ -168,3 +168,9 @@ INFOBANK_CLIENT_PASSWD = config('INFOBANK_CLIENT_PASSWD', default='')
 INFOBANK_AUTH_URL = config('INFOBANK_AUTH_URL', default='https://omni.ibapi.kr/v1/auth/token')
 INFOBANK_SEND_URL = config('INFOBANK_SEND_URL', default='https://mars.ibapi.kr/api/comm/v1/send/omni')
 INFOBANK_DEFAULT_CALLBACK = config('INFOBANK_DEFAULT_CALLBACK', default='1811-7909')
+
+# ── 수강생 관리: 수강확정/결제완료 권한 화이트리스트 ──
+# [원본 ASP 재현] lfstudent_list.asp(procsel Y·T), lfstudent_detail.asp(수강상태 LY·결제상태 PY)는
+#   특정 운영자 아이디(power_id)에게만 '수강확정'/'결제완료' 옵션을 노출한다.
+#   ※ 임시 하드코딩 — 오픈 후 OfficeUser 권한 플래그(데이터 기반)로 리팩터링 예정(백로그 참조).
+STUDENT_CONFIRM_ALLOWED_IDS = ['darkzic', 'gmltjs1007', 'maryzzang']
