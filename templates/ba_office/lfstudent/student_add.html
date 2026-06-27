@@ -55,40 +55,90 @@ function selChild(member_id, member_name, child_id, child_name, course_state) {
 }
 function loadCourses() {
     var sta_code = document.getElementById("sta_code").value;
+    if (!sta_code) { return; }
     var syear = document.getElementById("syear").value;
     var smonth = document.getElementById("smonth").value;
-    if (!sta_code || !syear || !smonth) { return; }
-    var ym = syear + (smonth < 10 ? "0" + smonth : smonth);
+    var ym = (syear && smonth) ? (syear + (parseInt(smonth) < 10 ? "0" + parseInt(smonth) : smonth)) : "";
 
     $.getJSON("{% url 'office_ajax_course_list' %}", {sta_code: sta_code, ym: ym}, function(data) {
         courseData = data;
-        var tbody = document.getElementById("course_tbody");
-        tbody.innerHTML = "";
-        for (var i = 0; i < data.length; i++) {
-            var d = data[i];
-            var days = ['','월','화','수','목','금','토','일'];
-            var dayText = days[d.lecture_day] || '';
-            var tr = "<tr>" +
-                "<td><input type='checkbox' name='sel_lecture' value='" + d.lecture_code + "' onchange='updateSelection();' /></td>" +
-                "<td>" + d.lecture_title + "</td>" +
-                "<td>" + dayText + " " + d.lecture_time + "</td>" +
-                "<td>" + d.lec_price.toLocaleString() + "원</td>" +
-                "<td>" + d.current_count + "/" + d.stu_cnt + "</td>" +
-                "<td>" + d.coach_name + "</td>" +
-                "<td id='sday_" + d.lecture_code + "'>-</td>" +
-                "</tr>";
-            tbody.innerHTML += tr;
-        }
+        renderCourseGrid(data);
+        selectedCourses = [];
+        document.getElementById("course_startdays").innerHTML = "";
+        calcPrice();
     });
+}
+// [원본 ASP 재현] course_list.asp: class_gbn별 A/B 테이블, 요일·시간 행, 대상+체크박스, 정원(현재원)
+function renderCourseGrid(data) {
+    var grid = document.getElementById("course_grid");
+    if (!data || data.length == 0) {
+        grid.innerHTML = "<p style='padding:10px;'>등록된 강좌가 없습니다.</p>";
+        return;
+    }
+    var days = ['', '월', '화', '수', '목', '금', '토', '일'];
+    var classes = [], daytimes = [], seen = {};
+    for (var i = 0; i < data.length; i++) {
+        var cg = data[i].class_gbn || '';
+        if (classes.indexOf(cg) < 0) classes.push(cg);
+        var key = data[i].lecture_day + '|' + data[i].lecture_time;
+        if (!seen[key]) { seen[key] = 1; daytimes.push({ day: data[i].lecture_day, time: data[i].lecture_time }); }
+    }
+    classes.sort();
+    daytimes.sort(function(a, b) { return (a.day - b.day) || (a.time < b.time ? -1 : (a.time > b.time ? 1 : 0)); });
+
+    var html = "";
+    for (var ci = 0; ci < classes.length; ci++) {
+        var cls = classes[ci];
+        html += "<div class='tb_basic' style='display:inline-block; width:49%; vertical-align:top;'>";
+        html += "<table summary='과정리스트' border='0' cellpadding='0' cellspacing='0'>";
+        html += "<colgroup><col width='15%'/><col width='15%'/><col width='40%'/><col width='30%'/></colgroup><tbody>";
+        html += "<tr><th colspan='4'>" + (cls || '-') + "클래스</th></tr>";
+        html += "<tr><th>요일</th><th>시간</th><th>대상</th><th>인원(현재원)</th></tr>";
+        for (var di = 0; di < daytimes.length; di++) {
+            var dt = daytimes[di];
+            var dayText = (days[dt.day] || '') + "요일";
+            var lecs = [];
+            for (var i = 0; i < data.length; i++) {
+                if ((data[i].class_gbn || '') == cls && data[i].lecture_day == dt.day && data[i].lecture_time == dt.time) lecs.push(data[i]);
+            }
+            if (lecs.length == 0) {
+                html += "<tr><th>" + dayText + "</th><th>" + dt.time + "</th><td colspan='2' style='text-align:center;'>-</td></tr>";
+            } else {
+                for (var li = 0; li < lecs.length; li++) {
+                    var d = lecs[li];
+                    var color = (d.stu_cnt - d.current_count) > 0 ? '#0000FF' : '#FF0000';
+                    html += "<tr>";
+                    if (li == 0) {
+                        html += "<th rowspan='" + lecs.length + "'>" + dayText + "</th><th rowspan='" + lecs.length + "'>" + dt.time + "</th>";
+                    }
+                    html += "<td style='text-align:left; padding-left:10px;'><input type='checkbox' name='sel_lecture' value='" + d.lecture_code + "' onchange='updateSelection();' /> " + (d.lec_age || d.lecture_title) + "</td>";
+                    html += "<td style='text-align:left; padding-left:10px;'>" + d.stu_cnt + "명 <span style='color:" + color + ";'>(" + d.current_count + ")</span></td>";
+                    html += "</tr>";
+                }
+            }
+        }
+        html += "</tbody></table></div>";
+    }
+    grid.innerHTML = html;
 }
 function updateSelection() {
     selectedCourses = [];
     var chks = document.querySelectorAll("input[name='sel_lecture']:checked");
+    var container = document.getElementById("course_startdays");
+    if (chks.length == 0) { container.innerHTML = ""; calcPrice(); return; }
+    var html = "<div class='tb_basic'><table summary='선택강좌 수업시작일' border='0' cellpadding='0' cellspacing='0'>";
+    html += "<colgroup><col width='8%'/><col/><col width='40%'/></colgroup><tbody>";
+    html += "<tr><th>순번</th><th>선택 강좌</th><th>수업시작일</th></tr>";
     for (var i = 0; i < chks.length; i++) {
         var code = chks[i].value;
         selectedCourses.push(code);
-        loadStartDays(code);
+        var title = "";
+        for (var j = 0; j < courseData.length; j++) { if (courseData[j].lecture_code == code) { title = courseData[j].lecture_title; break; } }
+        html += "<tr><td style='text-align:center;'>" + (i + 1) + "</td><td class='left'>" + title + "</td><td class='left' id='sday_" + code + "'>로딩...</td></tr>";
     }
+    html += "</tbody></table></div>";
+    container.innerHTML = html;
+    for (var i = 0; i < selectedCourses.length; i++) { loadStartDays(selectedCourses[i]); }
     calcPrice();
 }
 function loadStartDays(lecture_code) {
@@ -259,8 +309,8 @@ function snd_chk() {
         <tr>
             <th scope="col">수강년월</th>
             <td class="left">
-                <input type="text" id="syear" name="syear" style="width:50px;" maxlength="4" />년
-                <input type="text" id="smonth" name="smonth" style="width:30px;" maxlength="2" onchange="loadCourses();" />월
+                <input type="text" id="syear" name="syear" style="width:50px;" maxlength="4" value="{{ default_year }}" onchange="loadCourses();" />년
+                <input type="text" id="smonth" name="smonth" style="width:30px;" maxlength="2" value="{{ default_month }}" onchange="loadCourses();" />월
             </td>
             <th scope="col">수업횟수</th>
             <td class="left">
@@ -288,25 +338,11 @@ function snd_chk() {
 <div class="h_20"></div>
 
 <p class="title">강좌 선택</p>
-<div class="tb_basic">
-<table summary="강좌목록" border="0" cellpadding="0" cellspacing="0">
-    <colgroup>
-        <col width="5%" /><col /><col width="15%" /><col width="12%" />
-        <col width="10%" /><col width="12%" /><col width="15%" />
-    </colgroup>
-    <tbody>
-        <tr>
-            <th scope="col">선택</th><th scope="col">강좌명</th>
-            <th scope="col">요일/시간</th><th scope="col">수강료</th>
-            <th scope="col">정원</th><th scope="col">코치</th>
-            <th scope="col">수업시작일</th>
-        </tr>
-    </tbody>
-    <tbody id="course_tbody">
-        <tr><td colspan="7" align="center">구장과 수강년월을 선택하면 강좌 목록이 표시됩니다.</td></tr>
-    </tbody>
-</table>
+{# [원본 ASP 재현] course_list.asp의 A/B 클래스 그리드. 구장 선택 시 표시 #}
+<div id="course_grid">
+    <p style="padding:10px;">구장을 선택하면 강좌 목록이 표시됩니다.</p>
 </div>
+<div id="course_startdays" style="margin-top:10px;"></div>
 
 <div class="h_20"></div>
 

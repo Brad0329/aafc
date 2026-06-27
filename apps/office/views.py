@@ -4065,6 +4065,8 @@ def ajax_course_list(request):
         data.append({
             'lecture_code': lec.lecture_code,
             'lecture_title': lec.lecture_title,
+            'lec_age': lec.lec_age or '',
+            'class_gbn': lec.class_gbn or '',
             'lec_price': lec.lec_price,
             'lecture_day': lec.lecture_day or 0,
             'lecture_time': lec.lecture_time or '',
@@ -4140,9 +4142,13 @@ def student_add(request):
     setting = Setting.objects.first()
     join_price = setting.join_price if setting else 0
 
+    default_ym = _get_default_ym()  # 'YYYYMM' (22일 이후면 익월)
+
     return render(request, 'ba_office/lfstudent/student_add.html', {
         'stadiums': stadiums,
         'join_price': join_price,
+        'default_year': default_ym[:4],
+        'default_month': default_ym[4:6],
     })
 
 
