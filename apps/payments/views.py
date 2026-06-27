@@ -1,5 +1,6 @@
 import datetime
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import render, redirect
@@ -390,3 +391,153 @@ def toss_enrollment_fail(request):
     return render(request, 'payments/payment_fail.html', {
         'res_msg': message or '결제가 취소되었습니다.',
     })
+
+
+# ============================================================
+# 수강료 결제 (마이페이지) — 원본 mypage payment_new.asp
+#   회원의 결제대기(PP) 입단을 Toss로 결제 → 확정(PY/LY).
+#   원본과 동일하게 가장 오래된 PP 입단 1건씩 결제.
+# ============================================================
+@login_required
+def tuition_payment(request):
+    """수강료 결제 화면 — 결제대기 입단 1건 + Toss 결제."""
+    member = request.user
+    enr = (Enrollment.objects.filter(member_id=member.username, pay_stats='PP')
+           .exclude(lecture_stats='LN').order_by('id').first())
+
+    ctx = {'login_ex': 'N'}
+    if enr:
+        bills = list(EnrollmentBill.objects.filter(enrollment=enr, pay_stats='PP'))
+        join_price = sum(b.bill_amt for b in bills if b.bill_code.startswith('2'))
+        lec_price = sum(b.bill_amt for b in bills if b.bill_code.startswith('1'))
+        pay_price = join_price + lec_price
+
+        child = MemberChild.objects.filter(child_id=enr.child_id).first()
+        child_name = child.name if child else enr.child_id
+
+        courses = list(EnrollmentCourse.objects.filter(enrollment=enr, bill_code='1001')
+                       .order_by('lecture_code', '-course_ym'))
+        lec_codes = set(c.lecture_code for c in courses)
+        lec_map = {l.lecture_code: l for l in
+                   Lecture.objects.filter(lecture_code__in=lec_codes).select_related('stadium')}
+        course_rows, sta_code = [], 0
+        for c in courses:
+            l = lec_map.get(c.lecture_code)
+            if not l:
+                continue
+            if l.stadium:
+                sta_code = l.stadium.sta_code
+            cnt = 0
+            if c.start_ymd:
+                cnt = LectureSelDay.objects.filter(
+                    lecture_code=c.lecture_code, syear=c.start_ymd.year,
+                    smonth=c.start_ymd.month, sday__gte=c.start_ymd.day,
+                ).count()
+            course_rows.append({
+                'course_ym': c.course_ym.strftime('%Y-%m') if c.course_ym else '',
+                'sta_name': (l.stadium.sta_nickname or l.stadium.sta_name) if l.stadium else '',
+                'lecture_title': l.lecture_title,
+                'cnt': cnt,
+            })
+
+        shuttle = next((b for b in bills if b.bill_code == '1009'), None)
+        order_id = timezone.localtime().strftime('%Y%m%d') + str(enr.id).zfill(8)
+        order_name = f'[{enr.id}] 수강료결제 ({child_name})'
+        request.session['tuition_pay'] = {
+            'enrollment_id': enr.id, 'order_id': order_id, 'amount': pay_price,
+        }
+        ctx.update({
+            'login_ex': 'Y', 'enrollment': enr, 'child_name': child_name,
+            'join_price': join_price, 'lec_price': lec_price, 'pay_price': pay_price,
+            'course_rows': course_rows, 'sta_code': sta_code,
+            'shuttle_desc': shuttle.bill_desc if shuttle else '',
+            'order_id': order_id, 'order_name': order_name,
+            'toss_client_key': settings.TOSS_CLIENT_KEY,
+        })
+    return render(request, 'accounts/mypage_payment.html', ctx)
+
+
+@login_required
+def tuition_payment_success(request):
+    """수강료 결제 성공 콜백 — Toss 승인 확정 → 입단 PY/LY 확정."""
+    payment_key = request.GET.get('paymentKey', '')
+    order_id = request.GET.get('orderId', '')
+    amount = request.GET.get('amount', '')
+
+    data = request.session.get('tuition_pay')
+    if not data:
+        return render(request, 'payments/payment_fail.html',
+                      {'res_msg': '세션이 만료되었습니다. 다시 시도해주세요.'})
+
+    expected_order = data.get('order_id', '')
+    expected_amount = int(data.get('amount', 0) or 0)
+    try:
+        amount_int = int(amount)
+    except (ValueError, TypeError):
+        amount_int = -1
+    if order_id != expected_order or amount_int != expected_amount:
+        return render(request, 'payments/payment_fail.html',
+                      {'res_msg': '주문 정보가 일치하지 않습니다. 다시 시도해주세요.'})
+
+    # 멱등성: 이미 처리된 주문
+    if PaymentToss.objects.filter(order_id=order_id).exists():
+        request.session.pop('tuition_pay', None)
+        enr = Enrollment.objects.filter(id=data['enrollment_id']).first()
+        return render(request, 'payments/payment_success.html', {'enrollment': enr})
+
+    http_code, confirm_json = toss.confirm(payment_key, order_id, expected_amount)
+    if http_code != 200:
+        return render(request, 'payments/payment_fail.html',
+                      {'res_msg': confirm_json.get('message', '결제 승인에 실패하였습니다.')})
+    if confirm_json.get('status') != 'DONE' or int(confirm_json.get('totalAmount', 0) or 0) != expected_amount:
+        return render(request, 'payments/payment_fail.html',
+                      {'res_msg': '결제가 정상적으로 완료되지 않았습니다.'})
+
+    pay_method, use_pay_method = toss.method_to_codes(confirm_json.get('method', ''))
+    try:
+        with transaction.atomic():
+            log, created = PaymentToss.objects.get_or_create(
+                order_id=order_id,
+                defaults={
+                    'good_name': data.get('order_name', '수강료결제'),
+                    'pay_seq': data['enrollment_id'],
+                    'member_num': request.user.username,
+                    'buyr_name': request.user.name,
+                    'pg_gbn': 'TOSS',
+                    **toss.build_log_kwargs(confirm_json, http_code, use_pay_method),
+                },
+            )
+            if not created:
+                request.session.pop('tuition_pay', None)
+                enr = Enrollment.objects.filter(id=data['enrollment_id']).first()
+                return render(request, 'payments/payment_success.html', {'enrollment': enr})
+
+            enr = Enrollment.objects.filter(
+                id=data['enrollment_id'], member_id=request.user.username, pay_stats='PP'
+            ).first()
+            if not enr:
+                raise ValueError('결제 대상 입단정보가 없습니다.')
+            # 확정 처리: 결제완료(PY)·수강확정(LY)
+            enr.pay_stats = 'PY'
+            enr.lecture_stats = 'LY'
+            enr.pay_method = pay_method
+            enr.pay_dt = timezone.now()
+            enr.save(update_fields=['pay_stats', 'lecture_stats', 'pay_method', 'pay_dt'])
+            EnrollmentBill.objects.filter(enrollment=enr, pay_stats='PP').update(pay_stats='PY')
+            EnrollmentCourse.objects.filter(enrollment=enr).update(course_stats='LY')
+    except Exception as e:
+        # 승인됐으나 처리 실패 → Toss 보상 취소
+        toss.cancel(payment_key, '수강료결제 처리 실패로 자동 취소')
+        return render(request, 'payments/payment_fail.html',
+                      {'res_msg': f'처리 중 오류로 결제가 취소되었습니다: {e}'})
+
+    request.session.pop('tuition_pay', None)
+    return render(request, 'payments/payment_success.html', {'enrollment': enr})
+
+
+@login_required
+def tuition_payment_fail(request):
+    """수강료 결제 실패/취소 콜백."""
+    request.session.pop('tuition_pay', None)
+    msg = request.GET.get('message', '') or '결제가 취소되었습니다.'
+    return render(request, 'payments/payment_fail.html', {'res_msg': msg})

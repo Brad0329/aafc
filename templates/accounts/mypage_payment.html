@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}수강료 결제 - AAFC{% endblock %}
+
+{% block content %}
+<div id="sub_contents">
+    <div class="sub_top member"><img src="{% static 'images/sub/sub_top_m_member.jpg' %}" alt=""/></div>
+    <div class="sub_menu">
+        <ul>
+            <li><a href="{% url 'accounts:mypage' %}">마이페이지</a></li>
+            <li class="present"><a href="{% url 'payments:tuition_payment' %}">수강료 결제</a></li>
+            <li><a href="{% url 'enrollment:payment_history' %}">결제/수강내역</a></li>
+            <li><a href="{% url 'points:point_list' %}">마이포인트</a></li>
+            <li><a href="{% url 'notifications:notification_list' %}">알림장</a></li>
+            <li><a href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
+        </ul>
+    </div>
+    <div class="sub_contents">
+        <h2 class="sub_tit">수강료 결제<span><img src="{% static 'images/sub/home_ico.jpg' %}" alt=""/>HOME&nbsp;&nbsp;>&nbsp;&nbsp;마이페이지&nbsp;&nbsp;>&nbsp;&nbsp;<b>수강료 결제</b></span></h2>
+        <h3 class="member_tit"><img src="{% static 'images/sub/join_ico_06.png' %}" alt=""/>수강료 결제</h3>
+
+        {% if login_ex == 'Y' %}
+        <table summary="결제내역" class="payment_pc pc_login">
+            <colgroup>
+                <col width="12%"/><col width="12%"/><col width="*"/><col width="10%"/><col width="34%"/>
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>수강년월</th><th>구장명</th><th>과정명</th><th>자녀명</th><th>결제금액</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        {% for r in course_rows %}{{ r.course_ym }}<br>{% endfor %}
+                    </td>
+                    <td>
+                        {% for r in course_rows %}{{ r.sta_name }}<br>{% endfor %}
+                    </td>
+                    <td class="left">
+                        {% for r in course_rows %}{{ r.lecture_title }} : 수업횟수({{ r.cnt }})<br>{% endfor %}
+                    </td>
+                    <td>{{ child_name }}</td>
+                    <td>{{ join_price|intcomma }}원(용품비) + {{ lec_price|intcomma }}원(수강료{% if shuttle_desc %}/{{ shuttle_desc }}{% endif %})</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <table summary="결제총액" class="payment_sum pc_login">
+            <colgroup><col width="20%"/><col width="30%"/><col width="*"/><col width="30%"/></colgroup>
+            <tbody>
+                <tr>
+                    <th>결제총액</th>
+                    <td><b style="color:#d2451e;">{{ pay_price|intcomma }}원</b></td>
+                    <th>결제방법</th>
+                    <td>
+                        <label><input type="radio" name="p_payway" value="C" checked> 신용카드</label>
+                        &nbsp;&nbsp;
+                        <label><input type="radio" name="p_payway" value="R"> 계좌이체</label>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="payment_btn" style="text-align:center; margin-top:20px;">
+            <a href="javascript:sndChk();"><img src="{% static 'images/sub/payment_btn.jpg' %}" alt="결제하기"/></a>
+            <input type="hidden" id="sta_code" value="{{ sta_code }}">
+        </div>
+
+        <input type="hidden" id="amount" value="{{ pay_price }}">
+        <input type="hidden" id="orderId" value="{{ order_id }}">
+        <input type="hidden" id="orderName" value="{{ order_name }}">
+        <input type="hidden" id="customerName" value="{{ user.name }}">
+
+        {% else %}
+        <table summary="결제내역" class="payment_pc pc_login">
+            <colgroup><col width="12%"/><col width="12%"/><col width="*"/><col width="10%"/><col width="34%"/></colgroup>
+            <thead>
+                <tr><th>수강년월</th><th>구장명</th><th>과정명</th><th>자녀명</th><th>결제금액</th></tr>
+            </thead>
+            <tbody><tr><td colspan="5">결제할 수강료 내역이 없습니다.</td></tr></tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+
+{% if login_ex == 'Y' %}
+<script src="https://js.tosspayments.com/v1"></script>
+<script>
+var tossPayments = TossPayments('{{ toss_client_key }}');
+
+function sndChk() {
+    // [원본 ASP 재현] 은평롯데몰(sta_code=11) 온라인결제 차단
+    if (document.getElementById("sta_code").value == "11") {
+        alert("은평롯데몰 구장은 온라인 결제를 지원하지 않습니다. 관리자에게 문의하여 주세요.");
+        return;
+    }
+    var payway = document.querySelector("input[name='p_payway']:checked");
+    if (!payway) { alert("결제방법을 선택하여 주세요."); return; }
+    var method = (payway.value == "C") ? "카드" : "계좌이체";
+
+    tossPayments.requestPayment(method, {
+        amount: Number(document.getElementById("amount").value),
+        orderId: document.getElementById("orderId").value,
+        orderName: document.getElementById("orderName").value,
+        customerName: document.getElementById("customerName").value,
+        successUrl: "{{ request.scheme }}://{{ request.get_host }}{% url 'payments:tuition_payment_success' %}",
+        failUrl: "{{ request.scheme }}://{{ request.get_host }}{% url 'payments:tuition_payment_fail' %}"
+    }).catch(function (error) {
+        if (error.code === 'USER_CANCEL') {
+            alert("결제를 취소하였습니다.");
+        }
+    });
+}
+</script>
+{% endif %}
+{% endblock %}
