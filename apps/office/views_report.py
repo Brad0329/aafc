@@ -1432,15 +1432,12 @@ def report_now_statics_2(request):
     if not lecture_dt:
         lecture_dt = _default_ym()
 
-    # 권역(필드) 목록
-    code_descs = list(
-        CodeValue.objects.filter(group_id='LOCD', del_chk='N')
-        .values_list('code_desc', flat=True).distinct().order_by('code_desc')
-    )
+    # [UX변경] 권역(필드)→지역→구장 캐스케이드 제거 → 구장 직접선택 (다른 화면과 일관)
+    stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
 
     return render(request, 'ba_office/lfreport/now_statics_2.html', {
         'sel_lecture_dt': lecture_dt,
-        'code_descs': code_descs,
+        'stadiums': stadiums,
     })
 
 

@@ -9,37 +9,7 @@
 
 {% block extra_js %}
 <script>
-function sel_group(obj) {
-    var code_desc = obj.value;
-    $("#LocalDiv").html("");
-    $("#StadiumDiv").html("");
-    $("#CourseDiv").html("");
-    if (!code_desc) return;
-    $.get("{% url 'office_report_ajax_local' %}", {code_desc: code_desc}, function(data) {
-        var html = '<select name="local_code" id="local_code" onchange="sel_local(this);"><option value="">지역선택</option>';
-        $.each(data.locals, function(i, item) {
-            html += '<option value="' + item.subcode + '">' + item.code_desc + '_' + item.code_name + '</option>';
-        });
-        html += '</select>';
-        $("#LocalDiv").html(html);
-    });
-}
-
-function sel_local(obj) {
-    var local_code = obj.value;
-    $("#StadiumDiv").html("");
-    $("#CourseDiv").html("");
-    if (!local_code) return;
-    $.get("{% url 'office_report_ajax_stadium' %}", {local_code: local_code}, function(data) {
-        var html = '<select name="sta_code" id="sta_code" onchange="sel_stadium(this);"><option value="">==선택==</option>';
-        $.each(data.stadiums, function(i, s) {
-            html += '<option value="' + s.sta_code + '">' + s.sta_name + '</option>';
-        });
-        html += '</select>';
-        $("#StadiumDiv").html(html);
-    });
-}
-
+// [UX변경] 권역→지역→구장 캐스케이드 제거. 구장 직접선택 → 과정명만 AJAX 로드
 function sel_stadium(obj) {
     var sta_code = obj.value;
     $("#CourseDiv").html("");
@@ -58,8 +28,6 @@ function srchsnd() {
     var sel_lecture_dt = $("#sel_lecture_dt").val();
     if (sel_lecture_dt == "") { alert("조회월을 입력해주세요."); return; }
 
-    var group_code = $("#group_code").val() || "";
-    var local_code = $("#local_code").val() || "";
     var sta_code = $("#sta_code").val() || "";
     var lecture_code = $("#lecture_code").val() || "";
     var apply_gubun = $("#apply_gubun").val() || "";
@@ -70,8 +38,6 @@ function srchsnd() {
     if (isNaN(lecture_code)) lecture_code = "";
 
     var params = "sel_lecture_dt=" + sel_lecture_dt;
-    if (group_code) params += "&group_code=" + encodeURIComponent(group_code);
-    if (local_code) params += "&local_code=" + local_code;
     if (sta_code) params += "&sta_code=" + sta_code;
     if (lecture_code) params += "&lecture_code=" + lecture_code;
     if (apply_gubun) params += "&apply_gubun=" + apply_gubun;
@@ -105,25 +71,20 @@ function srchsnd() {
         </colgroup>
         <tbody>
             <tr>
+                {# [UX변경] 필드/지역선택 제거 → 구장명 직접선택 #}
                 <th scope="col">조회월</th>
                 <td class="left">
                     <input type="text" id="sel_lecture_dt" value="{{ sel_lecture_dt }}" maxlength="10" style="width:100px;" />
                 </td>
-                <th scope="col">필드</th>
+                <th scope="col">구장명</th>
                 <td class="left">
-                    <select name="group_code" id="group_code" onchange="sel_group(this);">
-                        <option value="">필드선택</option>
-                        {% for cd in code_descs %}
-                        <option value="{{ cd }}">{{ cd }}</option>
+                    <select name="sta_code" id="sta_code" onchange="sel_stadium(this);">
+                        <option value="">==선택==</option>
+                        {% for s in stadiums %}
+                        <option value="{{ s.sta_code }}">{{ s.sta_name }}</option>
                         {% endfor %}
                     </select>
                 </td>
-                <th scope="col">지역선택</th>
-                <td class="left" id="LocalDiv"></td>
-                <th scope="col">구장명</th>
-                <td class="left" id="StadiumDiv"></td>
-            </tr>
-            <tr>
                 <th scope="col">과정명</th>
                 <td class="left" id="CourseDiv"></td>
                 <th scope="col">입단구분</th>
@@ -135,6 +96,8 @@ function srchsnd() {
                         <option value="AGAIN">재수강</option>
                     </select>
                 </td>
+            </tr>
+            <tr>
                 <th scope="col">수강상태</th>
                 <td class="left">
                     <select name="lecture_stats" id="lecture_stats">
@@ -147,7 +110,7 @@ function srchsnd() {
                     </select>
                 </td>
                 <th scope="col">결제상태</th>
-                <td class="left">
+                <td class="left" colspan="5">
                     <select name="pay_stats" id="pay_stats">
                         <option value="">전체</option>
                         <option value="PY">결제완료</option>
