@@ -4104,6 +4104,44 @@ def ajax_course_days(request):
 
 
 @office_login_required
+def ajax_course_price(request):
+    """AJAX: 선택 강좌 수강료 계산 (수업일수 기반, 원본 course_sel.asp 동일).
+    수강료 = Σ(1회단가 × 그달 수업일수). 첫 달은 시작일 이후 잔여 세션만."""
+    syear = int(request.GET.get('syear', '0') or '0')
+    smonth = int(request.GET.get('smonth', '0') or '0')
+    lec_period = int(request.GET.get('lec_period', '1') or '1')
+    codes = [c for c in request.GET.get('lectures', '').split(',') if c]
+
+    total = 0
+    details = []
+    for code in codes:
+        try:
+            lec = Lecture.objects.get(lecture_code=int(code))
+        except (Lecture.DoesNotExist, ValueError):
+            continue
+        sday = int(request.GET.get(f'start_day_{code}', '1') or '1')
+        price = 0
+        for offset in range(lec_period):
+            m = smonth + offset
+            y = syear
+            while m > 12:
+                m -= 12
+                y += 1
+            if offset == 0:
+                cnt = LectureSelDay.objects.filter(
+                    lecture_code=lec.lecture_code, syear=y, smonth=m, sday__gte=sday
+                ).count()
+            else:
+                cnt = LectureSelDay.objects.filter(
+                    lecture_code=lec.lecture_code, syear=y, smonth=m
+                ).count()
+            price += lec.lec_price * cnt
+        total += price
+        details.append({'lecture_code': lec.lecture_code, 'price': price})
+    return JsonResponse({'total_lec': total, 'details': details})
+
+
+@office_login_required
 def ajax_promotions(request):
     """AJAX: 프로모션 할인 조회"""
     child_id = request.GET.get('child_id', '')

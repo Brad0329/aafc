@@ -138,6 +138,7 @@ urlpatterns = [
     path('lfstudent/ajax/child-search/', views.ajax_child_search, name='office_ajax_child_search'),
     path('lfstudent/ajax/course-list/', views.ajax_course_list, name='office_ajax_course_list'),
     path('lfstudent/ajax/course-days/', views.ajax_course_days, name='office_ajax_course_days'),
+    path('lfstudent/ajax/course-price/', views.ajax_course_price, name='office_ajax_course_price'),
     path('lfstudent/ajax/promotions/', views.ajax_promotions, name='office_ajax_promotions'),
 
     # 수강생관리 > 일괄처리

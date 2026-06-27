@@ -10,6 +10,26 @@
 <script>
 var courseData = [];
 var selectedCourses = [];
+var serverLecPrice = 0;  // 서버 계산 수강료(수업일수 기반)
+// [원본 ASP 재현] course_sel.asp: 선택강좌 수강료를 수업일수 기반으로 서버 계산
+function updateLecPrice() {
+    if (selectedCourses.length == 0) { serverLecPrice = 0; calcPrice(); return; }
+    var params = {
+        syear: document.getElementById("syear").value,
+        smonth: document.getElementById("smonth").value,
+        lec_period: document.getElementById("lec_period").value,
+        lectures: selectedCourses.join(",")
+    };
+    for (var i = 0; i < selectedCourses.length; i++) {
+        var code = selectedCourses[i];
+        var r = document.querySelector("input[name='start_day_" + code + "']:checked");
+        params["start_day_" + code] = r ? r.value : "1";
+    }
+    $.getJSON("{% url 'office_ajax_course_price' %}", params, function(data) {
+        serverLecPrice = data.total_lec || 0;
+        calcPrice();
+    });
+}
 
 function srch_child() {
     var field = document.getElementById("sch_field").value;
@@ -171,9 +191,10 @@ function loadStartDays(lecture_code) {
         var html = "";
         for (var i = 0; i < data.length; i++) {
             var checked = (i == 0) ? " checked" : "";
-            html += "<label style='margin-right:12px;'><input type='radio' name='start_day_" + lecture_code + "' value='" + data[i].sday + "'" + checked + " /> " + data[i].sday + "일(" + data[i].sweek + ")</label>";
+            html += "<label style='margin-right:12px;'><input type='radio' name='start_day_" + lecture_code + "' value='" + data[i].sday + "'" + checked + " onchange='updateLecPrice();' /> " + data[i].sday + "일(" + data[i].sweek + ")</label>";
         }
         td.innerHTML = html;
+        updateLecPrice();  // 시작일 확정 → 수업일수 기반 수강료 재계산
     });
 }
 // [원본 ASP 재현] setprice: 교육용품비(체크박스)+수강료+차량+프로모션할인 → 결제금액·내역
@@ -195,13 +216,12 @@ function calcPrice() {
     var py_discount = parseInt(document.getElementById("py_discount").value) || 0;
     var recommend_discount = parseInt(document.getElementById("recommend_discount").value) || 0;
 
-    // 수강료 (선택 과정 합산 × 기간) + 다회할인(주2회이상 자동)
-    var lecture_price = 0, multi_discount = 0;
+    // 수강료 = 서버 계산값(수업일수 기반, updateLecPrice) + 다회할인(주2회이상 자동)
+    var multi_discount = 0;
     for (var i = 0; i < selectedCourses.length; i++) {
         var code = selectedCourses[i];
         for (var j = 0; j < courseData.length; j++) {
             if (courseData[j].lecture_code == code) {
-                lecture_price += courseData[j].lec_price;
                 if (lec_cycle == 2) multi_discount += courseData[j].dc_2;
                 else if (lec_cycle == 3) multi_discount += courseData[j].dc_3;
                 else if (lec_cycle >= 4) multi_discount += courseData[j].dc_4;
@@ -209,7 +229,7 @@ function calcPrice() {
             }
         }
     }
-    var total_lec = lecture_price * lec_period;
+    var total_lec = serverLecPrice;
     document.getElementById("multi_discount").value = multi_discount;
     document.getElementById("lec_price_disp").value = total_lec.toLocaleString();
 
@@ -367,7 +387,7 @@ function snd_chk() {
             </td>
             <th scope="col">수강기간</th>
             <td class="left">
-                <select id="lec_period" name="lec_period" class="select" onchange="calcPrice();">
+                <select id="lec_period" name="lec_period" class="select" onchange="updateLecPrice();">
                     <option value="1">1개월</option>
                     <option value="2">2개월</option>
                     <option value="3">3개월</option>
