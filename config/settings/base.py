@@ -56,6 +56,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'apps.office.context_processors.office_user',
+                'apps.common.context_processors.member_count',
             ],
         },
     },

@@ -1,4 +1,4 @@
-{% load static %}
+{% load static humanize %}
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
 <head>
@@ -26,7 +26,7 @@
     <div id="header">
         <div id="header_lnb">
             <div class="header_lnb">
-                <div class="member_count"></div>
+                <div class="member_count">현재 회원수 : {{ front_member_count|intcomma }} 명</div>
                 <ul>
                     <li><a href="https://blog.naver.com/aafc2019" target="_blank"><img src="{% static 'images/blog_icon.png' %}" alt=""/>BLOG</a></li>
                     <li><a href="https://cafe.naver.com/aafc2018" target="_blank"><img src="{% static 'images/cafe_icon.png' %}" alt=""/>CAFE</a></li>
@@ -103,7 +103,7 @@
     <div id="M_header_wrap">
         <h1><a href="/"><img src="{% static 'images/emblem.png' %}" alt=""/></a></h1>
         <h3><img src="{% static 'images/aaladys_220830.png' %}" alt=""/></h3>
-        <div class="member_count"></div>
+        <div class="member_count">현재 회원수 : {{ front_member_count|intcomma }} 명</div>
         <a href="#" class="m_menu"><img src="{% static 'images/m_menu_off.png' %}" alt="메뉴보기"/></a>
         <div id="m_gnb">
             <a href="#" class="m_close"><img src="{% static 'images/m_menu_off.png' %}" alt="메뉴닫기"/></a>
