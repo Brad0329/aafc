@@ -84,7 +84,7 @@ function exceldown() {
             <tr>
                 <th>{{ s.stand_dt }}</th>
                 <th>{{ s.py_price|intcomma }} 원</th>
-                <th>{{ s.pp_price|intcomma }} 원</th>
+                <th><a href="{% url 'office_report_sale_list_pp' %}?searchdate={{ s.stand_dt }}" target="_blank"><font color="blue">{{ s.pp_price|intcomma }} 원</font></a></th>
                 <th>{{ s.pq_price|intcomma }} 원</th>
                 <th>{{ s.pn_price|intcomma }} 원</th>
                 <th>{{ s.pz_price|intcomma }} 원</th>

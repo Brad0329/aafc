@@ -190,6 +190,7 @@ urlpatterns = [
     path('report/total-data/excel/', rpt.report_total_data_excel, name='office_report_total_data_excel'),
 path('report/sale-list/', rpt.report_sale_list, name='office_report_sale_list'),
     path('report/sale-list/excel/', rpt.report_sale_list_excel, name='office_report_sale_list_excel'),
+    path('report/sale-list/pp/', rpt.report_sale_list_pp, name='office_report_sale_list_pp'),
     path('report/sale-day-list/', rpt.report_sale_day_list, name='office_report_sale_day_list'),
     path('report/sale-day-list/excel/', rpt.report_sale_day_list_excel, name='office_report_sale_day_list_excel'),
     path('report/now-data/', rpt.report_now_data, name='office_report_now_data'),

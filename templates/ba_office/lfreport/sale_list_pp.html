@@ -1,0 +1,47 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfreport_left.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; REPORT &gt; 결제 대기 리스트</div>
+<div class="h_55"></div>
+
+<p class="title">결제 대기 리스트 ({{ searchdate }})</p>
+<p>※ 기준월 {{ searchdate }} 의 결제대기(PP)·입금확인대기(PQ) 수강건입니다. 총 <b>{{ total_count|intcomma }}</b>건</p>
+
+<div class="tb_basic">
+    <table summary="결제대기" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="6%" /><col width="10%" /><col width="9%" /><col width="9%" /><col width="9%" />
+            <col width="8%" /><col width="11%" /><col width="*" /><col width="7%" /><col width="9%" /><col width="9%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th>no_seq</th><th>아이디</th><th>회원명</th><th>자녀명</th><th>금액</th>
+                <th>상태</th><th>구장명</th><th>수업명</th><th>수강월</th><th>수강금액</th><th>등록일</th>
+            </tr>
+            {% for r in rows %}
+            <tr>
+                <td>{{ r.no_seq }}</td>
+                <td class="left">{{ r.member_id }}</td>
+                <td>{{ r.member_name }}</td>
+                <td>{{ r.child_name }}</td>
+                <td style="text-align:right;">{{ r.pay_price|intcomma }}</td>
+                <td>{{ r.pay_stats_nm }}</td>
+                <td>{{ r.sta_name }}</td>
+                <td class="left">{{ r.lecture_title }}</td>
+                <td>{{ r.course_ym }}</td>
+                <td style="text-align:right;">{{ r.course_ym_amt|intcomma }}</td>
+                <td>{{ r.insert_dt|date:"Y-m-d" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="11"> - 결제대기 내역이 없습니다 - </td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

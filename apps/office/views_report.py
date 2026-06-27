@@ -495,6 +495,48 @@ def report_sale_list(request):
     })
 
 
+@office_login_required
+@office_permission_required('R')
+def report_sale_list_pp(request):
+    """결제대기 리스트 — (결제월)전체_DATA 결제대기금액 링크 대상 (원본 sale_list_pp.asp).
+    기준월(searchdate, YYYYMM)의 결제대기(PP)·입금확인대기(PQ) 수강건을 나열."""
+    searchdate = request.GET.get('searchdate', '')
+    rows = []
+    if searchdate:
+        # 기준월 = COALESCE(pay_dt, insert_dt) KST → YYYYMM. _get_sale_summary 와 동일 식.
+        sql = """
+        SELECT e.id AS no_seq, e.member_id,
+               m.name AS member_name, mc.name AS child_name,
+               e.pay_price, e.pay_stats, s.sta_name, l.lecture_title,
+               TO_CHAR(ec.course_ym, 'YYYY-MM') AS course_ym, ec.course_ym_amt,
+               e.insert_dt
+        FROM enrollment_enrollment e
+        INNER JOIN enrollment_enrollmentcourse ec ON e.id = ec.no_seq
+        INNER JOIN courses_lecture l ON ec.lecture_code = l.lecture_code
+        INNER JOIN courses_stadium s ON l.stadium_id = s.id
+        LEFT JOIN accounts_member m ON m.username = e.member_id
+        LEFT JOIN accounts_memberchild mc ON mc.child_id = e.child_id
+        WHERE e.pay_stats IN ('PP', 'PQ')
+          AND e.del_chk = 'N'
+          AND ec.bill_code = '1001'
+          AND COALESCE(
+                  TO_CHAR(e.pay_dt AT TIME ZONE 'Asia/Seoul', 'YYYYMM'),
+                  TO_CHAR(e.insert_dt AT TIME ZONE 'Asia/Seoul', 'YYYYMM')
+              ) = %s
+        ORDER BY e.member_id, e.child_id, ec.course_ym
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(sql, [searchdate])
+            columns = [c[0] for c in cursor.description]
+            rows = [dict(zip(columns, r)) for r in cursor.fetchall()]
+        for r in rows:
+            r['pay_stats_nm'] = '결제대기' if r['pay_stats'] == 'PP' else '입금대기'
+
+    return render(request, 'ba_office/lfreport/sale_list_pp.html', {
+        'searchdate': searchdate, 'rows': rows, 'total_count': len(rows),
+    })
+
+
 def _get_sale_summary(cur_year):
     """결제월 요약 - 월별 결제상태별 금액 (KST 기준)"""
     sql = """
