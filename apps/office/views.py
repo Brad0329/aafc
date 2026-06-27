@@ -1740,14 +1740,20 @@ def consult_input(request):
     office_user = request.session.get('office_user', {})
 
     if request.method == 'POST':
+        # [UX변경] 필드(권역) 직접입력 제거 → 선택 구장의 local_code에서 파생
+        sta_code = request.POST.get('sta_code', '')
+        local_code = request.POST.get('local_code', '')
+        if sta_code and not local_code:
+            _sta = Stadium.objects.filter(sta_code=int(sta_code)).first()
+            local_code = str(_sta.local_code) if _sta and _sta.local_code else ''
         consult = Consult.objects.create(
             consult_gbn=request.POST.get('consult_gbn', 'new'),
             member_id=request.POST.get('member_id', ''),
             member_name=request.POST.get('member_name', ''),
             child_id=request.POST.get('child_id', ''),
             child_name=request.POST.get('child_name', ''),
-            local_code=request.POST.get('local_code', ''),
-            sta_code=request.POST.get('sta_code', ''),
+            local_code=local_code,
+            sta_code=sta_code,
             consult_name=request.POST.get('consult_name', ''),
             consult_tel=request.POST.get('consult_tel', ''),
             stu_name=request.POST.get('stu_name', ''),
@@ -1779,7 +1785,9 @@ def consult_input(request):
 
     codes = _get_consult_codes()
     coaches = Coach.objects.filter(use_gbn='Y').order_by('coach_name')
-    ctx = {'coaches': coaches}
+    # [UX변경] 권역→구장 cascade 제거 → 구장 직접선택
+    stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
+    ctx = {'coaches': coaches, 'stadiums': stadiums}
     ctx.update(codes)
     return render(request, 'ba_office/lfconsult/consult_input.html', ctx)
 
