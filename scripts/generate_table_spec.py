@@ -5,6 +5,7 @@ AAFC Django 테이블 상세 명세서 생성 스크립트
 import os
 import sys
 import django
+from datetime import datetime
 
 # Django 설정
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -294,8 +295,9 @@ def generate_spec():
             summary_row += 1
 
     # 저장
+    today = datetime.now().strftime('%Y%m%d')
     output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                               'AAFC_Django_테이블_명세서_20260214.xlsx')
+                               f'AAFC_Django_테이블_명세서_{today}.xlsx')
     wb.save(output_path)
     print(f'테이블 명세서 생성 완료: {output_path}')
     print(f'총 {table_no}개 테이블')
