@@ -7,16 +7,7 @@
 
 {% block extra_js %}
 <script>
-function sel_stadium(code) {
-    $.getJSON("{% url 'office_ajax_student_stadium' %}", {grplocal_code: code}, function(data) {
-        var sel = document.reg_form.sta_code;
-        sel.options.length = 1;
-        for (var i = 0; i < data.length; i++) {
-            sel.options[sel.options.length] = new Option(data[i].sta_name, data[i].sta_code);
-        }
-        document.reg_form.lecture_code.options.length = 1;
-    });
-}
+// [UX변경] 필드명(권역)→구장명 AJAX cascade 제거 (구장 직접선택)
 function sel_course(sta_code) {
     $.getJSON("{% url 'office_ajax_student_course' %}", {sta_code: sta_code}, function(data) {
         var sel = document.reg_form.lecture_code;
@@ -27,7 +18,6 @@ function sel_course(sta_code) {
     });
 }
 function snd_chk() {
-    if (document.reg_form.locd_code.value == "") { alert("권역을 선택하세요."); return; }
     if (document.reg_form.sta_code.value == "") { alert("구장을 선택하세요."); return; }
     if (document.reg_form.lecture_code.value == "") { alert("과정을 선택하세요."); return; }
     if (document.reg_form.wait_seq.value == "") { alert("대기순번을 입력하세요."); return; }
@@ -72,17 +62,9 @@ function snd_chk() {
     <colgroup><col width="15%" /><col width="35%" /><col width="15%" /><col width="35%" /></colgroup>
     <tbody>
         <tr>
-            <th scope="col">필드명</th>
-            <td class="left">
-                <select name="locd_code" class="select" onchange="sel_stadium(this.value);">
-                    <option value="">==선택==</option>
-                    {% for cd in locd_list %}
-                    <option value="{{ cd.subcode }}" {% if wait.local_code == cd.subcode %}selected{% endif %}>{{ cd.code_name }}</option>
-                    {% endfor %}
-                </select>
-            </td>
+            {# [UX변경] 필드명(권역) 제거 → 구장명 직접선택 #}
             <th scope="col">구장명</th>
-            <td class="left">
+            <td class="left" colspan="3">
                 <select name="sta_code" class="select" onchange="sel_course(this.value);">
                     <option value="">==선택==</option>
                     {% for s in stadiums %}

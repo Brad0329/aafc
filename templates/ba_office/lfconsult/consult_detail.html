@@ -7,16 +7,7 @@
 
 {% block extra_js %}
 <script>
-function sel_stadium(local_code) {
-    $.getJSON("{% url 'office_ajax_consult_stadium' %}", {local_code: local_code}, function(data) {
-        var sel = document.getElementById('sta_code');
-        sel.options.length = 1;
-        for (var i = 0; i < data.length; i++) {
-            sel.options[sel.options.length] = new Option(data[i].sta_name, data[i].sta_code);
-        }
-    });
-}
-
+// [UX변경] 권역→구장 AJAX cascade 제거 (구장 직접선택)
 function consult_update() {
     var f = document.detailform;
     if (!f.consult_name.value.trim()) { alert('이름(신청자)을 입력해주세요.'); f.consult_name.focus(); return; }
@@ -78,17 +69,7 @@ function answer_delete(url) {
         <tr>
             <th scope="col">자녀아이디</th>
             <td class="left"><input type="text" name="child_id" value="{{ consult.child_id }}" size="20" class="input" /></td>
-            <th scope="col">권역</th>
-            <td class="left">
-                <select name="local_code" class="select" onchange="sel_stadium(this.value);">
-                    <option value="">선택</option>
-                    {% for c in locd_codes %}
-                    <option value="{{ c.subcode }}" {% if consult.local_code == c.subcode|stringformat:"d" %}selected{% endif %}>{{ c.code_name }}</option>
-                    {% endfor %}
-                </select>
-            </td>
-        </tr>
-        <tr>
+            {# [UX변경] 권역 제거 → 구장 직접선택 #}
             <th scope="col">구장</th>
             <td class="left">
                 <select name="sta_code" id="sta_code" class="select">
@@ -98,6 +79,8 @@ function answer_delete(url) {
                     {% endfor %}
                 </select>
             </td>
+        </tr>
+        <tr>
             <th scope="col">이름(신청자)</th>
             <td class="left"><input type="text" name="consult_name" value="{{ consult.consult_name }}" size="10" class="input" /></td>
         </tr>

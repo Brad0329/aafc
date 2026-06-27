@@ -1626,8 +1626,14 @@ def consult_detail(request, pk):
         consult.consult_gbn = request.POST.get('consult_gbn', '')
         consult.member_id = request.POST.get('member_id', '')
         consult.child_id = request.POST.get('child_id', '')
-        consult.local_code = request.POST.get('local_code', '')
-        consult.sta_code = request.POST.get('sta_code', '')
+        # [UX변경] 필드(권역) 직접입력 제거 → 선택 구장의 local_code에서 파생
+        _scode = request.POST.get('sta_code', '')
+        _lcode = request.POST.get('local_code', '')
+        if _scode and not _lcode:
+            _sta = Stadium.objects.filter(sta_code=int(_scode)).first()
+            _lcode = str(_sta.local_code) if _sta and _sta.local_code else ''
+        consult.local_code = _lcode
+        consult.sta_code = _scode
         consult.consult_name = request.POST.get('consult_name', '')
         consult.consult_tel = request.POST.get('consult_tel', '')
         consult.stu_name = request.POST.get('stu_name', '')
@@ -1645,12 +1651,8 @@ def consult_detail(request, pk):
 
     answers = consult.answers.all().order_by('id')
     codes = _get_consult_codes()
+    # [UX변경] 권역 필터 제거 → 구장 직접선택(전체)
     stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
-    if consult.local_code:
-        try:
-            stadiums = stadiums.filter(local_code=int(consult.local_code))
-        except ValueError:
-            pass
     coaches = Coach.objects.filter(use_gbn='Y').order_by('coach_name')
 
     # 코치명 매핑
@@ -3467,21 +3469,12 @@ def wait_list(request):
         w.mhtel = phone_map.get(w.member_id, '')
         w.trans_gbn_text = '처리완료' if w.trans_gbn == 'Y' else '미처리'
 
-    locd_list = CodeValue.objects.filter(
-        group__grpcode='LOCD', del_chk='N'
-    ).order_by('code_order')
-
-    stadiums = []
-    if sch_locd_code:
-        stadiums = Stadium.objects.filter(
-            use_gbn='Y', local_code=int(sch_locd_code)
-        ).order_by('sta_name')
+    # [UX변경] 권역→구장 cascade 제거 → 구장 직접선택(전체)
+    stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
 
     return render(request, 'ba_office/lfstudent/wait_list.html', {
         'wait_list': wait_data,
-        'locd_list': locd_list,
         'stadiums': stadiums,
-        'sch_locd_code': sch_locd_code,
         'sch_sta_code': sch_sta_code,
         'trans_gbn': trans_gbn,
     })
@@ -3496,32 +3489,33 @@ def wait_write(request):
         member_name = request.POST.get('member_name', '').strip()
         child_id = request.POST.get('child_id', '').strip()
         child_name = request.POST.get('child_name', '').strip()
-        locd_code = request.POST.get('locd_code', '').strip()
         sta_code_str = request.POST.get('sta_code', '').strip()
         lecture_code_str = request.POST.get('lecture_code', '').strip()
         wait_seq_str = request.POST.get('wait_seq', '').strip()
         bigo = request.POST.get('bigo', '').strip()
         insert_id = request.session.get('office_user', {}).get('office_id', '')
 
-        # 서버측 필수값 검증
-        if not member_id or not child_id or not locd_code or not sta_code_str or not lecture_code_str or not wait_seq_str:
+        # 서버측 필수값 검증 ([UX변경] 권역 입력 제거)
+        if not member_id or not child_id or not sta_code_str or not lecture_code_str or not wait_seq_str:
             return render(request, 'ba_office/lfstudent/wait_write.html', {
                 'children': [],
-                'locd_list': CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order'),
+                'stadiums': Stadium.objects.filter(use_gbn='Y').order_by('sta_name'),
                 'sch_field': 'member_id', 'sch_value': '',
                 'error_msg': '필수정보가 부족합니다.',
             })
 
-        local_code = int(locd_code)
         sta_code = int(sta_code_str)
         lecture_code = int(lecture_code_str)
         wait_seq = int(wait_seq_str)
+        # [UX변경] local_code는 선택 구장에서 파생
+        _sta = Stadium.objects.filter(sta_code=sta_code).first()
+        local_code = _sta.local_code if _sta and _sta.local_code else 0
 
         # 중복체크: 미처리 대기자 중 동일 child_id
         if WaitStudent.objects.filter(child_id=child_id, del_chk='N', trans_gbn='N').exists():
             return render(request, 'ba_office/lfstudent/wait_write.html', {
                 'children': [],
-                'locd_list': CodeValue.objects.filter(group__grpcode='LOCD', del_chk='N').order_by('code_order'),
+                'stadiums': Stadium.objects.filter(use_gbn='Y').order_by('sta_name'),
                 'sch_field': 'member_id', 'sch_value': '',
                 'error_msg': f'{child_id} 은(는) 대기자 명단에 존재합니다. 등록할 수 없습니다.',
             })
@@ -3562,13 +3556,12 @@ def wait_write(request):
             qs = qs.filter(name__icontains=sch_value)
         children = list(qs.select_related('parent').order_by('name'))
 
-    locd_list = CodeValue.objects.filter(
-        group__grpcode='LOCD', del_chk='N'
-    ).order_by('code_order')
+    # [UX변경] 권역→구장 cascade 제거 → 구장 직접선택
+    stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
 
     return render(request, 'ba_office/lfstudent/wait_write.html', {
         'children': children,
-        'locd_list': locd_list,
+        'stadiums': stadiums,
         'sch_field': sch_field,
         'sch_value': sch_value,
     })
@@ -3581,8 +3574,10 @@ def wait_modify(request, pk):
     wait = get_object_or_404(WaitStudent, pk=pk)
 
     if request.method == 'POST':
-        wait.local_code = int(request.POST.get('locd_code', '0') or '0')
         wait.sta_code = int(request.POST.get('sta_code', '0') or '0')
+        # [UX변경] local_code는 선택 구장에서 파생
+        _sta = Stadium.objects.filter(sta_code=wait.sta_code).first()
+        wait.local_code = _sta.local_code if _sta and _sta.local_code else 0
         wait.lecture_code = int(request.POST.get('lecture_code', '0') or '0')
         wait.wait_seq = int(request.POST.get('wait_seq', '0') or '0')
         wait.trans_gbn = request.POST.get('trans_gbn', 'N')
@@ -3590,13 +3585,8 @@ def wait_modify(request, pk):
         wait.save()
         return redirect('office_wait_list')
 
-    locd_list = CodeValue.objects.filter(
-        group__grpcode='LOCD', del_chk='N'
-    ).order_by('code_order')
-
-    stadiums = Stadium.objects.filter(
-        use_gbn='Y', local_code=wait.local_code
-    ).order_by('sta_name') if wait.local_code else []
+    # [UX변경] 권역→구장 cascade 제거 → 구장 직접선택(전체)
+    stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
 
     courses = Lecture.objects.filter(
         stadium__sta_code=wait.sta_code, use_gbn='Y'
@@ -3604,7 +3594,6 @@ def wait_modify(request, pk):
 
     return render(request, 'ba_office/lfstudent/wait_modify.html', {
         'wait': wait,
-        'locd_list': locd_list,
         'stadiums': stadiums,
         'courses': courses,
     })
@@ -4880,7 +4869,8 @@ def lecture_write(request):
 
         Lecture.objects.create(
             lecture_code=lecture_code,
-            local_code=int(request.POST.get('local_code', '0') or '0'),
+            # [UX변경] 필드(권역) 직접입력 제거 → 선택 구장의 local_code 사용
+            local_code=(stadium_obj.local_code if stadium_obj else 0),
             stadium=stadium_obj,
             lecture_title=lecture_title,
             lec_age=request.POST.get('lec_age', ''),
@@ -4928,7 +4918,8 @@ def lecture_modify(request, lecture_code):
         t_coach_code = request.POST.get('t_coach_code', '')
         t_coach_obj = Coach.objects.filter(coach_code=int(t_coach_code)).first() if t_coach_code else None
 
-        lecture.local_code = int(request.POST.get('local_code', '0') or '0')
+        # [UX변경] 필드(권역) 직접입력 제거 → 선택 구장의 local_code 사용
+        lecture.local_code = stadium_obj.local_code if stadium_obj else 0
         lecture.stadium = stadium_obj
         lecture.lecture_title = request.POST.get('lecture_title', '')
         lecture.lec_age = request.POST.get('lec_age', '')
@@ -5357,8 +5348,12 @@ def promotion_input(request):
         if issue_mode == 2:
             local_code_val = request.POST.get('local_code_2', '')
         elif issue_mode == 3:
-            local_code_val = request.POST.get('local_code_3', '')
+            # [UX변경] mode3: 권역→구장 cascade 제거 → 구장 직접선택, local_code는 구장에서 파생
             sta_code_val = request.POST.get('sta_code3', '')
+            local_code_val = request.POST.get('local_code_3', '')
+            if sta_code_val and not local_code_val:
+                _sta = Stadium.objects.filter(sta_code=int(sta_code_val)).first()
+                local_code_val = str(_sta.local_code) if _sta and _sta.local_code else ''
 
         try:
             start_date = datetime.strptime(start_date_str, '%Y-%m-%d') if start_date_str else None
@@ -5454,6 +5449,7 @@ def promotion_input(request):
     isUse = 'T'
     isAllmem = False
     local_code = ''
+    sta_code = ''
     items = ''
 
     member_list = []
@@ -5474,6 +5470,7 @@ def promotion_input(request):
         maxPrice = promotion.max_price
         isUse = promotion.is_use or 'T'
         local_code = promotion.local_code or ''
+        sta_code = getattr(promotion, 'sta_code', '') or ''
 
         # 프로모션 회원 목록
         pm_qs = PromotionMember.objects.filter(coupon_uid=promotion.uid, used='T', is_trash='T')
@@ -5506,6 +5503,7 @@ def promotion_input(request):
         'isUse': isUse,
         'isAllmem': isAllmem,
         'local_code': local_code,
+        'sta_code': sta_code,
         'items': items,
         'locd_list': locd_list,
         'stadiums': stadiums_qs,

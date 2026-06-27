@@ -7,15 +7,7 @@
 
 {% block extra_js %}
 <script>
-function sel_stadium(code) {
-    $.getJSON("{% url 'office_ajax_student_stadium' %}", {grplocal_code: code}, function(data) {
-        var sel = document.srch_form.sch_sta_code;
-        sel.options.length = 1;
-        for (var i = 0; i < data.length; i++) {
-            sel.options[sel.options.length] = new Option(data[i].sta_name, data[i].sta_code);
-        }
-    });
-}
+// [UX변경] 필드명(권역)→구장명 AJAX cascade 제거 (구장 직접선택)
 function srch_snd() {
     document.srch_form.submit();
 }
@@ -41,15 +33,7 @@ function lfwait_del(no_seq) {
     </colgroup>
     <tbody>
         <tr>
-            <th scope="col">필드명</th>
-            <td class="left">
-                <select name="sch_locd_code" class="select" onchange="sel_stadium(this.value);">
-                    <option value="">==선택==</option>
-                    {% for cd in locd_list %}
-                    <option value="{{ cd.subcode }}" {% if sch_locd_code == cd.subcode|stringformat:"d" %}selected{% endif %}>{{ cd.code_name }}</option>
-                    {% endfor %}
-                </select>
-            </td>
+            {# [UX변경] 필드명(권역) 제거 → 구장명 직접선택 #}
             <th scope="col">구장명</th>
             <td class="left">
                 <select name="sch_sta_code" class="select">

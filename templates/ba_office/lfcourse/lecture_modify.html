@@ -8,7 +8,6 @@
 {% block extra_js %}
 <script>
 function sendChk() {
-    if (chec_fun(reg_form.local_code, "권역선택") == false) { return; }
     if (chec_fun(reg_form.sta_code, "구장선택") == false) { return; }
     if (chec_fun(reg_form.lec_age, "연령") == false) { return; }
     if (chec_fun(reg_form.lecture_day, "수업요일") == false) { return; }
@@ -36,11 +35,7 @@ function sendChk() {
 <div class="tb_basic">
     <form name="reg_form" method="post" action="{% url 'office_lecture_modify' lecture.lecture_code %}">
     {% csrf_token %}
-    <select name="hi_sta_code" class="select" style="display:none;">
-        {% for s in all_stadiums %}
-        <option value="{{ s.sta_code }}" title="{{ s.local_code }}">{{ s.sta_name }}</option>
-        {% endfor %}
-    </select>
+    {# [UX변경] 필드선택→구장 필터(hi_sta_code/setSelect) 제거 → 구장 직접선택 #}
     <input type="hidden" name="lecture_code" value="{{ lecture.lecture_code }}">
     <table summary="과정수정" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
@@ -51,19 +46,12 @@ function sendChk() {
         </colgroup>
         <tbody>
             <tr>
-                <th scope="col">필드선택<font color="red">*</font></th>
-                <td class="left">
-                    <select name="local_code" class="select" onchange="setSelect('reg_form.hi_sta_code', 'reg_form.sta_code', this.value)">
-                        <option value="">==선택==</option>
-                        {% for cd in locd_list %}
-                        <option value="{{ cd.subcode }}" {% if lecture.local_code == cd.subcode %}selected{% endif %}>{{ cd.code_name }}</option>
-                        {% endfor %}
-                    </select>
-                </td>
+                {# [UX변경] 필드선택 제거 → 구장 직접선택 #}
                 <th scope="col">구장선택<font color="red">*</font></th>
-                <td class="left">
+                <td class="left" colspan="3">
                     <select name="sta_code" class="select">
-                        {% for s in filtered_stadiums %}
+                        <option value="">==선택==</option>
+                        {% for s in all_stadiums %}
                         <option value="{{ s.sta_code }}" {% if lecture.sta_code == s.sta_code %}selected{% endif %}>{{ s.sta_name }}</option>
                         {% endfor %}
                     </select>
