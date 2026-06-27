@@ -157,7 +157,7 @@ function wait_Delete() {
 
 <div class="h_20"></div>
 
-{% if searched %}
+{# [원본 ASP 재현] 조회 전에도 처리영역·목록·대기자 골격을 항상 표시 (원본 lfstudent_list.asp 동일) #}
 <p class="txt">아래에서 선택한 수강생을
     <select id="procsel" class="select">
         <option value="">==선택==</option>
@@ -315,6 +315,5 @@ function wait_Delete() {
     <a href="javascript:wait_Delete();"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a>
 </div>
 </form>
-{% endif %}
 
 {% endblock %}
