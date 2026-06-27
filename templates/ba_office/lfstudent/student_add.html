@@ -53,17 +53,6 @@ function selChild(member_id, member_name, child_id, child_name, course_state) {
     }
     calcPrice();
 }
-function sel_stadium(code) {
-    $.getJSON("{% url 'office_ajax_student_stadium' %}", {grplocal_code: code}, function(data) {
-        var sel = document.getElementById("sta_code");
-        sel.options.length = 1;
-        for (var i = 0; i < data.length; i++) {
-            sel.options[sel.options.length] = new Option(data[i].sta_name, data[i].sta_code);
-        }
-    });
-    document.getElementById("course_tbody").innerHTML = "";
-    selectedCourses = [];
-}
 function loadCourses() {
     var sta_code = document.getElementById("sta_code").value;
     var syear = document.getElementById("syear").value;
@@ -158,7 +147,6 @@ function calcPrice() {
 function snd_chk() {
     if (!document.getElementById("member_id").value) { alert("회원을 선택하세요."); return; }
     if (!document.getElementById("child_id").value) { alert("자녀를 선택하세요."); return; }
-    if (!document.getElementById("locd_code").value) { alert("권역을 선택하세요."); return; }
     if (!document.getElementById("sta_code").value) { alert("구장을 선택하세요."); return; }
 
     var chks = document.querySelectorAll("input[name='sel_lecture']:checked");
@@ -250,19 +238,14 @@ function snd_chk() {
     <colgroup><col width="12%" /><col width="21%" /><col width="12%" /><col width="21%" /><col width="12%" /><col width="22%" /></colgroup>
     <tbody>
         <tr>
-            <th scope="col">필드명</th>
-            <td class="left">
-                <select id="locd_code" name="locd_code" class="select" onchange="sel_stadium(this.value);">
-                    <option value="">==선택==</option>
-                    {% for cd in locd_list %}
-                    <option value="{{ cd.subcode }}">{{ cd.code_name }}</option>
-                    {% endfor %}
-                </select>
-            </td>
+            {# [UX변경] 원본: 필드명(권역)→구장명 AJAX cascade → 구장명 직접선택으로 통일 #}
             <th scope="col">구장명</th>
-            <td class="left">
+            <td class="left" colspan="3">
                 <select id="sta_code" name="sta_code" class="select" onchange="loadCourses();">
                     <option value="">==선택==</option>
+                    {% for s in stadiums %}
+                    <option value="{{ s.sta_code }}">{{ s.sta_name }}</option>
+                    {% endfor %}
                 </select>
             </td>
             <th scope="col">셔틀이용</th>

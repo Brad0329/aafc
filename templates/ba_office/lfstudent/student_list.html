@@ -94,8 +94,8 @@ function wait_Delete() {
 <div class="tb_basic">
 <form name="srch_form" method="get" action="{% url 'office_student_list' %}">
 <table summary="수강생정보" border="0" cellpadding="0" cellspacing="0">
-    {# [UX변경] 원본: 필드명+구장명+과정명 3열 6컬럼 → 구장명+과정명 2열 4컬럼 #}
-    <colgroup><col width="11%" /><col width="23%" /><col width="10%" /><col width="56%" /></colgroup>
+    {# [UX변경] 원본: 필드명+구장명+과정명 3열 6컬럼 → 구장명+과정명 2열 4컬럼. 결제상태는 강좌명 옆으로 정렬 #}
+    <colgroup><col width="11%" /><col width="39%" /><col width="11%" /><col width="39%" /></colgroup>
     <tbody>
         <tr>
             <th scope="col">구장명</th>
@@ -133,6 +133,8 @@ function wait_Delete() {
             <td class="left">
                 <input type="text" name="sch_ym" maxlength="6" style="width:100px;" value="{{ sch_ym }}" />
             </td>
+        </tr>
+        <tr>
             <th scope="col">결제상태</th>
             <td class="left">
                 <select name="sch_pay_stats" class="select">
@@ -142,11 +144,9 @@ function wait_Delete() {
                     <option value="PY" {% if sch_pay_stats == "PY" %}selected{% endif %}>결제완료</option>
                 </select>
             </td>
-        </tr>
-        <tr>
             <th scope="col">강좌명</th>
-            <td class="left" colspan="5">
-                <input type="text" name="sch_lecture_title" maxlength="100" style="width:400px;" value="{{ sch_lecture_title }}" />
+            <td class="left">
+                <input type="text" name="sch_lecture_title" maxlength="100" style="width:90%;" value="{{ sch_lecture_title }}" />
             </td>
         </tr>
     </tbody>

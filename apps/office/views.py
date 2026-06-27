@@ -4134,15 +4134,14 @@ def student_add(request):
     if request.method == 'POST':
         return _student_add_proc(request)
 
-    locd_list = CodeValue.objects.filter(
-        group__grpcode='LOCD', del_chk='N'
-    ).order_by('code_order')
+    # [UX변경] 구장 전체 직접 표시. 원본: locd_list(권역) + AJAX cascade
+    stadiums = Stadium.objects.filter(use_gbn='Y').order_by('sta_name')
 
     setting = Setting.objects.first()
     join_price = setting.join_price if setting else 0
 
     return render(request, 'ba_office/lfstudent/student_add.html', {
-        'locd_list': locd_list,
+        'stadiums': stadiums,
         'join_price': join_price,
     })
 
@@ -4157,8 +4156,10 @@ def _student_add_proc(request):
     if not member_id or not child_id:
         return redirect('office_student_add')
 
-    local_code = int(request.POST.get('locd_code', '0') or '0')
     sta_code = int(request.POST.get('sta_code', '0') or '0')
+    # [UX변경] 권역(locd_code) 직접입력 제거 → 선택 구장의 local_code에서 파생
+    _sta = Stadium.objects.filter(sta_code=sta_code).first()
+    local_code = _sta.local_code if _sta else 0
     syear = int(request.POST.get('syear', '0') or '0')
     smonth = int(request.POST.get('smonth', '0') or '0')
     lec_cycle = int(request.POST.get('lec_cycle', '1') or '1')
