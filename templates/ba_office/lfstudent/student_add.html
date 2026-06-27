@@ -106,12 +106,13 @@ function renderCourseGrid(data) {
             } else {
                 for (var li = 0; li < lecs.length; li++) {
                     var d = lecs[li];
-                    var color = (d.stu_cnt - d.current_count) > 0 ? '#0000FF' : '#FF0000';
+                    var full = (d.stu_cnt - d.current_count) <= 0;
+                    var color = full ? '#FF0000' : '#0000FF';
                     html += "<tr>";
                     if (li == 0) {
                         html += "<th rowspan='" + lecs.length + "'>" + dayText + "</th><th rowspan='" + lecs.length + "'>" + dt.time + "</th>";
                     }
-                    html += "<td style='text-align:left; padding-left:10px;'><input type='checkbox' name='sel_lecture' value='" + d.lecture_code + "' onchange='updateSelection();' /> " + (d.lec_age || d.lecture_title) + "</td>";
+                    html += "<td style='text-align:left; padding-left:10px;'><input type='checkbox' name='sel_lecture' value='" + d.lecture_code + "' onchange='onCourseToggle(this, " + (full ? 'true' : 'false') + ");' /> " + (d.lec_age || d.lecture_title) + "</td>";
                     html += "<td style='text-align:left; padding-left:10px;'>" + d.stu_cnt + "명 <span style='color:" + color + ";'>(" + d.current_count + ")</span></td>";
                     html += "</tr>";
                 }
@@ -120,6 +121,15 @@ function renderCourseGrid(data) {
         html += "</tbody></table></div>";
     }
     grid.innerHTML = html;
+}
+// [원본 ASP 재현] go_class: 정원초과(신청불가) 강좌 체크 시 차단
+function onCourseToggle(cb, full) {
+    if (cb.checked && full) {
+        alert("정원이 초과되었습니다 구단사무실로 연락바랍니다.");
+        cb.checked = false;
+        return;
+    }
+    updateSelection();
 }
 function updateSelection() {
     selectedCourses = [];
