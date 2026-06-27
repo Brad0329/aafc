@@ -12,15 +12,19 @@
   python manage.py daily_aggregate --proc-date 20260622 --month 202606
   python manage.py daily_aggregate --target coach  # coach|total|both(기본)
 """
-from datetime import datetime
-
 from django.core.management.base import BaseCommand
 from django.db import connection, transaction
+from django.utils import timezone
+
+
+def _now():
+    """서버 TZ와 무관하게 Django TIME_ZONE(Asia/Seoul) 기준 현재시각."""
+    return timezone.localtime()
 
 
 def _default_month():
     """당월(22일 이후면 익월) — 원본 sp 기준월 계산과 동일."""
-    now = datetime.now()
+    now = _now()
     y, m = now.year, now.month
     if now.day > 22:
         m += 1
@@ -136,7 +140,7 @@ class Command(BaseCommand):
         parser.add_argument('--target', default='both', choices=['coach', 'total', 'both'])
 
     def handle(self, *args, **opts):
-        proc_date = opts['proc_date'] or datetime.now().strftime('%Y%m%d')
+        proc_date = opts['proc_date'] or _now().strftime('%Y%m%d')
         month = opts['month'] or _default_month()
         target = opts['target']
 
