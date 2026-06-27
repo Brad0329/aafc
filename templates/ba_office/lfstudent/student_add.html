@@ -56,6 +56,9 @@ function selChild(member_id, member_name, child_id, child_name, course_state) {
 function loadCourses() {
     var sta_code = document.getElementById("sta_code").value;
     if (!sta_code) { return; }
+    // 컨텍스트: 구장명
+    var staSel = document.getElementById("sta_code");
+    document.getElementById("pay_sta_name").innerText = (staSel.selectedIndex >= 0) ? staSel.options[staSel.selectedIndex].text : "";
     var syear = document.getElementById("syear").value;
     var smonth = document.getElementById("smonth").value;
     var ym = (syear && smonth) ? (syear + (parseInt(smonth) < 10 ? "0" + parseInt(smonth) : smonth)) : "";
@@ -135,19 +138,22 @@ function updateSelection() {
     selectedCourses = [];
     var chks = document.querySelectorAll("input[name='sel_lecture']:checked");
     var container = document.getElementById("course_startdays");
-    if (chks.length == 0) { container.innerHTML = ""; calcPrice(); return; }
+    if (chks.length == 0) { container.innerHTML = ""; document.getElementById("pay_crs_name").innerText = ""; calcPrice(); return; }
     var html = "<div class='tb_basic'><table summary='선택강좌 수업시작일' border='0' cellpadding='0' cellspacing='0'>";
     html += "<colgroup><col width='8%'/><col/><col width='40%'/></colgroup><tbody>";
     html += "<tr><th>순번</th><th>선택 강좌</th><th>수업시작일</th></tr>";
+    var crsNames = [];
     for (var i = 0; i < chks.length; i++) {
         var code = chks[i].value;
         selectedCourses.push(code);
         var title = "";
         for (var j = 0; j < courseData.length; j++) { if (courseData[j].lecture_code == code) { title = courseData[j].lecture_title; break; } }
+        crsNames.push(title);
         html += "<tr><td style='text-align:center;'>" + (i + 1) + "</td><td class='left'>" + title + "</td><td class='left' id='sday_" + code + "'>로딩...</td></tr>";
     }
     html += "</tbody></table></div>";
     container.innerHTML = html;
+    document.getElementById("pay_crs_name").innerText = crsNames.join(" / ");
     for (var i = 0; i < selectedCourses.length; i++) { loadStartDays(selectedCourses[i]); }
     calcPrice();
 }
@@ -170,17 +176,27 @@ function loadStartDays(lecture_code) {
         td.innerHTML = html;
     });
 }
+// [원본 ASP 재현] setprice: 교육용품비(체크박스)+수강료+차량+프로모션할인 → 결제금액·내역
 function calcPrice() {
     var lec_cycle = parseInt(document.getElementById("lec_cycle").value) || 1;
     var lec_period = parseInt(document.getElementById("lec_period").value) || 1;
-    var join_price = parseInt(document.getElementById("join_price").value) || 0;
+
+    // 교육용품비 (10만원적용/0원적용 체크박스)
+    var base_join = parseInt(document.getElementById("join_price_base").value) || 0;
+    var join_price = base_join;
+    if (document.getElementById("disc_chk").checked) join_price = 100000;
+    if (document.getElementById("disc_chk2").checked) join_price = 0;
+    document.getElementById("join_price").value = join_price;
+    document.getElementById("join_price_disp").value = join_price.toLocaleString();
+
+    // 프로모션 할인 (hidden — 프로모션에서 적용)
     var eq_discount = parseInt(document.getElementById("eq_discount").value) || 0;
     var tu_discount = parseInt(document.getElementById("tu_discount").value) || 0;
     var py_discount = parseInt(document.getElementById("py_discount").value) || 0;
+    var recommend_discount = parseInt(document.getElementById("recommend_discount").value) || 0;
 
-    // 수강료 계산 (선택된 과정의 price 합산)
-    var lecture_price = 0;
-    var multi_discount = 0;
+    // 수강료 (선택 과정 합산 × 기간) + 다회할인(주2회이상 자동)
+    var lecture_price = 0, multi_discount = 0;
     for (var i = 0; i < selectedCourses.length; i++) {
         var code = selectedCourses[i];
         for (var j = 0; j < courseData.length; j++) {
@@ -193,17 +209,40 @@ function calcPrice() {
             }
         }
     }
-
-    // 수업일수 기반 정확한 금액은 서버에서 계산하므로 여기서는 참고용으로만 표시
+    var total_lec = lecture_price * lec_period;
     document.getElementById("multi_discount").value = multi_discount;
+    document.getElementById("lec_price_disp").value = total_lec.toLocaleString();
 
-    var shuttle_amt = parseInt(document.getElementById("shuttle_amt").value) || 0;
-    var recommend_discount = parseInt(document.getElementById("recommend_discount").value) || 0;
+    // 차량이용료 (등록 체크박스)
+    var shuttle_amt = 0;
+    if (document.getElementById("shuttle_yn").checked) {
+        shuttle_amt = parseInt(document.getElementById("shuttle_amt").value) || 0;
+    } else {
+        document.getElementById("shuttle_amt").value = "0";
+    }
 
-    var total = join_price + (lecture_price * lec_period) + shuttle_amt - eq_discount - tu_discount - py_discount - multi_discount - recommend_discount;
-    if (total < 0) total = 0;
-    document.getElementById("pay_price").value = total;
-    document.getElementById("total_disp").innerHTML = total.toLocaleString() + "원";
+    // 결제금액
+    var pay = (join_price - eq_discount) + (total_lec - tu_discount - multi_discount) + shuttle_amt - py_discount - recommend_discount;
+    if (pay < 0) pay = 0;
+    document.getElementById("pay_price").value = pay;
+    document.getElementById("pay_price_disp").value = pay.toLocaleString();
+
+    // 결제금액 내역 텍스트
+    var parts = [];
+    parts.push("교육용품비(" + join_price.toLocaleString() + "원" + (eq_discount > 0 ? " - " + eq_discount.toLocaleString() + "원" : "") + ")");
+    if (total_lec > 0) {
+        var ldc = tu_discount + multi_discount;
+        parts.push("수강료(" + total_lec.toLocaleString() + "원" + (ldc > 0 ? " / 할인:" + ldc.toLocaleString() + "원" : "") + ")");
+    }
+    if (shuttle_amt > 0) parts.push("차량이용료(" + shuttle_amt.toLocaleString() + "원)");
+    var str = parts.join(" + ");
+    if (py_discount > 0) str += " - 결제금액할인(" + py_discount.toLocaleString() + "원)";
+    if (recommend_discount > 0) str += " - 피추천인할인(" + recommend_discount.toLocaleString() + "원)";
+    document.getElementById("str_price").innerHTML = str;
+
+    // 컨텍스트: 수강월
+    var sy = document.getElementById("syear").value, sm = document.getElementById("smonth").value;
+    document.getElementById("pay_lec_date").innerText = (sy && sm) ? (sy + "-" + (sm.length < 2 ? "0" + sm : sm)) : "";
 }
 function snd_chk() {
     if (!document.getElementById("member_id").value) { alert("회원을 선택하세요."); return; }
@@ -301,19 +340,12 @@ function snd_chk() {
         <tr>
             {# [UX변경] 원본: 필드명(권역)→구장명 AJAX cascade → 구장명 직접선택으로 통일 #}
             <th scope="col">구장명</th>
-            <td class="left" colspan="3">
+            <td class="left" colspan="5">
                 <select id="sta_code" name="sta_code" class="select" onchange="loadCourses();">
                     <option value="">==선택==</option>
                     {% for s in stadiums %}
                     <option value="{{ s.sta_code }}">{{ s.sta_name }}</option>
                     {% endfor %}
-                </select>
-            </td>
-            <th scope="col">셔틀이용</th>
-            <td class="left">
-                <select name="shuttle_yn" class="select" onchange="calcPrice();">
-                    <option value="N">미이용</option>
-                    <option value="Y">이용</option>
                 </select>
             </td>
         </tr>
@@ -357,73 +389,86 @@ function snd_chk() {
 
 <div class="h_20"></div>
 
-<p class="title">결제 정보</p>
+<p class="title">결제정보</p>
+{# [원본 ASP 재현] lfstudent_add.asp 결제정보: 컨텍스트+교육용품비(체크)+수강료+차량(체크)+프로모션+결제금액(내역) #}
+{# 할인은 프로모션에서 적용(hidden). proc는 eq/tu/py/multi/recommend 청구코드로 처리 #}
+<input type="hidden" id="join_price_base" value="{{ join_price }}" />
+<input type="hidden" id="join_price" name="join_price" value="{{ join_price }}" />
+<input type="hidden" id="pay_price" name="pay_price" value="0" />
+<input type="hidden" id="eq_discount" name="eq_discount" value="0" />
+<input type="hidden" id="tu_discount" name="tu_discount" value="0" />
+<input type="hidden" id="py_discount" name="py_discount" value="0" />
+<input type="hidden" id="multi_discount" name="multi_discount" value="0" />
+<input type="hidden" id="recommend_discount" name="recommend_discount" value="0" />
+<input type="hidden" name="recommend_id" id="recommend_id" value="" />
+<input type="hidden" name="lecture_stats" value="LP" />
 <div class="tb_basic">
 <table summary="결제정보" border="0" cellpadding="0" cellspacing="0">
     <colgroup><col width="15%" /><col width="35%" /><col width="15%" /><col width="35%" /></colgroup>
     <tbody>
         <tr>
+            <th scope="col">구장명</th>
+            <td class="left" id="pay_sta_name"></td>
+            <th scope="col">수강월</th>
+            <td class="left" id="pay_lec_date"></td>
+        </tr>
+        <tr>
+            <th scope="col">과정명</th>
+            <td class="left" colspan="3" id="pay_crs_name"></td>
+        </tr>
+        <tr>
             <th scope="col">교육용품비</th>
-            <td class="left"><input type="text" id="join_price" name="join_price" style="width:100px;" value="{{ join_price }}" onchange="calcPrice();" />원</td>
-            <th scope="col">교육용품할인</th>
-            <td class="left"><input type="text" id="eq_discount" name="eq_discount" style="width:100px;" value="0" onchange="calcPrice();" />원</td>
-        </tr>
-        <tr>
-            <th scope="col">수강료할인</th>
-            <td class="left"><input type="text" id="tu_discount" name="tu_discount" style="width:100px;" value="0" onchange="calcPrice();" />원</td>
-            <th scope="col">결제금액할인</th>
-            <td class="left"><input type="text" id="py_discount" name="py_discount" style="width:100px;" value="0" onchange="calcPrice();" />원</td>
-        </tr>
-        <tr>
-            <th scope="col">다회할인</th>
-            <td class="left"><input type="text" id="multi_discount" name="multi_discount" style="width:100px;" value="0" readonly />원 (자동계산)</td>
-            <th scope="col">피추천인할인</th>
-            <td class="left"><input type="text" id="recommend_discount" name="recommend_discount" style="width:100px;" value="0" onchange="calcPrice();" />원
-                <input type="text" name="recommend_id" style="width:80px;" placeholder="추천인ID" />
+            <td class="left">
+                <input type="text" id="join_price_disp" style="width:80px;" value="{{ join_price }}" readonly />원
+                <label><input type="checkbox" id="disc_chk" onclick="calcPrice();" />10만원적용</label>
+                <label><input type="checkbox" id="disc_chk2" onclick="calcPrice();" />0원적용</label>
             </td>
+            <td class="left" colspan="2">
+                <font color="red">
+                ※ 교육용품비가 적용되지 않아야 하는 경우 -자녀정보-수강상태를 '퇴단' or '일시정지'로 변경 후 재등록<br>
+                ※ 적용되어야 하는 경우 -자녀정보-수강상태를 '미수강'으로 변경<br>
+                ※ 입단비 할인/미적용시 옵션값 선택(10만원, 0원)
+                </font>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">수강료</th>
+            <td class="left"><input type="text" id="lec_price_disp" style="width:80px;" value="0" readonly />원</td>
+            <td class="left" colspan="2"><font color="red">※ 수강료 결제시, 결제대기로 선택해주세요.</font></td>
         </tr>
         <tr>
             <th scope="col">차량이용료</th>
-            <td class="left"><input type="text" id="shuttle_amt" name="shuttle_amt" style="width:100px;" value="0" onchange="calcPrice();" />원</td>
-            <th scope="col">결제금액</th>
             <td class="left">
-                <input type="hidden" id="pay_price" name="pay_price" value="0" />
-                <span id="total_disp" style="font-weight:bold; color:#FF0000;">0원</span>
+                <input type="text" id="shuttle_amt" name="shuttle_amt" style="width:80px;" value="0" onchange="calcPrice();" />원
+                <label><input type="checkbox" id="shuttle_yn" name="shuttle_yn" value="Y" onclick="calcPrice();" />차량이용료 등록</label>
+            </td>
+            <td class="left" colspan="2"><font color="red">차량이용료 입력 후 등록 체크박스를 체크하여 주세요<br>등록 수강 기간의 전체 이용료를 입력 (3개월 수강시 3개월치)</font></td>
+        </tr>
+        <tr>
+            <th scope="col">프로모션</th>
+            <td class="left" id="pay_promo">-</td>
+            <td class="left" colspan="2">
+                <font color="red"><b>해당프로모션 확인요망</b><br>프로모션 삭제/추가는 프로모션 관리 메뉴에서 처리 후 다시 등록</font>
             </td>
         </tr>
         <tr>
-            <th scope="col">결제방법</th>
+            <th scope="col">결제금액</th>
+            <td class="left" id="str_price"></td>
+            <th scope="col">결제금액<font color="red">*</font></th>
             <td class="left">
+                <input type="text" id="pay_price_disp" style="width:80px;" value="0" readonly />
                 <select name="pay_method" class="select">
-                    <option value="ACCT">무통장 입금</option>
-                    <option value="CARD">카드</option>
-                    <option value="BENEFIT">복지</option>
+                    <option value="">선택하지않음</option>
+                    <option value="ACCT">무통장입금</option>
                     <option value="ZEROPAY">제로페이</option>
-                    <option value="MUCU">문화상품권</option>
-                    <option value="LOTTE">롯데</option>
-                    <option value="EMART">이마트</option>
-                    <option value="GRPY">그룹페이</option>
-                    <option value="SPBA">SPBA</option>
+                    <option value="BENEFIT">장학혜택</option>
+                    <option value="GRPY">현장결제</option>
+                    <option value="SPBA">스포츠바우처</option>
                 </select>
-            </td>
-            <th scope="col">결제상태</th>
-            <td class="left">
                 <select name="pay_stats" class="select">
                     <option value="PP">결제대기</option>
-                    <option value="PY">결제완료</option>
                 </select>
             </td>
-        </tr>
-        <tr>
-            <th scope="col">수강상태</th>
-            <td class="left">
-                <select name="lecture_stats" class="select">
-                    <option value="LP">수강예정</option>
-                    <option value="LY">수강확정</option>
-                </select>
-            </td>
-            <th scope="col">비고</th>
-            <td class="left"><input type="text" name="bigo_content" style="width:200px;" /></td>
         </tr>
     </tbody>
 </table>
