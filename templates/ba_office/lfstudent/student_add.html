@@ -148,14 +148,15 @@ function loadStartDays(lecture_code) {
         var td = document.getElementById("sday_" + lecture_code);
         if (!td) return;
         if (data.length == 0) {
-            td.innerHTML = "수업일 없음";
+            td.innerHTML = "수업시작일이 등록되지 않았습니다.";
             return;
         }
-        var html = "<select name='start_day_" + lecture_code + "'>";
+        // [원본 ASP 재현] course_sel_day.asp: 수업시작일 라디오버튼 (첫 항목 기본선택)
+        var html = "";
         for (var i = 0; i < data.length; i++) {
-            html += "<option value='" + data[i].sday + "'>" + data[i].sday + "일(" + data[i].sweek + ")</option>";
+            var checked = (i == 0) ? " checked" : "";
+            html += "<label style='margin-right:12px;'><input type='radio' name='start_day_" + lecture_code + "' value='" + data[i].sday + "'" + checked + " /> " + data[i].sday + "일(" + data[i].sweek + ")</label>";
         }
-        html += "</select> (" + data.length + "회)";
         td.innerHTML = html;
     });
 }
