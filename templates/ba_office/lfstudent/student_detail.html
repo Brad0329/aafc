@@ -220,9 +220,7 @@ function snd_alim(mode) {
                         <option value="BENEFIT" {% if enrollment.pay_method == "BENEFIT" %}selected{% endif %}>장학혜택</option>
                         <option value="GRPY" {% if enrollment.pay_method == "GRPY" %}selected{% endif %}>현장결제</option>
                         <option value="SPBA" {% if enrollment.pay_method == "SPBA" %}selected{% endif %}>스포츠바우처</option>
-                        <option value="CARD" {% if enrollment.pay_method == "CARD" %}selected{% endif %}>카드</option>
-                        <option value="R" {% if enrollment.pay_method == "R" %}selected{% endif %}>실시간계좌이체</option>
-                        <option value="VACCT" {% if enrollment.pay_method == "VACCT" %}selected{% endif %}>가상계좌</option>
+                        {# [원본 ASP 재현] CARD/R/VACCT 등은 원본 lfstudent_detail.asp에서 주석처리(미노출) — 활성 5종만 노출 #}
                     </select>
                     </span>
                 </td>
@@ -383,12 +381,13 @@ function snd_alim(mode) {
     <td width="66%" valign="top">
     <div class="tb_basic">
     <table summary="과정정보" border="0" cellpadding="0" cellspacing="0">
-        <colgroup><col width="15%" /><col /><col width="10%" /><col width="10%" /><col width="10%" /></colgroup>
+        <colgroup><col width="15%" /><col /><col width="10%" /><col width="10%" /><col width="10%" /><col width="10%" /></colgroup>
         <tbody>
             <tr>
                 <th scope="col">구장명</th>
                 <th scope="col">과정명</th>
                 <th scope="col">년월</th>
+                <th scope="col">수업횟수</th>
                 <th scope="col">시작일</th>
                 <th scope="col">수강상태</th>
             </tr>
@@ -398,12 +397,13 @@ function snd_alim(mode) {
                 <td>{% for code, l in lec.items %}{% if code == c.lecture_code %}{{ l.stadium.sta_nickname }}{% endif %}{% endfor %}</td>
                 <td>{% for code, l in lec.items %}{% if code == c.lecture_code %}{{ l.lecture_title }}{% endif %}{% endfor %}</td>
                 <td>{{ c.course_ym|date:"Y-m" }}</td>
+                <td>{{ c.cnt }}</td>
                 <td>{% if c.start_ymd %}{{ c.start_ymd|date:"Y-m-d" }}{% endif %}</td>
-                <td>{{ c.course_stats }}</td>
+                <td>{{ c.course_stats_text }}</td>
             </tr>
             {% endwith %}
             {% empty %}
-            <tr><td colspan="5">조회 수강정보가 없습니다.</td></tr>
+            <tr><td colspan="6">조회 수강정보가 없습니다.</td></tr>
             {% endfor %}
         </tbody>
     </table>

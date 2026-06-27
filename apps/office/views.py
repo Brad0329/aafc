@@ -2568,9 +2568,23 @@ def student_detail(request, no_seq):
             return redirect('office_student_list')
 
     # 수강과정 목록
-    course_entries = EnrollmentCourse.objects.filter(
+    course_entries = list(EnrollmentCourse.objects.filter(
         enrollment=enrollment, bill_code='1001'
-    ).order_by('-course_ym')
+    ).order_by('-course_ym'))
+
+    # 각 과정행에 수강상태 라벨 + 수업횟수 부여 (원본 lfstudent_detail.asp 과정정보 테이블)
+    #   수업횟수 cnt = 시작월 중 시작일 이후 수업일 수 (ASP: COUNT(lf_lecture_selday.sday))
+    for c in course_entries:
+        c.course_stats_text = LECTURE_STATS_TEXT.get(c.course_stats, c.course_stats)
+        if c.start_ymd:
+            c.cnt = LectureSelDay.objects.filter(
+                lecture_code=c.lecture_code,
+                syear=c.start_ymd.year,
+                smonth=c.start_ymd.month,
+                sday__gte=c.start_ymd.day,
+            ).count()
+        else:
+            c.cnt = 0
 
     # 강좌 정보 매핑
     lec_codes = set(c.lecture_code for c in course_entries)
