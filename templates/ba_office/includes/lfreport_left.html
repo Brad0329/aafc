@@ -10,8 +10,10 @@
                 <li><a href="{% url 'office_report_now_data' %}">(회원)구장별 현재원</a></li>
                 <li><a href="{% url 'office_report_now_statics_1' %}">조회월 수강 통계</a></li>
                 <li><a href="{% url 'office_report_now_statics_2' %}">조회월 현재원</a></li>
+                {% comment %} 쇼핑몰 주문현황 메뉴 숨김 처리
                 <li><a href="{% url 'office_report_order_list' %}">쇼핑몰 주문현황</a></li>
                 <li><a href="{% url 'office_report_order_list_dedup' %}">쇼핑몰 주문현황<br>(중복제거)</a></li>
+                {% endcomment %}
                 <li><a href="{% url 'office_report_new_student' %}">신규(재)입단 리스트</a></li>
                 <li><a href="{% url 'office_report_end_student' %}">퇴단자 리스트</a></li>
                 <li><a href="{% url 'office_report_anal_end' %}">퇴단자 통계</a></li>
