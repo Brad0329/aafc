@@ -4094,7 +4094,15 @@ def ajax_course_days(request):
         lecture_code=int(lecture_code), syear=int(syear), smonth=int(smonth),
     ).order_by('sday')
 
-    data = [{'sday': d.sday, 'sweek': d.sweek or ''} for d in days]
+    # LectureSelDay에 요일 필드 없음 → 날짜로 계산 (월=0 … 일=6)
+    weekday_names = ['월', '화', '수', '목', '금', '토', '일']
+    data = []
+    for d in days:
+        try:
+            sweek = weekday_names[date(d.syear, d.smonth, d.sday).weekday()]
+        except (ValueError, TypeError):
+            sweek = ''
+        data.append({'sday': d.sday, 'sweek': sweek})
     return JsonResponse(data, safe=False)
 
 
