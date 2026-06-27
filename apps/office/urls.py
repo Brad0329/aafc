@@ -220,6 +220,9 @@ path('report/sale-list/', rpt.report_sale_list, name='office_report_sale_list'),
     path('report/raw-data/excel/', rpt.report_raw_data_excel, name='office_report_raw_data_excel'),
     path('report/month-coachdata/', rpt.report_month_coachdata, name='office_report_month_coachdata'),
     path('report/year-coachdata/', rpt.report_year_coachdata, name='office_report_year_coachdata'),
+    # REPORT > 마감 확정본 (sp_daily_* 데몬 적재본)
+    path('report/daily-coach/', rpt.report_daily_coach, name='office_report_daily_coach'),
+    path('report/daily-snapshot/', rpt.report_daily_snapshot, name='office_report_daily_snapshot'),
     # REPORT > AJAX
     path('report/ajax/local/', rpt.ajax_report_local, name='office_report_ajax_local'),
     path('report/ajax/stadium/', rpt.ajax_report_stadium, name='office_report_ajax_stadium'),

@@ -1,0 +1,96 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfreport_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function srch_snd() {
+    var pd = document.getElementById("proc_dt").value;
+    var cy = document.getElementById("course_ym").value;
+    var url = "{% url 'office_report_daily_snapshot' %}?proc_dt=" + pd;
+    if (cy) url += "&course_ym=" + cy;
+    location.href = url;
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; REPORT &gt; 일별 전체 스냅샷(확정본)</div>
+<div class="h_55"></div>
+
+<p class="title">일별 전체 수강 스냅샷 (마감 확정본)</p>
+<div class="tb_basic">
+    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+        <colgroup><col width="8%" /><col width="25%" /><col width="8%" /><col width="25%" /><col width="*" /></colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">적재일</th>
+                <td class="left">
+                    <select id="proc_dt">
+                        {% for p in proc_list %}
+                        <option value="{{ p }}" {% if proc_dt == p %}selected{% endif %}>{{ p }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <th scope="col">수강년월</th>
+                <td class="left">
+                    <select id="course_ym">
+                        <option value="">=전체=</option>
+                        {% for y in ym_list %}
+                        <option value="{{ y }}" {% if course_ym == y %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td class="left"><a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<p>&nbsp;</p>
+<p>※ 밤 배치(데몬)가 <b>{{ proc_dt }}</b> 시점에 동결한 전체 수강 스냅샷입니다. 총 <b>{{ total_count|intcomma }}</b>건</p>
+
+<div class="tb_basic">
+    <table summary="스냅샷" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="4%" /><col width="9%" /><col width="9%" /><col width="6%" /><col width="*" />
+            <col width="9%" /><col width="7%" /><col width="8%" /><col width="8%" /><col width="7%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th>순번</th><th>회원ID</th><th>자녀ID</th><th>신청구분</th><th>강좌명</th>
+                <th>코치</th><th>수강상태</th><th>결제상태</th><th>결제금액</th><th>수강월</th>
+            </tr>
+            {% for r in students %}
+            <tr>
+                <td>{{ r.rownum }}</td>
+                <td class="left">{{ r.member_id }}<br/>({{ r.member_name }})</td>
+                <td class="left">{{ r.child_id }}<br/>({{ r.child_name }})</td>
+                <td>{{ r.apply_gubun }}</td>
+                <td class="left">{{ r.sta_name }} {{ r.lecture_title }}</td>
+                <td>{{ r.coach_name }}</td>
+                <td>{{ r.lecture_stats }}</td>
+                <td>{{ r.pay_stats }}</td>
+                <td style="text-align:right;">{{ r.pay_price|intcomma }}</td>
+                <td>{{ r.course_ym }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="10"> - No Data - </td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if students.has_other_pages %}
+<div style="text-align:center; margin:10px 0;">
+    {% for p in students.paginator.page_range %}
+        {% if p == students.number %}<b>[{{ p }}]</b>
+        {% else %}<a href="?proc_dt={{ proc_dt }}&course_ym={{ course_ym }}&page={{ p }}">[{{ p }}]</a>{% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

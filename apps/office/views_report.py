@@ -9,8 +9,9 @@ from django.db.models import Q, Sum, Count, Case, When, Value, IntegerField, Cha
 from django.db.models.functions import Coalesce, Substr
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from django.core.paginator import Paginator
 from .decorators import office_login_required, office_permission_required
-from apps.reports.models import MonthlyData
+from apps.reports.models import MonthlyData, DailyTotalData, DailyCoachDataNew
 from apps.enrollment.models import (
     Enrollment, EnrollmentCourse, EnrollmentBill, Attendance,
 )
@@ -2987,4 +2988,86 @@ def report_year_coachdata(request):
     return render(request, 'ba_office/lfreport/year_coachdata.html', {
         'search_date': search_date, 'rows': data, 'total_count': len(data),
         'year_list': _year_choices(),
+    })
+
+
+# ============================================================
+# 마감 스냅샷/정산 (원본 sp_daily_* 데몬 적재본 조회)
+#   기존 실시간 리포트와 별개로, 밤배치가 확정·동결한 값을 그대로 보여준다.
+# ============================================================
+@office_login_required
+@office_permission_required('R')
+def report_daily_coach(request):
+    """일별 코치 정산 (확정본) — reports_dailycoachdatanew 적재본을 코치별 집계."""
+    proc_dt = request.GET.get('proc_dt', '')
+    course_ym = request.GET.get('course_ym', '')
+
+    proc_list = list(DailyCoachDataNew.objects.values_list('proc_dt', flat=True)
+                     .distinct().order_by('-proc_dt'))
+    if not proc_dt and proc_list:
+        proc_dt = proc_list[0]
+    ym_list = list(DailyCoachDataNew.objects.filter(proc_dt=proc_dt)
+                   .values_list('course_ym', flat=True).distinct().order_by('-course_ym')) if proc_dt else []
+
+    rows, totals = [], None
+    if proc_dt:
+        qs = DailyCoachDataNew.objects.filter(proc_dt=proc_dt)
+        if course_ym:
+            qs = qs.filter(course_ym=course_ym)
+        agg = qs.values('coach_code', 'coach_name').annotate(
+            cl_cnt=Sum('cl_cnt'), m1001=Sum('m1001_price'), m1002=Sum('m1002_price'),
+            m1003=Sum('m1003_price'), m1003_b=Sum('m1003_b_price'), m1006=Sum('m1006_price'),
+            m1007_b=Sum('m1007_b_price'), m1009_b=Sum('m1009_b_price'),
+            m2001=Sum('m2001_price'), m2002=Sum('m2002_price'),
+        ).order_by('coach_name')
+        rows = list(agg)
+        for r in rows:
+            r['tot_sum'] = r['m1001'] + r['m1002'] + r['m1003'] + r['m1003_b'] + r['m1006'] + r['m1007_b']
+            r['etc_sum'] = r['m1009_b'] + r['m2001'] + r['m2002']
+        t = qs.aggregate(
+            cl_cnt=Sum('cl_cnt'), m1001=Sum('m1001_price'), m1002=Sum('m1002_price'),
+            m1003=Sum('m1003_price'), m1003_b=Sum('m1003_b_price'), m1006=Sum('m1006_price'),
+            m1007_b=Sum('m1007_b_price'), m1009_b=Sum('m1009_b_price'),
+            m2001=Sum('m2001_price'), m2002=Sum('m2002_price'),
+        )
+        if t['cl_cnt']:
+            t['tot_sum'] = (t['m1001'] or 0) + (t['m1002'] or 0) + (t['m1003'] or 0) + (t['m1003_b'] or 0) + (t['m1006'] or 0) + (t['m1007_b'] or 0)
+            t['etc_sum'] = (t['m1009_b'] or 0) + (t['m2001'] or 0) + (t['m2002'] or 0)
+            totals = t
+
+    return render(request, 'ba_office/lfreport/daily_coach.html', {
+        'proc_dt': proc_dt, 'course_ym': course_ym,
+        'proc_list': proc_list, 'ym_list': ym_list,
+        'rows': rows, 'totals': totals,
+    })
+
+
+@office_login_required
+@office_permission_required('R')
+def report_daily_snapshot(request):
+    """일별 전체 수강 스냅샷 (확정본) — reports_dailytotaldata 적재본 조회."""
+    proc_dt = request.GET.get('proc_dt', '')
+    course_ym = request.GET.get('course_ym', '')
+    page = request.GET.get('page', '1')
+
+    proc_list = list(DailyTotalData.objects.values_list('proc_dt', flat=True)
+                     .distinct().order_by('-proc_dt'))
+    if not proc_dt and proc_list:
+        proc_dt = proc_list[0]
+    ym_list = list(DailyTotalData.objects.filter(proc_dt=proc_dt)
+                   .values_list('course_ym', flat=True).distinct().order_by('-course_ym')) if proc_dt else []
+
+    students, total_count = None, 0
+    if proc_dt:
+        qs = DailyTotalData.objects.filter(proc_dt=proc_dt)
+        if course_ym:
+            qs = qs.filter(course_ym=course_ym)
+        qs = qs.order_by('rownum')
+        total_count = qs.count()
+        students = Paginator(qs, 50).get_page(page)
+
+    return render(request, 'ba_office/lfreport/daily_snapshot.html', {
+        'proc_dt': proc_dt, 'course_ym': course_ym,
+        'proc_list': proc_list, 'ym_list': ym_list,
+        'students': students, 'total_count': total_count,
     })

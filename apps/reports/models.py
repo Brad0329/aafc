@@ -32,3 +32,95 @@ class MonthlyData(models.Model):
 
     def __str__(self):
         return f'{self.proc_dt} {self.sta_name}'
+
+
+class DailyTotalData(models.Model):
+    """일별 전체 수강 스냅샷 (원본 lf_daily_total_data / sp_daily_total_data).
+    매일 밤 데몬이 당월 1001 수강내역을 비정규화 적재. proc_dt=적재일(YYYYMMDD)."""
+    proc_dt = models.CharField('처리일', max_length=12)
+    rownum = models.BigIntegerField('순번', default=0)
+    no_seq = models.IntegerField('입단번호', default=0)
+    member_id = models.CharField('회원ID', max_length=30, blank=True)
+    member_name = models.CharField('회원명', max_length=30, blank=True, db_column='MEMBER_NAME')
+    child_id = models.CharField('자녀ID', max_length=30, blank=True)
+    mhtel = models.CharField('휴대폰', max_length=30, blank=True)
+    child_name = models.CharField('자녀명', max_length=30, blank=True, db_column='CHILD_NAME')
+    card_num = models.CharField('카드번호', max_length=8, blank=True, db_column='CARD_NUM')
+    apply_gubun = models.CharField('신청구분', max_length=30, blank=True)
+    sta_name = models.CharField('구장명', max_length=50, blank=True)
+    lecture_code = models.IntegerField('강좌코드', default=0)
+    lecture_title = models.CharField('강좌명', max_length=150, blank=True)
+    coach_name = models.CharField('코치명', max_length=30, blank=True, db_column='COACH_NAME')
+    lec_cycle = models.CharField('주간횟수', max_length=1, blank=True)
+    lec_period = models.CharField('수강기간', max_length=1, blank=True)
+    lecture_stats = models.CharField('수강상태', max_length=30, blank=True)
+    pay_price = models.IntegerField('결제금액', default=0)
+    lec_price = models.IntegerField('수업료', default=0)
+    join_price = models.IntegerField('교육용품비', default=0)
+    lec_course_ym_amt = models.IntegerField('월수강금액', default=0)
+    pay_stats = models.CharField('결제상태', max_length=12, blank=True)
+    pay_method = models.CharField('결제방법', max_length=14, blank=True)
+    pay_dt = models.CharField('결제일', max_length=10, blank=True, db_column='PAY_DT')
+    cancel_date = models.CharField('취소일', max_length=10, blank=True)
+    cancel_code = models.CharField('취소코드', max_length=4, blank=True)
+    cancel_desc = models.CharField('취소사유', max_length=100, blank=True)
+    start_dt = models.CharField('시작월', max_length=6, blank=True)
+    end_dt = models.CharField('종료월', max_length=6, blank=True)
+    course_ym = models.CharField('수강년월', max_length=7, blank=True)
+    course_ym_amt = models.IntegerField('수강금액', default=0)
+    insert_id = models.CharField('등록자', max_length=16, blank=True)
+    insert_dt = models.CharField('등록일', max_length=10, blank=True, db_column='INSERT_DT')
+
+    class Meta:
+        db_table = 'reports_dailytotaldata'
+        verbose_name = '일별 전체 스냅샷'
+        verbose_name_plural = '일별 전체 스냅샷'
+        indexes = [
+            models.Index(fields=['proc_dt'], name='idx_dtd_proc_dt'),
+            models.Index(fields=['proc_dt', 'course_ym'], name='idx_dtd_proc_ym'),
+        ]
+
+    def __str__(self):
+        return f'{self.proc_dt} {self.child_id}'
+
+
+class DailyCoachDataNew(models.Model):
+    """일별 코치 정산 (원본 lf_daily_coachdata_new / sp_daily_coach_data_new).
+    매일 밤 데몬이 당월 확정(PY/LY) 결제를 청구코드별로 분해·집계. proc_dt=적재일(YYYYMMDD)."""
+    proc_dt = models.CharField('처리일', max_length=8)
+    pay_seq = models.IntegerField('결제번호', default=0)
+    member_id = models.CharField('회원ID', max_length=30, blank=True)
+    child_id = models.CharField('자녀ID', max_length=30, blank=True)
+    order_id = models.CharField('주문번호', max_length=50, blank=True)
+    pay_dt = models.DateTimeField('결제일시', null=True, blank=True)
+    insert_dt = models.DateTimeField('등록일시', null=True, blank=True)
+    pay_method = models.CharField('결제방법', max_length=20, blank=True)
+    course_ym = models.CharField('수강년월', max_length=10, blank=True)
+    sta_code = models.IntegerField('구장코드', default=0)
+    lecture_code = models.IntegerField('강좌코드', default=0)
+    coach_code = models.IntegerField('코치코드', default=0)
+    coach_name = models.CharField('코치명', max_length=30, blank=True)
+    cl_cnt = models.IntegerField('수강건수', default=0)
+    m1001_price = models.IntegerField('수업료', default=0)
+    m1002_price = models.IntegerField('첫달차감', default=0)
+    m1003_price = models.IntegerField('수강료할인', default=0)
+    m1003_b_price = models.IntegerField('결제금액차감', default=0)
+    m1006_price = models.IntegerField('피추천할인', default=0)
+    m1007_b_price = models.IntegerField('다회할인', default=0)
+    m1009_b_price = models.IntegerField('차량이용료', default=0)
+    m2001_price = models.IntegerField('교육용품비', default=0)
+    m2002_price = models.IntegerField('교육용품할인', default=0)
+    regdate = models.DateTimeField('등록일', null=True, blank=True)
+
+    class Meta:
+        db_table = 'reports_dailycoachdatanew'
+        verbose_name = '일별 코치 정산'
+        verbose_name_plural = '일별 코치 정산'
+        indexes = [
+            models.Index(fields=['proc_dt'], name='idx_dcdn_proc_dt'),
+            models.Index(fields=['proc_dt', 'course_ym'], name='idx_dcdn_proc_ym'),
+            models.Index(fields=['course_ym'], name='idx_dcdn_course_ym'),
+        ]
+
+    def __str__(self):
+        return f'{self.proc_dt} {self.coach_name}'

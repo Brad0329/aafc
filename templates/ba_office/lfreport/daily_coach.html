@@ -1,0 +1,89 @@
+{% extends "ba_office/base_office.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block left_menu %}
+{% include "ba_office/includes/lfreport_left.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function srch_snd() {
+    var pd = document.getElementById("proc_dt").value;
+    var cy = document.getElementById("course_ym").value;
+    var url = "{% url 'office_report_daily_coach' %}?proc_dt=" + pd;
+    if (cy) url += "&course_ym=" + cy;
+    location.href = url;
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="navi">HOME &gt; REPORT &gt; 일별 코치 정산(확정본)</div>
+<div class="h_55"></div>
+
+<p class="title">일별 코치 정산 (마감 확정본)</p>
+<div class="tb_basic">
+    <table summary="검색" border="0" cellpadding="0" cellspacing="0">
+        <colgroup><col width="8%" /><col width="25%" /><col width="8%" /><col width="25%" /><col width="*" /></colgroup>
+        <tbody>
+            <tr>
+                <th scope="col">적재일</th>
+                <td class="left">
+                    <select id="proc_dt">
+                        {% for p in proc_list %}
+                        <option value="{{ p }}" {% if proc_dt == p %}selected{% endif %}>{{ p }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <th scope="col">수강년월</th>
+                <td class="left">
+                    <select id="course_ym">
+                        <option value="">=전체=</option>
+                        {% for y in ym_list %}
+                        <option value="{{ y }}" {% if course_ym == y %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td class="left"><a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<p>&nbsp;</p>
+<p>※ 밤 배치(데몬)가 <b>{{ proc_dt }}</b>에 확정·동결한 값입니다. (결제완료·수강확정 기준)</p>
+
+<div class="tb_basic">
+    <table summary="코치정산" border="0" cellpadding="0" cellspacing="0">
+        <colgroup>
+            <col width="*" /><col width="7%" /><col width="8%" /><col width="8%" /><col width="8%" />
+            <col width="8%" /><col width="8%" /><col width="8%" /><col width="7%" /><col width="7%" /><col width="9%" />
+        </colgroup>
+        <tbody>
+            <tr>
+                <th>코치명</th><th>클래스원수</th><th>수강료</th><th>수업료차감</th><th>수강료할인</th>
+                <th>결제금액차감</th><th>주2회이상할인</th><th>차량이용료</th><th>용품비</th><th>용품할인</th><th>수업료합계</th>
+            </tr>
+            {% if totals %}
+            <tr style="background-color:#ccffff;font-weight:bold;">
+                <td>합계</td><td>{{ totals.cl_cnt|intcomma }}</td><td>{{ totals.m1001|intcomma }}</td>
+                <td>{{ totals.m1002|intcomma }}</td><td>{{ totals.m1003|intcomma }}</td><td>{{ totals.m1003_b|intcomma }}</td>
+                <td>{{ totals.m1007_b|intcomma }}</td><td>{{ totals.m1009_b|intcomma }}</td><td>{{ totals.m2001|intcomma }}</td>
+                <td>{{ totals.m2002|intcomma }}</td><td>{{ totals.tot_sum|intcomma }}</td>
+            </tr>
+            {% endif %}
+            {% for r in rows %}
+            <tr>
+                <td class="left">{{ r.coach_name }}</td><td>{{ r.cl_cnt|intcomma }}</td><td>{{ r.m1001|intcomma }}</td>
+                <td>{{ r.m1002|intcomma }}</td><td>{{ r.m1003|intcomma }}</td><td>{{ r.m1003_b|intcomma }}</td>
+                <td>{{ r.m1007_b|intcomma }}</td><td>{{ r.m1009_b|intcomma }}</td><td>{{ r.m2001|intcomma }}</td>
+                <td>{{ r.m2002|intcomma }}</td><td>{{ r.tot_sum|intcomma }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="11"> - No Data - </td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
