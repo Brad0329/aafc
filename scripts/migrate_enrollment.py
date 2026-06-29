@@ -102,14 +102,19 @@ def migrate_lecture_seldays(cursor):
 
 
 def migrate_promotion_members(cursor):
-    """lf_promotion_member → PromotionMember"""
+    """lf_promotion_member → PromotionMember
+
+    ★MSSQL이 대소문자 구분 collation이라 컬럼명을 원본 그대로 써야 함
+    (CouponUid/Used/IsTrash). 소문자로 쓰면 'invalid column name'(ProgrammingError)이
+    발생하는데, 과거엔 이를 '테이블 없음'으로 오인해 조용히 스킵 → 한 건도 이관 안 됐음.
+    """
     try:
         cursor.execute("""
-            SELECT coupon_uid, member_id, child_id, used, is_trash
+            SELECT CouponUid, member_id, child_id, Used, IsTrash
               FROM lf_promotion_member
         """)
-    except pyodbc.ProgrammingError:
-        print('PromotionMember: lf_promotion_member 테이블 없음 - 스킵')
+    except pyodbc.ProgrammingError as e:
+        print(f'PromotionMember: lf_promotion_member 조회 실패 - 스킵 ({e})')
         return
 
     columns = [col[0] for col in cursor.description]
@@ -119,12 +124,12 @@ def migrate_promotion_members(cursor):
     for row in rows:
         data = dict(zip(columns, row))
         PromotionMember.objects.update_or_create(
-            coupon_uid=checkint(data['coupon_uid']),
+            coupon_uid=checkint(data['CouponUid']),
             member_id=safe_str(data['member_id']),
             child_id=safe_str(data['child_id']),
             defaults={
-                'used': safe_str(data.get('used', 'T')) or 'T',
-                'is_trash': safe_str(data.get('is_trash', 'T')) or 'T',
+                'used': safe_str(data.get('Used', 'T')) or 'T',
+                'is_trash': safe_str(data.get('IsTrash', 'T')) or 'T',
             }
         )
         count += 1

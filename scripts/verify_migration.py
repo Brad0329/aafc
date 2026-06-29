@@ -44,6 +44,8 @@ CHECKS = [
     ('구장',      'lf_stadium',          'courses.Stadium',             None),
     ('코치',      'lf_coach',            'courses.Coach',               None),
     ('강좌',      'lf_lecture',          'courses.Lecture',             None),
+    ('프로모션',   'lf_promotion',        'courses.Promotion',           None),
+    ('프로모션회원', 'lf_promotion_member', 'courses.PromotionMember',     None),  # 중복 collapse로 소폭 적을 수 있음(정상)
     ('수강신청',   'lf_fcjoin_master',    'enrollment.Enrollment',       None),
     ('수강과정',   'lf_fcjoin_course',    'enrollment.EnrollmentCourse', None),
     ('청구내역',   'lf_fcjoin_bill',      'enrollment.EnrollmentBill',   ('bill_amt', 'bill_amt')),
