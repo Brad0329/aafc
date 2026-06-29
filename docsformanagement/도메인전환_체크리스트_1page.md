@@ -26,7 +26,7 @@
 | **09:20** | □ **[운영자]** 기존 MSSQL **최신 `.bak` 확보** → 로컬 복원 | `sqlcmd … RESTORE DATABASE` |
 | **09:30** | □ 로컬 PG 초기화 + Django migrate | `DROP SCHEMA public CASCADE…` / `migrate` |
 | **09:35** | □ migrate_*.py 14개 일괄 실행 | common→members→courses→course_src→enrollment→board→consult→shop→points→notifications→reports→training→office→popup |
-| **09:55** | □ **이관 검증** — 🔴 0개 + 금액 ✅ 확인 후 진행 (NG면 중단·재이관) | `python scripts/verify_migration.py` |
+| **09:55** | □ **이관 검증** — 🔴 0개 + 금액 ✅ + **프로모션회원 0건 아님** 확인 후 진행 (NG면 중단·재이관) | `python scripts/verify_migration.py` |
 | **10:00** | □ 로컬 PG → dump 생성 | `pg_dump -U postgres -d aafc_dev -F c -f aafc_dump_YYYYMMDD.dump` |
 | **10:05** | □ scp로 EC2 전송 | `scp -i aafc-key.pem … ubuntu@3.34.153.141:/srv/aafc/aafc_dump.dump` |
 | **10:10** | □ RDS pg_restore | `pg_restore … --clean --if-exists --no-owner /srv/aafc/aafc_dump.dump` |
