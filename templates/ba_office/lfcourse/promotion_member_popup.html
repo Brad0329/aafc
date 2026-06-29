@@ -62,10 +62,8 @@ $(document).ready(function() {
                 <th scope="col">회원검색</th>
                 <td class="left">
                     <select name="skey">
-                        <option value="m.member_id" {% if skey == "m.member_id" %}selected{% endif %}>부모아이디</option>
-                        <option value="member_name" {% if skey == "member_name" %}selected{% endif %}>부모명</option>
-                        <option value="child_id" {% if skey == "child_id" %}selected{% endif %}>자녀아이디</option>
                         <option value="child_name" {% if skey == "child_name" %}selected{% endif %}>자녀명</option>
+                        <option value="member_name" {% if skey == "member_name" %}selected{% endif %}>부모명</option>
                         <option value="sch_name" {% if skey == "sch_name" %}selected{% endif %}>학교명</option>
                         <option value="sch_grade" {% if skey == "sch_grade" %}selected{% endif %}>학년</option>
                     </select>

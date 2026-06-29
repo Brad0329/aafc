@@ -5734,7 +5734,7 @@ def promotion_member_popup(request):
     sel_member(child_code들)를 호출해 hidden items에 누적시키고 팝업을 닫는다.
     """
     uid = request.GET.get('uid', '')
-    skey = request.GET.get('skey', 'm.member_id')
+    skey = request.GET.get('skey', 'child_name')
     sword = request.GET.get('sword', '').strip()
     child_code = request.GET.get('child_code', '')  # 이미 선택된 child_code 콤마문자열
     page = request.GET.get('page', '1')
