@@ -170,7 +170,9 @@ function sendChk() {
 
     if (issueMode == "1") {
         if (f.isAllmem.checked == false) {
-            if (!f.items.value || f.items.value == "") {
+            // [완화] 수정모드는 선택회원이 없어도 저장 허용(member_code='0' 등 기존 프로모션 편집 가능).
+            //        신규 등록일 때만 회원선택을 안내(빈 회원별 프로모션 생성 방지).
+            if ((!f.items.value || f.items.value == "") && f.mode.value == "add") {
                 alert("회원을 선택해주세요.");
                 return;
             }
