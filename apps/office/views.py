@@ -5497,7 +5497,7 @@ def promotion_input(request):
             names = ', '.join(dup_names)
             return HttpResponse(
                 '<script>alert("다음 회원은 기존 프로모션(동일 구분)을 사용중이라 제외되었습니다:\\n%s");'
-                'location.href="/office/lfcourse/promotion/";</script>' % names
+                'location.href="/ba_office/lfcourse/promotion/";</script>' % names
             )
         return redirect('office_promotion_list')
 
@@ -5539,13 +5539,17 @@ def promotion_input(request):
         discountUnit = promotion.discount_unit or 'WON'
         isPeriodLimit = not (promotion.start_date or promotion.end_date)
         isPriceLimit = (promotion.is_price_limit == 'F')
-        minPrice = promotion.min_price
-        maxPrice = promotion.max_price
+        minPrice = promotion.min_price or ''   # 원본 zero2Blank: 0이면 공란
+        maxPrice = promotion.max_price or ''   # 원본 zero2Blank: 0이면 공란
         isUse = promotion.is_use or 'T'
         local_code = promotion.local_code or ''
         sta_code = getattr(promotion, 'sta_code', '') or ''
 
-        # 프로모션 선택회원 → items(child_code 콤마문자열) 구성.
+        # 회원전체선택(isAllmem): 원본 lfpromotion_input.asp = member_code가 빈 문자열일 때만 전체.
+        # member_code='0' 등 비어있지 않으면 해제(원본 'If member_code <> "" Then isAllmem = F').
+        mc = (promotion.member_code or '').strip()
+
+        # 프로모션 선택회원 → items(child_code 콤마문자열) 구성 (표시용)
         # 화면 표시는 JS ViewMemberList()가 items로 sel_member 프래그먼트를 AJAX 로드(원본 동일).
         pm_qs = PromotionMember.objects.filter(coupon_uid=promotion.uid, used='T', is_trash='T')
         child_codes = []
@@ -5555,7 +5559,9 @@ def promotion_input(request):
                 child_codes.append(str(child.child_code))
         if child_codes:
             items = ','.join(child_codes) + ','  # 원본과 동일하게 끝에 콤마
-            isAllmem = False  # 선택회원이 있으면 전체선택 해제
+
+        # 빈 member_code & 멤버 없을 때만 전체선택 체크 (멤버 있으면 당연히 해제)
+        isAllmem = (mc == '') and not child_codes
 
     return render(request, 'ba_office/lfcourse/promotion_input.html', {
         'promotion': promotion,
@@ -5610,7 +5616,7 @@ def promotion_member_del(request):
                 coupon_uid=uid_int, child_id=child.child_id
             ).delete()
 
-    return redirect(f'/office/lfcourse/promotion/input/?uid={uid}')
+    return redirect(f'/ba_office/lfcourse/promotion/input/?uid={uid}')
 
 
 # ============================================================
