@@ -28,17 +28,24 @@ $(function() {
     });
 });
 
+// 라디오 그룹에서 선택값 반환 (라디오가 1개뿐이면 NodeList가 아닌 단일 엘리먼트라 length가 없음)
+function getRadioVal(radios) {
+    if (!radios) return "";
+    if (typeof radios.length === "undefined") {
+        return radios.checked ? radios.value : "";
+    }
+    for (var i = 0; i < radios.length; i++) {
+        if (radios[i].checked) return radios[i].value;
+    }
+    return "";
+}
+
 function checkUseMode() {
     // placeholder for future use
 }
 
 function checkIssueMode() {
-    var f = document.reg_form;
-    var radios = f.issueMode;
-    var issue = "";
-    for (var i = 0; i < radios.length; i++) {
-        if (radios[i].checked) { issue = radios[i].value; break; }
-    }
+    var issue = getRadioVal(document.reg_form.issueMode);
     for (var i = 1; i <= 3; i++) {
         var el = document.getElementById("trIssueMode" + i);
         if (el) {
@@ -135,16 +142,8 @@ function child_del_new(child_code) {
 
 function sendChk() {
     var f = document.reg_form;
-    var radios_use = f.useMode;
-    var useMode = "";
-    for (var i = 0; i < radios_use.length; i++) {
-        if (radios_use[i].checked) { useMode = radios_use[i].value; break; }
-    }
-    var radios_issue = f.issueMode;
-    var issueMode = "";
-    for (var i = 0; i < radios_issue.length; i++) {
-        if (radios_issue[i].checked) { issueMode = radios_issue[i].value; break; }
-    }
+    var useMode = getRadioVal(f.useMode);
+    var issueMode = getRadioVal(f.issueMode);
 
     if (!f.title.value || f.title.value == "") {
         alert("프로모션명을 입력해 주세요.");
