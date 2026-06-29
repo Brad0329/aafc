@@ -4149,8 +4149,10 @@ def ajax_promotions(request):
 
     promotions = []
     if child_id:
-        active_promos = Promotion.objects.filter(
-            start_date__lte=now, end_date__gte=now, is_use='T',
+        # 원본 lfstudent_promotion_list.asp: IsUse='T' AND (종료일 없거나 기간내)
+        # ★종료일 NULL(제한없음) 프로모션은 무조건 활성 — 기존 start/end gte 필터는 이를 누락했음
+        active_promos = Promotion.objects.filter(is_use='T').filter(
+            Q(end_date__isnull=True) | Q(start_date__lte=now, end_date__gte=now)
         )
         for promo in active_promos:
             is_member = PromotionMember.objects.filter(

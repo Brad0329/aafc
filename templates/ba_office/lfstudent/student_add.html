@@ -71,7 +71,37 @@ function selChild(member_id, member_name, child_id, child_name, course_state) {
     } else {
         document.getElementById("join_price").value = {{ join_price }};
     }
-    calcPrice();
+    loadPromotions();  // 자녀 확정 → 해당 회원 프로모션 조회/표시 (calcPrice 포함)
+}
+// [원본 ASP 재현] lfstudent_promotion_list.asp: 자녀별 활성 프로모션 → 할인 hidden 세팅 + 표시
+function loadPromotions() {
+    var child_id = document.getElementById("child_id").value;
+    var cell = document.getElementById("pay_promo");
+    if (!child_id) {
+        document.getElementById("eq_discount").value = 0;
+        document.getElementById("tu_unit").value = 0;
+        document.getElementById("py_discount").value = 0;
+        if (cell) cell.innerHTML = "-";
+        calcPrice();
+        return;
+    }
+    $.getJSON("{% url 'office_ajax_promotions' %}", {child_id: child_id}, function(data) {
+        var eq = 0, tuUnit = 0, py = 0, titles = [];
+        var label = {1: '교육용품비', 2: '수강료', 3: '결제금액'};
+        for (var i = 0; i < data.length; i++) {
+            var p = data[i];
+            var dc = parseInt(p.discount) || 0;
+            if (p.use_mode == 1) eq += dc;            // 교육용품비: 정액
+            else if (p.use_mode == 2) tuUnit += dc;   // 수강료: 월·횟수별 증감(단가) → calcPrice에서 ×기간×횟수
+            else if (p.use_mode == 3) py += dc;       // 결제금액: 정액
+            titles.push(p.title + "(" + (label[p.use_mode] || '') + ")");
+        }
+        document.getElementById("eq_discount").value = eq;
+        document.getElementById("tu_unit").value = tuUnit;
+        document.getElementById("py_discount").value = py;
+        if (cell) cell.innerHTML = titles.length ? titles.join("<br>") : "-";
+        calcPrice();
+    });
 }
 function loadCourses() {
     var sta_code = document.getElementById("sta_code").value;
@@ -219,10 +249,14 @@ function calcPrice() {
     document.getElementById("join_price").value = join_price;
     document.getElementById("join_price_disp").value = join_price.toLocaleString();
 
-    // 프로모션 할인 (hidden — 프로모션에서 적용)
-    var eq_discount = parseInt(document.getElementById("eq_discount").value) || 0;
-    var tu_discount = parseInt(document.getElementById("tu_discount").value) || 0;
-    var py_discount = parseInt(document.getElementById("py_discount").value) || 0;
+    // 프로모션 할인 (loadPromotions가 세팅한 hidden 기반)
+    var eq_discount = parseInt(document.getElementById("eq_discount").value) || 0;  // 교육용품비: 정액
+    var py_discount = parseInt(document.getElementById("py_discount").value) || 0;  // 결제금액: 정액
+    // 수강료 프로모션: 단가 × 수강기간(개월) × 수업횟수(선택 강좌수) — 원본 lfstudent_add.asp 동일
+    var tu_unit = parseInt(document.getElementById("tu_unit").value) || 0;
+    var lec_cnt = selectedCourses.length || 0;
+    var tu_discount = tu_unit * lec_period * lec_cnt;
+    document.getElementById("tu_discount").value = tu_discount;  // proc 전송용
     var recommend_discount = parseInt(document.getElementById("recommend_discount").value) || 0;
 
     // 수강료 = 서버 계산값(수업일수 기반, updateLecPrice) + 다회할인(주2회이상 자동)
@@ -432,6 +466,7 @@ function snd_chk() {
 <input type="hidden" id="join_price" name="join_price" value="{{ join_price }}" />
 <input type="hidden" id="pay_price" name="pay_price" value="0" />
 <input type="hidden" id="eq_discount" name="eq_discount" value="0" />
+<input type="hidden" id="tu_unit" value="0" />
 <input type="hidden" id="tu_discount" name="tu_discount" value="0" />
 <input type="hidden" id="py_discount" name="py_discount" value="0" />
 <input type="hidden" id="multi_discount" name="multi_discount" value="0" />
