@@ -33,7 +33,10 @@ MSSQL_CONN_STR = (
     'UID=juni_db;PWD=juniordb1234'
 )
 
-# (라벨, MSSQL 테이블, Django 모델, 금액컬럼(MSSQL, Django) | None)
+# 일별 마감 데몬 확정본은 proc_dt>=FROM_DT 만 이관 → 같은 기준으로 대조
+DAILY_FROM_DT = '20260101'
+
+# (라벨, MSSQL 테이블, Django 모델, 금액컬럼(MSSQL, Django) | None [, MSSQL WHERE | None])
 CHECKS = [
     ('회원',      'lf_member',           'accounts.Member',             None),
     ('자녀',      'lf_memberchild',      'accounts.MemberChild',        None),
@@ -56,6 +59,9 @@ CHECKS = [
     ('쇼핑몰결제',  'lf_shop_pay_kcp',     'shop.ShopPaymentKCP',         None),
     ('포인트내역',  'lf_userpoint_his',    'points.PointHistory',         ('app_point', 'app_point')),
     ('SMS로그',   'em_mmt_tran_log_kyt', 'notifications.SMSLog',        None),
+    # ── 일별 마감 데몬 확정본 (proc_dt>=20260101 만 이관 → MSSQL도 동일 필터로 대조) ──
+    ('일별스냅샷',  'lf_daily_total_data',     'reports.DailyTotalData',     ('pay_price', 'pay_price'), f"proc_dt >= '{DAILY_FROM_DT}'"),
+    ('일별코치정산', 'lf_daily_coachdata_new',  'reports.DailyCoachDataNew',  None,                        f"proc_dt >= '{DAILY_FROM_DT}'"),
 ]
 
 
@@ -77,9 +83,12 @@ def main():
     print('=' * 60)
 
     red = yellow = 0
-    for label, mtable, model_path, amount in CHECKS:
+    for row in CHECKS:
+        label, mtable, model_path, amount = row[0], row[1], row[2], row[3]
+        where = row[4] if len(row) > 4 else None
+        wsql = f' WHERE {where}' if where else ''
         try:
-            cur.execute(f'SELECT COUNT(*) FROM {mtable}')
+            cur.execute(f'SELECT COUNT(*) FROM {mtable}{wsql}')
             m = cur.fetchone()[0]
         except Exception as e:
             print(f'{label:<10}{"MSSQL조회실패":>12}  {str(e)[:32]}')
@@ -100,7 +109,7 @@ def main():
         if amount:
             mcol, dfield = amount
             try:
-                cur.execute(f'SELECT ISNULL(SUM(CAST({mcol} AS BIGINT)), 0) FROM {mtable}')
+                cur.execute(f'SELECT ISNULL(SUM(CAST({mcol} AS BIGINT)), 0) FROM {mtable}{wsql}')
                 ms = int(cur.fetchone()[0] or 0)
                 ds = int(model.objects.aggregate(s=Sum(dfield))['s'] or 0)
                 sdiff = ds - ms

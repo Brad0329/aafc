@@ -149,10 +149,13 @@ def generate_spec():
         'shop': '쇼핑몰',
         'points': '포인트',
         'notifications': '알림/SMS',
+        'reports': '리포트/통계',
+        'office': '관리자(ba_office)',
     }
 
     app_order = ['accounts', 'common', 'courses', 'enrollment', 'payments',
-                 'board', 'consult', 'shop', 'points', 'notifications']
+                 'board', 'consult', 'shop', 'points', 'notifications',
+                 'reports', 'office']
 
     row = 1
 
