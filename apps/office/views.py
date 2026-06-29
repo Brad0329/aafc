@@ -5365,6 +5365,8 @@ def promotion_input(request):
         promotion = Promotion.objects.filter(uid=uid).first()
 
     if request.method == 'POST':
+        # 등록/수정 구분 (회원 처리에서 수정모드는 기존 회원 전체삭제 후 재등록)
+        is_edit = promotion is not None
         # 템플릿 폼 필드명(camelCase) 기준으로 읽기
         use_mode = int(request.POST.get('useMode', '0') or '0')
         issue_mode = int(request.POST.get('issueMode', '0') or '0')
@@ -5449,20 +5451,52 @@ def promotion_input(request):
             )
             uid = promotion.uid
 
-        # PromotionMember 처리: items(콤마구분 child_code 문자열)
-        items_str = request.POST.get('items', '')
-        if items_str:
+        # ===== 프로모션 선택 회원 처리 (원본 lfpromotion_input_proc.asp) =====
+        # 회원별(issueMode=1) + 회원전체선택 해제 + items(child_code 콤마문자열)가 있을 때만.
+        # 원본: items에 콤마가 있을 때만 처리 → 전체선택(items 공백) 시 기존 회원은 그대로 둠.
+        items_str = request.POST.get('items', '').strip().rstrip(',')
+        is_allmem = request.POST.get('isAllmem', '')  # 회원전체선택 체크 시 'T'
+        dup_names = []
+        if issue_mode == 1 and is_allmem != 'T' and items_str:
             child_codes = [c.strip() for c in items_str.split(',') if c.strip()]
-            for child_code in child_codes:
-                child = MemberChild.objects.filter(child_id=child_code, status='N').first()
-                if child:
-                    PromotionMember.objects.get_or_create(
-                        coupon_uid=promotion.uid,
-                        member_id=child.parent.username if child.parent else '',
-                        child_id=child.child_id,
-                        defaults={'used': 'T', 'is_trash': 'T'},
-                    )
 
+            # 수정모드: 기존 선택회원 전체 삭제 후 재등록 (원본 동일)
+            if is_edit:
+                PromotionMember.objects.filter(coupon_uid=promotion.uid).delete()
+
+            # 동일 useMode 활성 프로모션 보유 자녀 (중복 검사용)
+            dup_uids = list(Promotion.objects.filter(
+                use_mode=use_mode, is_use='T'
+            ).values_list('uid', flat=True))
+
+            for code in child_codes:
+                try:
+                    child = MemberChild.objects.filter(child_code=int(code)).first()
+                except (ValueError, TypeError):
+                    child = None
+                if not child:
+                    continue
+                # 이미 같은 구분(useMode)의 활성 프로모션을 사용중이면 제외 (원본 child_dup_chk)
+                dup = PromotionMember.objects.filter(
+                    child_id=child.child_id, coupon_uid__in=dup_uids
+                ).exists()
+                if dup:
+                    dup_names.append(child.name or child.child_id)
+                    continue
+                PromotionMember.objects.create(
+                    coupon_uid=promotion.uid,
+                    member_id=child.parent.username if child.parent else '',
+                    child_id=child.child_id,
+                    used='T', is_trash='T',
+                )
+
+        if dup_names:
+            # 원본 AlertBack 대응: 중복 회원은 제외하고 나머지는 저장한 뒤 안내
+            names = ', '.join(dup_names)
+            return HttpResponse(
+                '<script>alert("다음 회원은 기존 프로모션(동일 구분)을 사용중이라 제외되었습니다:\\n%s");'
+                'location.href="/office/lfcourse/promotion/";</script>' % names
+            )
         return redirect('office_promotion_list')
 
     # GET - 템플릿에서 사용하는 개별 변수로 전달
@@ -5479,18 +5513,17 @@ def promotion_input(request):
     startDate = ''
     endDate = ''
     p_discount = ''
-    discountUnit = '1'
+    discountUnit = 'WON'  # 기본 원 (DB 저장값: WON/PCT)
     isPeriodLimit = False
     isPriceLimit = False
     minPrice = ''
     maxPrice = ''
     isUse = 'T'
-    isAllmem = False
+    isAllmem = True  # 원본 기본값: 회원전체선택 체크(전체회원 대상)
     local_code = ''
     sta_code = ''
     items = ''
 
-    member_list = []
     if promotion:
         mode = 'edit'
         mode_text = '수정'
@@ -5501,7 +5534,7 @@ def promotion_input(request):
         startDate = promotion.start_date.strftime('%Y-%m-%d') if promotion.start_date else ''
         endDate = promotion.end_date.strftime('%Y-%m-%d') if promotion.end_date else ''
         p_discount = promotion.discount
-        discountUnit = promotion.discount_unit or '1'
+        discountUnit = promotion.discount_unit or 'WON'
         isPeriodLimit = not (promotion.start_date or promotion.end_date)
         isPriceLimit = (promotion.is_price_limit == 'F')
         minPrice = promotion.min_price
@@ -5510,16 +5543,17 @@ def promotion_input(request):
         local_code = promotion.local_code or ''
         sta_code = getattr(promotion, 'sta_code', '') or ''
 
-        # 프로모션 회원 목록
+        # 프로모션 선택회원 → items(child_code 콤마문자열) 구성.
+        # 화면 표시는 JS ViewMemberList()가 items로 sel_member 프래그먼트를 AJAX 로드(원본 동일).
         pm_qs = PromotionMember.objects.filter(coupon_uid=promotion.uid, used='T', is_trash='T')
+        child_codes = []
         for pm in pm_qs:
             child = MemberChild.objects.filter(child_id=pm.child_id).first()
-            member = Member.objects.filter(username=pm.member_id).first()
-            pm.child_name = child.name if child else ''
-            pm.member_name = member.name if member else ''
-            pm.child_code = pm.child_id
-            pm.insert_dt = ''
-            member_list.append(pm)
+            if child and child.child_code:
+                child_codes.append(str(child.child_code))
+        if child_codes:
+            items = ','.join(child_codes) + ','  # 원본과 동일하게 끝에 콤마
+            isAllmem = False  # 선택회원이 있으면 전체선택 해제
 
     return render(request, 'ba_office/lfcourse/promotion_input.html', {
         'promotion': promotion,
@@ -5545,14 +5579,17 @@ def promotion_input(request):
         'items': items,
         'locd_list': locd_list,
         'stadiums': stadiums_qs,
-        'member_list': member_list,
     })
 
 
 @office_login_required
 @office_permission_required('L')
 def promotion_member_del(request):
-    """프로모션 회원 삭제"""
+    """프로모션 회원 즉시 삭제 (원본 lfpromotion_member_del_proc.asp)
+
+    child_code(자녀코드)를 받아 child_id로 변환 후 해당 프로모션의 회원을 DB에서 삭제.
+    원본 안내문대로 '수정처리를 하지 않아도 실제 삭제'된다.
+    """
     uid = request.GET.get('uid', '0')
     child_code = request.GET.get('child_code', '')
 
@@ -5562,9 +5599,14 @@ def promotion_member_del(request):
         uid_int = 0
 
     if uid_int > 0 and child_code:
-        PromotionMember.objects.filter(
-            coupon_uid=uid_int, child_id=child_code
-        ).delete()
+        try:
+            child = MemberChild.objects.filter(child_code=int(child_code)).first()
+        except (ValueError, TypeError):
+            child = None
+        if child:
+            PromotionMember.objects.filter(
+                coupon_uid=uid_int, child_id=child.child_id
+            ).delete()
 
     return redirect(f'/office/lfcourse/promotion/input/?uid={uid}')
 
@@ -5678,48 +5720,141 @@ def course_list_popup(request):
 @office_login_required
 @office_permission_required('L')
 def promotion_member_popup(request):
-    """프로모션 회원 선택 팝업"""
+    """프로모션 회원 검색/선택 팝업 (원본 member_list.asp)
+
+    DB에 저장하지 않고 검색결과만 보여준다. 체크 후 [등록] 시 부모창의
+    sel_member(child_code들)를 호출해 hidden items에 누적시키고 팝업을 닫는다.
+    """
     uid = request.GET.get('uid', '')
-    sword = request.GET.get('sword', '')
+    skey = request.GET.get('skey', 'm.member_id')
+    sword = request.GET.get('sword', '').strip()
+    child_code = request.GET.get('child_code', '')  # 이미 선택된 child_code 콤마문자열
+    page = request.GET.get('page', '1')
 
-    members = []
+    PAGE_SIZE = 15
+
+    # 활성회원(부모 status='N')의 자녀 행
+    qs = MemberChild.objects.select_related('parent').filter(parent__status='N')
+
+    # 이미 선택된 회원 제외
+    selected_codes = [c.strip() for c in child_code.split(',') if c.strip()]
+    if selected_codes:
+        try:
+            qs = qs.exclude(child_code__in=[int(c) for c in selected_codes])
+        except (ValueError, TypeError):
+            pass
+
+    # 검색
     if sword:
-        member_qs = Member.objects.filter(
-            Q(name__icontains=sword) | Q(member_id__icontains=sword),
-            status='Y'
-        ).order_by('name')[:50]
-        for m in member_qs:
-            children = MemberChild.objects.filter(parent=m, status='Y')
-            for c in children:
-                members.append({
-                    'member_id': m.member_id,
-                    'member_name': m.name,
-                    'child_id': c.child_id,
-                    'child_name': c.name,
-                })
+        skey_map = {
+            'm.member_id': 'parent__username__icontains',
+            'member_name': 'parent__name__icontains',
+            'child_id': 'child_id__icontains',
+            'child_name': 'name__icontains',
+            'sch_name': 'school__icontains',
+            'sch_grade': 'grade__icontains',
+        }
+        lookup = skey_map.get(skey, 'parent__name__icontains')
+        qs = qs.filter(**{lookup: sword})
 
-    if request.method == 'POST':
-        selected = request.POST.getlist('sel_member')
-        for sel in selected:
-            parts = sel.split('|')
-            if len(parts) == 2:
-                m_id, c_id = parts
-                if not PromotionMember.objects.filter(
-                    coupon_uid=int(uid), member_id=m_id, child_id=c_id
-                ).exists():
-                    PromotionMember.objects.create(
-                        coupon_uid=int(uid),
-                        member_id=m_id,
-                        child_id=c_id,
-                        used='T',
-                        is_trash='T',
-                    )
-        return render(request, 'ba_office/lfcourse/promotion_member_popup.html', {
-            'uid': uid, 'sword': sword, 'members': members, 'saved': True,
+    qs = qs.order_by('-parent__insert_dt', 'parent__username')
+
+    paginator = Paginator(qs, PAGE_SIZE)
+    page_obj = paginator.get_page(page)
+
+    # 동일 자녀의 현재 활성 프로모션 (구분 표시)
+    use_mode_label = {1: '교육용품비', 2: '수강료', 3: '결제금액'}
+    now = timezone.now()
+    members = []
+    for c in page_obj:
+        parent = c.parent
+        str_school = '-'
+        if c.school:
+            str_school = c.school
+        if c.grade:
+            str_school = (str_school if c.school else '') + f'[{c.grade}]'
+        if not c.school and not c.grade:
+            str_school = '-'
+
+        # 보유 프로모션 (IsUse='T' + 기간내(종료일 없거나 시작<=오늘<=종료))
+        prom_uids = PromotionMember.objects.filter(
+            child_id=c.child_id
+        ).values_list('coupon_uid', flat=True)
+        prom_qs = Promotion.objects.filter(uid__in=list(prom_uids), is_use='T').filter(
+            Q(end_date__isnull=True) | Q(start_date__lte=now, end_date__gte=now)
+        )
+        str_promotion = ' '.join(
+            f'{p.title}({use_mode_label.get(p.use_mode, "")})' for p in prom_qs
+        )
+
+        members.append({
+            'child_code': c.child_code,
+            'member_id': parent.username if parent else '',
+            'member_name': parent.name if parent else '',
+            'child_id': c.child_id,
+            'child_name': c.name,
+            'str_school': str_school,
+            'insert_dt': parent.insert_dt.strftime('%Y-%m-%d') if parent and parent.insert_dt else '',
+            'str_promotion': str_promotion,
         })
 
     return render(request, 'ba_office/lfcourse/promotion_member_popup.html', {
         'uid': uid,
+        'skey': skey,
         'sword': sword,
+        'child_code': child_code,
+        'members': members,
+        'page_obj': page_obj,
+        'total_count': paginator.count,
+    })
+
+
+@office_login_required
+@office_permission_required('L')
+def promotion_sel_member(request):
+    """선택된 회원 목록 프래그먼트 (원본 sel_member.asp)
+
+    items(child_code 콤마문자열)를 받아 부모창 #member_list에 AJAX로 렌더된다.
+    """
+    child_code = request.GET.get('childCode', '')
+    uid = request.GET.get('uid', '0')
+    codes = [c.strip() for c in child_code.split(',') if c.strip()]
+
+    members = []
+    if codes:
+        try:
+            int_codes = [int(c) for c in codes]
+        except (ValueError, TypeError):
+            int_codes = []
+        # 입력 순서 유지
+        child_map = {
+            c.child_code: c for c in
+            MemberChild.objects.select_related('parent').filter(child_code__in=int_codes)
+        }
+        for idx, code in enumerate(int_codes, start=1):
+            c = child_map.get(code)
+            if not c:
+                continue
+            parent = c.parent
+            str_school = '-'
+            if c.school:
+                str_school = c.school
+            if c.grade:
+                str_school = (str_school if c.school else '') + f'[{c.grade}]'
+            if not c.school and not c.grade:
+                str_school = '-'
+            members.append({
+                'no': idx,
+                'child_code': c.child_code,
+                'member_id': parent.username if parent else '',
+                'member_name': parent.name if parent else '',
+                'child_id': c.child_id,
+                'child_name': c.name,
+                'str_school': str_school,
+                'insert_dt': parent.insert_dt.strftime('%Y-%m-%d') if parent and parent.insert_dt else '',
+            })
+
+    return render(request, 'ba_office/lfcourse/promotion_sel_member.html', {
+        'uid': uid,
         'members': members,
     })

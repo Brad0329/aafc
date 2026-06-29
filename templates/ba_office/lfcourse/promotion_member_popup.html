@@ -7,29 +7,39 @@
 <link href="{% static 'ba_office/css/style.css' %}" rel="stylesheet" type="text/css">
 <script src="{% static 'ba_office/js/jquery-1.12.4.min.js' %}"></script>
 <script>
-function searchMember() {
-    var sword = document.getElementById('sword').value;
-    if (sword == '') { alert('검색어를 입력하세요.'); return; }
-    location.href = "{% url 'office_promotion_member_popup' %}?uid={{ uid }}&sword=" + encodeURIComponent(sword);
+function srch_snd() {
+    document.reg_form.submit();
 }
-function checkAll(obj) {
-    var chks = document.getElementsByName('sel_member');
+
+function checkCbAll(obj) {
+    var chks = document.getElementsByName('cbList');
     for (var i = 0; i < chks.length; i++) {
         chks[i].checked = obj.checked;
     }
 }
-function addMember() {
-    var chks = document.getElementsByName('sel_member');
-    var cnt = 0;
+
+// 체크된 child_code를 "a,b," 형태로 모아 부모창 sel_member로 전달 후 닫기 (원본 동일)
+function sendChk() {
+    var chks = document.getElementsByName('cbList');
+    var items = "";
+    var chkCnt = 0;
     for (var i = 0; i < chks.length; i++) {
-        if (chks[i].checked) cnt++;
+        if (chks[i].checked) {
+            items += chks[i].value + ",";
+            chkCnt++;
+        }
     }
-    if (cnt == 0) { alert('회원을 선택하세요.'); return; }
-    document.reg_form.submit();
+    if (chkCnt == 0) {
+        alert("회원을 선택해주세요.");
+        return;
+    }
+    opener.sel_member(items);
+    self.close();
 }
+
 $(document).ready(function() {
     $("#sword").keydown(function(e) {
-        if (e.keyCode == 13) { e.preventDefault(); searchMember(); }
+        if (e.keyCode == 13) { e.preventDefault(); srch_snd(); }
     });
 });
 </script>
@@ -37,70 +47,96 @@ $(document).ready(function() {
 <body style="padding:10px;">
 <p class="title">프로모션 회원선택</p>
 
-{% if saved %}
-<script>
-alert('등록 되었습니다.');
-opener.location.reload();
-</script>
-{% endif %}
+<form name="reg_form" method="get" action="{% url 'office_promotion_member_popup' %}">
+<input type="hidden" name="uid" value="{{ uid }}">
+<input type="hidden" name="child_code" value="{{ child_code }}">
 
 <div class="tb_basic">
     <table summary="회원검색" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
-            <col width="20%" />
-            <col width="*" />
+            <col width="100px" />
+            <col />
         </colgroup>
         <tbody>
             <tr>
                 <th scope="col">회원검색</th>
                 <td class="left">
-                    <input type="text" name="sword" id="sword" value="{{ sword }}" style="width:200px;">
-                    <a href="javascript:searchMember();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
+                    <select name="skey">
+                        <option value="m.member_id" {% if skey == "m.member_id" %}selected{% endif %}>부모아이디</option>
+                        <option value="member_name" {% if skey == "member_name" %}selected{% endif %}>부모명</option>
+                        <option value="child_id" {% if skey == "child_id" %}selected{% endif %}>자녀아이디</option>
+                        <option value="child_name" {% if skey == "child_name" %}selected{% endif %}>자녀명</option>
+                        <option value="sch_name" {% if skey == "sch_name" %}selected{% endif %}>학교명</option>
+                        <option value="sch_grade" {% if skey == "sch_grade" %}selected{% endif %}>학년</option>
+                    </select>
+                    <input type="text" name="sword" id="sword" value="{{ sword }}" maxlength="50" style="width:50%;">
+                    <a href="javascript:srch_snd();"><img src="{% static 'ba_office/images/btn_search.gif' %}" alt="검색" /></a>
                 </td>
             </tr>
         </tbody>
     </table>
-</div>
 
-{% if members %}
-<form name="reg_form" method="post" action="{% url 'office_promotion_member_popup' %}?uid={{ uid }}">
-{% csrf_token %}
-<div class="tb_basic" style="margin-top:10px;">
-    <table summary="회원목록" border="0" cellpadding="0" cellspacing="0">
+    <table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
         <colgroup>
-            <col width="5%" />
+            <col width="3%" />
+            <col width="17%" />
+            <col width="17%" />
             <col width="20%" />
-            <col width="20%" />
-            <col width="25%" />
-            <col width="30%" />
+            <col width="10%" />
+            <col width="*" />
         </colgroup>
         <tbody>
             <tr>
-                <th scope="col"><input type="checkbox" onclick="checkAll(this)"></th>
+                <th scope="col"><input name="cbListAll" type="checkbox" onclick="checkCbAll(this)"></th>
                 <th scope="col">부모아이디</th>
-                <th scope="col">부모명</th>
                 <th scope="col">자녀아이디</th>
-                <th scope="col">자녀명</th>
+                <th scope="col">학교[학년]</th>
+                <th scope="col">가입일</th>
+                <th scope="col">프로모션</th>
             </tr>
             {% for m in members %}
             <tr>
-                <td><input type="checkbox" name="sel_member" value="{{ m.member_id }}|{{ m.child_id }}"></td>
-                <td>{{ m.member_id }}</td>
-                <td>{{ m.member_name }}</td>
-                <td>{{ m.child_id }}</td>
-                <td>{{ m.child_name }}</td>
+                <td><input type="checkbox" name="cbList" value="{{ m.child_code }}"></td>
+                <td>{{ m.member_name }}[{{ m.member_id }}]</td>
+                <td>{{ m.child_name }}[{{ m.child_id }}]</td>
+                <td>{{ m.str_school }}</td>
+                <td>{{ m.insert_dt }}</td>
+                <td>{{ m.str_promotion }}</td>
             </tr>
+            {% empty %}
+            <tr><td colspan="6" style="text-align:center;">검색 결과가 없습니다.</td></tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
-<div class="btn_right" style="margin-top:5px;">
-    <a href="javascript:addMember();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+
+<div class="btn_right">
+    <a href="javascript:sendChk();"><img src="{% static 'ba_office/images/btn_regi.gif' %}" alt="등록" /></a>
+    <img src="{% static 'ba_office/images/btn_cancel.gif' %}" alt="취소" onclick="self.close();" style="cursor:pointer;" />
+</div>
+
+<!-- paging -->
+<div class="paging" style="text-align:center; margin-top:10px;">
+    {% if page_obj.has_previous %}
+    <a href="javascript:goPage({{ page_obj.previous_page_number }});">&laquo; 이전</a>&nbsp;
+    {% endif %}
+    {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+    {% if page_obj.has_next %}
+    &nbsp;<a href="javascript:goPage({{ page_obj.next_page_number }});">다음 &raquo;</a>
+    {% endif %}
 </div>
 </form>
-{% elif sword %}
-<div style="margin-top:10px; text-align:center;">검색 결과가 없습니다.</div>
-{% endif %}
 
+<script>
+function goPage(p) {
+    var f = document.reg_form;
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'page';
+    input.value = p;
+    f.appendChild(input);
+    f.submit();
+}
+</script>
 </body>
 </html>

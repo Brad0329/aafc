@@ -94,7 +94,7 @@ $(document).ready(function() {
                 <td>{{ p.strUseMode }}</td>
                 <td>{{ p.strIssueMode }}</td>
                 <td>{{ p.title }}</td>
-                <td>{{ p.discount }}{% if p.discount_unit == "2" %}%{% else %}원{% endif %}</td>
+                <td>{{ p.discount }}{% if p.discount_unit == "PCT" %}%{% else %}원{% endif %}</td>
                 <td>{% if p.start_date and p.end_date %}{{ p.start_date|date:"Y/m/d" }}~<br>{{ p.end_date|date:"Y/m/d" }}{% else %}-{% endif %}</td>
                 <td>{% if p.is_use == "T" %}사용{% else %}사용안함{% endif %}</td>
                 <td>{{ p.reg_date|date:"Y-m-d H:i:s" }}</td>

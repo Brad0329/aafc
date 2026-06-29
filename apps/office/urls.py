@@ -178,6 +178,7 @@ urlpatterns = [
     path('lfcourse/promotion/input/', views.promotion_input, name='office_promotion_input'),
     path('lfcourse/promotion/member-del/', views.promotion_member_del, name='office_promotion_member_delete'),
     path('lfcourse/promotion/member-popup/', views.promotion_member_popup, name='office_promotion_member_popup'),
+    path('lfcourse/promotion/sel-member/', views.promotion_sel_member, name='office_promotion_sel_member'),
 
     # 과정관리 > AJAX
     path('lfcourse/ajax/stadium/', views.ajax_course_stadium, name='office_ajax_course_stadium'),

@@ -1,0 +1,33 @@
+{% load static %}
+<table summary="회원정보" border="0" cellpadding="0" cellspacing="0">
+    <colgroup>
+        <col width="5%" />
+        <col width="20%" />
+        <col width="20%" />
+        <col width="20%" />
+        <col width="20%" />
+        <col width="15%" />
+    </colgroup>
+    <tbody>
+        <tr>
+            <th scope="col">번호</th>
+            <th scope="col">부모아이디</th>
+            <th scope="col">자녀아이디</th>
+            <th scope="col">학교[학년]</th>
+            <th scope="col">가입일</th>
+            <th scope="col">삭제</th>
+        </tr>
+        {% for m in members %}
+        <tr>
+            <td>{{ m.no }}</td>
+            <td>{{ m.member_name }}({{ m.member_id }})</td>
+            <td>{{ m.child_id }}({{ m.child_name }})</td>
+            <td>{{ m.str_school }}</td>
+            <td>{{ m.insert_dt }}</td>
+            <td><a href="javascript:child_del_new({{ m.child_code }});"><img src="{% static 'ba_office/images/btn_del.gif' %}" alt="삭제" /></a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align:center;">선택된 회원이 없습니다.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>

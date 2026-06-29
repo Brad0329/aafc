@@ -160,7 +160,7 @@ class Promotion(models.Model):
     start_date = models.DateTimeField('시작일', null=True, blank=True)
     end_date = models.DateTimeField('종료일', null=True, blank=True)
     discount = models.IntegerField('할인액', default=0)
-    discount_unit = models.CharField('할인단위', max_length=5, blank=True)  # 1=원, 2=%
+    discount_unit = models.CharField('할인단위', max_length=5, blank=True)  # WON=원, PCT=%
     is_price_limit = models.CharField('금액제한여부', max_length=5, blank=True)  # T/F
     min_price = models.IntegerField('최소금액', default=0)
     max_price = models.IntegerField('최대금액', default=0)
