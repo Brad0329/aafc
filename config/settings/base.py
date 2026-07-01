@@ -161,9 +161,12 @@ NICE_RETURN_URL = config('NICE_RETURN_URL', default='')
 NICE_API_BASE = config('NICE_API_BASE', default='https://auth.niceid.co.kr/ido/intc/v1.0')
 
 # ── 인포뱅크(InfoBank) OMNI API — SMS/LMS/MMS 발송 ──
-# 자격증명(.env): INFOBANK_CLIENT_ID / INFOBANK_CLIENT_PASSWD (인포뱅크 발급 ID/PW).
-#   비어 있으면 테스트(dry-run) 모드 — 실제 발송 없이 발송내역(SMSLog)에만 기록한다.
+# 인증 두 방식 지원(둘 중 하나만 설정):
+#  (A) 통합 KEY(V2): INFOBANK_API_KEY — 토큰 발급 없이 Authorization: Bearer {키} 로 바로 사용. IP등록 필수.
+#  (B) 옴니 계정(V1): INFOBANK_CLIENT_ID / INFOBANK_CLIENT_PASSWD — /v1/auth/token 로 토큰 발급 후 사용.
+#   셋 다 비어 있으면 테스트(dry-run) 모드 — 실제 발송 없이 발송내역(SMSLog)에만 기록.
 #   엔드포인트는 계정/상품에 따라 다를 수 있어 .env 로 덮어쓸 수 있게 둠.
+INFOBANK_API_KEY = config('INFOBANK_API_KEY', default='')  # 통합 KEY(V2) — 있으면 우선 사용
 INFOBANK_CLIENT_ID = config('INFOBANK_CLIENT_ID', default='')
 INFOBANK_CLIENT_PASSWD = config('INFOBANK_CLIENT_PASSWD', default='')
 INFOBANK_AUTH_URL = config('INFOBANK_AUTH_URL', default='https://omni.ibapi.kr/v1/auth/token')

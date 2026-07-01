@@ -50,8 +50,28 @@ def pick_service_type(text, title=None, file_keys=None):
 
 
 def is_configured():
-    """인포뱅크 자격증명 설정 여부. 미설정이면 테스트(dry-run) 모드."""
+    """인포뱅크 자격증명 설정 여부. 미설정이면 테스트(dry-run) 모드.
+
+    통합 KEY(V2) 또는 옴니 계정 ID/PW(V1) 둘 중 하나만 있으면 설정된 것으로 본다.
+    """
+    if getattr(settings, 'INFOBANK_API_KEY', ''):
+        return True
     return bool(settings.INFOBANK_CLIENT_ID and settings.INFOBANK_CLIENT_PASSWD)
+
+
+def _get_auth():
+    """발송에 쓸 (schema, credential) 반환. 실패 시 None.
+
+    - 통합 KEY(V2): 토큰 발급 없이 그대로 Bearer 자격으로 사용.
+    - 옴니 계정(V1): /v1/auth/token 으로 토큰 발급 후 사용.
+    """
+    api_key = getattr(settings, 'INFOBANK_API_KEY', '')
+    if api_key:
+        return ('Bearer', api_key)
+    token = get_token()
+    if not token:
+        return None
+    return (cache.get(_SCHEMA_CACHE_KEY, 'Bearer'), token)
 
 
 def get_token():
@@ -111,16 +131,16 @@ def send(to, text, callback, title=None, file_keys=None):
         flow = {'mms': mms}
     payload = {'messageFlow': [flow], 'destinations': [{'to': to}]}
 
-    token = get_token()
-    if not token:
-        return {'ok': False, 'code': 'AUTH', 'result': '토큰 발급 실패',
+    auth = _get_auth()
+    if not auth:
+        return {'ok': False, 'code': 'AUTH', 'result': '인증 실패(토큰/통합키)',
                 'msg_key': '', 'service_type': service_type, 'raw': None}
+    schema, credential = auth
 
-    schema = cache.get(_SCHEMA_CACHE_KEY, 'Bearer')
     try:
         resp = requests.post(
             settings.INFOBANK_SEND_URL,
-            headers={'Authorization': f'{schema} {token}', 'Content-Type': 'application/json'},
+            headers={'Authorization': f'{schema} {credential}', 'Content-Type': 'application/json'},
             json=payload, timeout=TIMEOUT,
         )
         data = resp.json()
