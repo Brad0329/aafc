@@ -149,19 +149,35 @@ def send(to, text, callback, title=None, file_keys=None):
         return {'ok': False, 'code': 'HTTP', 'result': str(e),
                 'msg_key': '', 'service_type': service_type, 'raw': None}
 
-    # 응답 envelope: {"common":{"authCode","authResult",...}, "data":{"destinations":[{"msgKey",...}]}}
-    # (인증/ACL 오류도 common.authCode 로 전달됨: A000 성공 / A401 인증실패 / A403 ACL 등)
+    # 응답 envelope(실측):
+    #   {"common":{"authCode":"A000","authResult":"SUCCESS"},
+    #    "data":{"code":"A000","result":"Success",
+    #            "data":{"destinations":[{"to","msgKey","code","result"}]}}}
+    # 최상위 common.authCode 는 '접수' 성공/인증·ACL 결과. 실제 발송 성패는 수신자별 code.
     body = data if isinstance(data, dict) else {}
     common = body.get('common') if isinstance(body.get('common'), dict) else {}
     code = common.get('authCode') or body.get('code', '')
     result = common.get('authResult') or body.get('result', '')
+
+    # destinations 를 중첩된 data 안에서 탐색 (data.destinations 또는 data.data.destinations)
+    node = body.get('data')
+    dests = None
+    for _ in range(4):
+        if not isinstance(node, dict):
+            break
+        if isinstance(node.get('destinations'), list):
+            dests = node['destinations']
+            break
+        node = node.get('data')
+
     msg_key = ''
-    inner = body.get('data') if isinstance(body.get('data'), dict) else None
-    dests = inner.get('destinations') if inner else body.get('destinations')
     if isinstance(dests, list) and dests:
-        msg_key = dests[0].get('msgKey', '')
-        code = dests[0].get('code', code) or code
-        result = dests[0].get('result', result) or result
+        d0 = dests[0]
+        msg_key = d0.get('msgKey', '')
+        # 수신자별 코드가 실제 발송 성패(예: A327 발신번호 미허용) — 최상위 A000보다 우선
+        if d0.get('code'):
+            code = d0['code']
+            result = d0.get('result', result)
     return {'ok': code == SUCCESS_CODE, 'code': code, 'result': result,
             'msg_key': msg_key, 'service_type': service_type, 'raw': data}
 
