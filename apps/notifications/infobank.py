@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 TIMEOUT = 10
 _TOKEN_CACHE_KEY = 'infobank_omni_token'
+_SCHEMA_CACHE_KEY = 'infobank_omni_schema'
 SUCCESS_CODE = 'A000'
 
 
@@ -72,11 +73,14 @@ def get_token():
     except (requests.RequestException, ValueError) as e:
         logger.warning('인포뱅크 토큰 발급 실패: %s', e)
         return None
-    # 응답 래핑(data.token) 여부 양쪽 대응
+    # 응답 래핑(data.xxx) 여부 + 필드명(token/accessToken) 양쪽 대응
     body = data.get('data', data) if isinstance(data, dict) else {}
-    token = body.get('token') or data.get('token')
+    token = (body.get('token') or body.get('accessToken')
+             or data.get('token') or data.get('accessToken'))
+    # 인증 schema(Bearer/Basic 등)는 응답값을 따르되 없으면 Bearer
+    schema = body.get('schema') or data.get('schema') or 'Bearer'
     if not token:
-        logger.error('인포뱅크 토큰 응답에 token 없음: %s', data)
+        logger.error('인포뱅크 토큰 응답에 token/accessToken 없음: %s', data)
         return None
     # 만료 60초 전까지 캐시(파싱 실패 시 보수적으로 30분)
     ttl = 1800
@@ -88,6 +92,7 @@ def get_token():
         except (ValueError, TypeError):
             pass
     cache.set(_TOKEN_CACHE_KEY, token, ttl)
+    cache.set(_SCHEMA_CACHE_KEY, schema, ttl)
     return token
 
 
@@ -111,10 +116,11 @@ def send(to, text, callback, title=None, file_keys=None):
         return {'ok': False, 'code': 'AUTH', 'result': '토큰 발급 실패',
                 'msg_key': '', 'service_type': service_type, 'raw': None}
 
+    schema = cache.get(_SCHEMA_CACHE_KEY, 'Bearer')
     try:
         resp = requests.post(
             settings.INFOBANK_SEND_URL,
-            headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+            headers={'Authorization': f'{schema} {token}', 'Content-Type': 'application/json'},
             json=payload, timeout=TIMEOUT,
         )
         data = resp.json()
