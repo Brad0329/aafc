@@ -159,3 +159,55 @@ def new_enrollment_coach(coach_code, sta_name, lecture_title, child_name):
         return
     text = f'[AAFC][{sta_name}][{lecture_title}][{child_name}]신규입단 하였습니다.'
     _notify(to, text)
+
+
+def enrollment_paid(enrollment, pay_price=None, notify_coach=None):
+    """[1][2][4] 결제완료 회원 LMS + [3] 신규입단 코치 SMS.
+
+    금액은 청구내역(EnrollmentBill), 수업정보는 대표 수강과정(EnrollmentCourse)→강좌 기준.
+    - pay_price: 실제 결제금액(수강료결제 등). None이면 enrollment.pay_price.
+    - notify_coach: None이면 신규입단(apply_gubun='NEW')일 때만 코치 알림.
+    """
+    from django.db.models import Sum
+    from apps.enrollment.models import EnrollmentBill, EnrollmentCourse
+    from apps.courses.models import Lecture
+    from apps.accounts.models import MemberChild
+
+    member = enrollment.member
+    member_phone = getattr(member, 'phone', '') or ''
+
+    def _sum(code):
+        return EnrollmentBill.objects.filter(
+            enrollment=enrollment, bill_code=code
+        ).aggregate(s=Sum('bill_amt'))['s'] or 0
+
+    join_price = _sum('2001')   # 교육용품비
+    lec_price = _sum('1001')    # 수업료
+    pay_amt = enrollment.pay_price if pay_price is None else pay_price
+
+    # 대표 수강과정 → 강좌/구장/코치
+    course = EnrollmentCourse.objects.filter(enrollment=enrollment).order_by('id').first()
+    lec = None
+    if course and course.lecture_code:
+        lec = Lecture.objects.filter(
+            lecture_code=course.lecture_code
+        ).select_related('coach', 'stadium').first()
+    sta = lec.stadium if lec else None
+    sta_name = (sta.sta_name if sta else '') or ''
+    sta_phone = (sta.sta_phone if sta else '') or ''
+    lecture_title = (lec.lecture_title if lec else '') or ''
+    coach = lec.coach if lec else None
+    coach_name = (coach.coach_name if coach else '') or ''
+    period = f'{enrollment.start_dt}~{enrollment.end_dt}'
+
+    # [1][2][4] 회원 결제완료 LMS
+    payment_completed(member_phone, join_price, lec_price, pay_amt,
+                      sta_name, lecture_title, period, coach_name, sta_phone)
+
+    # [3] 신규입단 → 담당코치 SMS
+    if notify_coach is None:
+        notify_coach = (enrollment.apply_gubun or '') == 'NEW'
+    if notify_coach and coach:
+        child = MemberChild.objects.filter(child_id=enrollment.child_id).first()
+        child_name = (child.name if child else '') or enrollment.child_id
+        new_enrollment_coach(coach.coach_code, sta_name, lecture_title, child_name)

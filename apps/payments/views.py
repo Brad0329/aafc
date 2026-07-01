@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from apps.accounts.models import MemberChild
 from apps.courses.models import Lecture, LectureSelDay
 from apps.enrollment.models import Enrollment, EnrollmentCourse, EnrollmentBill
+from apps.notifications import sms_events
 from . import toss
 from .models import PaymentKCP, PaymentFail, PaymentToss
 
@@ -377,6 +378,8 @@ def toss_enrollment_success(request):
         })
 
     request.session.pop('enrollment_data', None)
+    # [자동SMS] 결제완료 회원 LMS + 신규입단 코치 알림 (원본 ex_proc/apply_proc)
+    sms_events.enrollment_paid(enrollment)
     return render(request, 'payments/payment_success.html', {'enrollment': enrollment})
 
 
@@ -532,6 +535,8 @@ def tuition_payment_success(request):
                       {'res_msg': f'처리 중 오류로 결제가 취소되었습니다: {e}'})
 
     request.session.pop('tuition_pay', None)
+    # [자동SMS] 수강료결제 완료 회원 LMS (원본 ex_proc). 신규입단 아님 → 코치알림 없음
+    sms_events.enrollment_paid(enr, pay_price=expected_amount, notify_coach=False)
     return render(request, 'payments/payment_success.html', {'enrollment': enr})
 
 
