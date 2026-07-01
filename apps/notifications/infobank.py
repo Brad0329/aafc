@@ -62,16 +62,17 @@ def is_configured():
 def _get_auth():
     """발송에 쓸 (schema, credential) 반환. 실패 시 None.
 
-    - 통합 KEY(V2): 토큰 발급 없이 그대로 Bearer 자격으로 사용.
-    - 옴니 계정(V1): /v1/auth/token 으로 토큰 발급 후 사용.
+    반환값은 Authorization 헤더에 그대로 넣을 값(문자열).
+    - 통합 KEY(V2): 접두어 없이 키 그대로. (`Authorization: {키}` — Bearer 붙이면 A401 AUTH_FAILED)
+    - 옴니 계정(V1): `{schema} {token}` (보통 `Bearer {token}`).
     """
     api_key = getattr(settings, 'INFOBANK_API_KEY', '')
     if api_key:
-        return ('Bearer', api_key)
+        return api_key
     token = get_token()
     if not token:
         return None
-    return (cache.get(_SCHEMA_CACHE_KEY, 'Bearer'), token)
+    return f"{cache.get(_SCHEMA_CACHE_KEY, 'Bearer')} {token}"
 
 
 def get_token():
@@ -135,12 +136,11 @@ def send(to, text, callback, title=None, file_keys=None):
     if not auth:
         return {'ok': False, 'code': 'AUTH', 'result': '인증 실패(토큰/통합키)',
                 'msg_key': '', 'service_type': service_type, 'raw': None}
-    schema, credential = auth
 
     try:
         resp = requests.post(
             settings.INFOBANK_SEND_URL,
-            headers={'Authorization': f'{schema} {credential}', 'Content-Type': 'application/json'},
+            headers={'Authorization': auth, 'Content-Type': 'application/json'},
             json=payload, timeout=TIMEOUT,
         )
         data = resp.json()
@@ -149,17 +149,19 @@ def send(to, text, callback, title=None, file_keys=None):
         return {'ok': False, 'code': 'HTTP', 'result': str(e),
                 'msg_key': '', 'service_type': service_type, 'raw': None}
 
-    # 응답 파싱: data.code == 'A000' 성공. destinations[].msgKey 에 메시지키.
-    body = data.get('data', data) if isinstance(data, dict) else {}
-    code = body.get('code', '')
-    result = body.get('result', '')
+    # 응답 envelope: {"common":{"authCode","authResult",...}, "data":{"destinations":[{"msgKey",...}]}}
+    # (인증/ACL 오류도 common.authCode 로 전달됨: A000 성공 / A401 인증실패 / A403 ACL 등)
+    body = data if isinstance(data, dict) else {}
+    common = body.get('common') if isinstance(body.get('common'), dict) else {}
+    code = common.get('authCode') or body.get('code', '')
+    result = common.get('authResult') or body.get('result', '')
     msg_key = ''
     inner = body.get('data') if isinstance(body.get('data'), dict) else None
-    dests = inner.get('destinations') if inner else None
-    if dests:
+    dests = inner.get('destinations') if inner else body.get('destinations')
+    if isinstance(dests, list) and dests:
         msg_key = dests[0].get('msgKey', '')
-        code = dests[0].get('code', code)
-        result = dests[0].get('result', result)
+        code = dests[0].get('code', code) or code
+        result = dests[0].get('result', result) or result
     return {'ok': code == SUCCESS_CODE, 'code': code, 'result': result,
             'msg_key': msg_key, 'service_type': service_type, 'raw': data}
 
