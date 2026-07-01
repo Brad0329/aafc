@@ -6,6 +6,7 @@ from django.db.models import Q
 from .models import Consult, ConsultAnswer, ConsultFree, ConsultRegion
 from apps.courses.models import Stadium
 from apps.common.models import CodeValue
+from apps.notifications import sms_events
 
 
 def consult_form(request):
@@ -63,6 +64,9 @@ def consult_form(request):
             stat_code=76,
         )
 
+        # [자동SMS] 지역담당자(구장 coach_level=121)에게 상담신청 알림 (원본 consult_write_proc)
+        sms_events.consult_applied(consult)
+
         return render(request, 'consult/consult_done.html', {
             'message': '상담이 접수되었습니다. 담당자가 개별 연락 예정입니다.'
         })
@@ -85,7 +89,7 @@ def consult_free_form(request):
         jlocal = request.POST.get('jlocal', '')
         consult_gbn = request.POST.get('consult_gbn', 'B1')
 
-        ConsultFree.objects.create(
+        free = ConsultFree.objects.create(
             jname=jname,
             jphone1=jphone1,
             jphone2=jphone2,
@@ -94,6 +98,9 @@ def consult_free_form(request):
             j_date=timezone.now(),
             consult_gbn=consult_gbn,
         )
+
+        # [자동SMS] 지역담당자(ConsultRegion by jlocal)에게 무료체험 신청 알림 (원본 cfree_new_addproc)
+        sms_events.free_applied(free)
 
         return render(request, 'consult/consult_done.html', {
             'message': '무료수업체험 신청이 완료되었습니다. 담당자가 개별 연락 예정입니다.'

@@ -14,7 +14,7 @@ from django.db.models.functions import Coalesce
 from .models import OfficeUser, OfficeLoginHistory
 from .decorators import office_login_required, office_permission_required
 from apps.notifications.models import OfficeNotification, Notification, SMSLog
-from apps.notifications import infobank
+from apps.notifications import infobank, sms_events
 from apps.common.models import CodeGroup, CodeValue, Setting
 from apps.points.models import PointConfig, PointHistory
 from apps.courses.models import (
@@ -1690,16 +1690,20 @@ def consult_answer_add(request):
         consult = get_object_or_404(Consult, pk=con_id)
         office_user = request.session.get('office_user', {})
 
+        coach_code = int(request.POST.get('coach_code', '0') or '0') or None
         ConsultAnswer.objects.create(
             consult=consult,
             consult_category=int(request.POST.get('consult_category', '0') or '0'),
             stat_code=int(request.POST.get('stat_code', '76') or '76'),
             cus_stat_code=int(request.POST.get('cus_stat_code', '0') or '0') or None,
-            coach_code=int(request.POST.get('coach_code', '0') or '0') or None,
+            coach_code=coach_code,
             consult_answer=request.POST.get('consult_answer', ''),
             receive_code=office_user.get('coach_code', None) or None,
             con_answer_dt=timezone.now(),
         )
+        # [자동SMS] 코치 배정 시 코치에게 상담이관 알림 (원본 consult_reply_proc)
+        if coach_code:
+            sms_events.consult_assigned_coach(consult, coach_code)
         return redirect('office_consult_detail', pk=con_id)
     return redirect('office_consult_list')
 
@@ -1771,17 +1775,21 @@ def consult_input(request):
 
         # 답변 동시 등록
         answer_content = request.POST.get('consult_answer', '').strip()
+        answer_coach = int(request.POST.get('answer_coach', '0') or '0') or None
         if answer_content:
             ConsultAnswer.objects.create(
                 consult=consult,
                 consult_category=int(request.POST.get('answer_category', '0') or '0'),
                 stat_code=int(request.POST.get('answer_stat', '76') or '76'),
                 cus_stat_code=int(request.POST.get('answer_cust', '0') or '0') or None,
-                coach_code=int(request.POST.get('answer_coach', '0') or '0') or None,
+                coach_code=answer_coach,
                 consult_answer=answer_content,
                 receive_code=office_user.get('coach_code', None) or None,
                 con_answer_dt=timezone.now(),
             )
+        # [자동SMS] 코치 배정 시 코치에게 상담이관 알림 (원본 consult_input_proc)
+        if answer_coach:
+            sms_events.consult_assigned_coach(consult, answer_coach)
 
         return redirect('office_consult_list')
 
@@ -1968,6 +1976,8 @@ def consult_free_confirm(request, pk):
         free.confirm_name = office_user.get('office_name', '')
         free.confirm_date = timezone.now()
         free.save()
+        # [자동SMS] C1(3회권) 승인 시 신청자에게 주문링크 발송 (원본 consult_free_proc)
+        sms_events.free_confirmed_c1(free)
     return redirect('office_consult_free')
 
 
